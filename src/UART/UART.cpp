@@ -3,14 +3,16 @@
 #include <fcntl.h>  //Used for UART
 #include <termios.h> //Used for UART
 // For multiprocessing
-#include <signal>
+#include <signal.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include "UART.h"
+#include <fstream>
+#include <string.h>
 
 void UART::setupUART() {
 	//Open the UART in non-blocking read/write mode
-	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY);
+	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY | O_NDELAY);
 	if (uart_filestream == -1) {
 		//ERROR: Failed to open serial port!
 		fprintf(stderr, "Error: unable to open serial port. Ensure it is correctly set up\n");
@@ -18,7 +20,7 @@ void UART::setupUART() {
 	//Configure the UART
 	struct termios options;
 	tcgetattr(uart_filestream, &options);
-	options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;
+	options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
 	options.c_iflag = IGNPAR;
 	options.c_oflag = 0;
 	options.c_lflag = 0;
@@ -26,7 +28,7 @@ void UART::setupUART() {
 	tcsetattr(uart_filestream, TCSANOW, &options);
 }
 
-int UART::sendBytes(unsigned char *buf, size_t count) {
+int UART::sendBytes(char *buf, size_t count) {
 	int sent = write(uart_filestream, (void*) buf, count);
 	if (sent < 0) {
 		fprintf(stderr, "Failed to send bytes");
@@ -35,7 +37,7 @@ int UART::sendBytes(unsigned char *buf, size_t count) {
 	return 0;
 }
 
-int UART::getBytes(unsigned char buf[256]) {
+int UART::getBytes(char buf[256]) {
 	/*
 	 * Gets bytes that are waiting in the UART stream (max 255 bytes)
 	 */
@@ -62,13 +64,12 @@ int UART::startDataCollection(std::string filename) {
 		// This is the child process
 		close(dataPipe[0]); // Not needed
 		// Infinite loop for data collection
-		sendBytes('\0', 1);
 		for (int j = 0;; j++) {
 			std::ofstream outf;
 			char unique_file[50];
-			sprintf(unique_file, "%s%04d.txt", filename, j);
+			sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
 			outf.open(unique_file);
-			sendBytes('C', 1);
+			sendBytes("C", 1);
 			// Take five measurements then change the file
 			for (int i = 0; i < 5; i++) {
 				char buf[256];
@@ -76,10 +77,10 @@ int UART::startDataCollection(std::string filename) {
 				while (1) {
 					int n = read(uart_filestream, buf, 256);
 					if (n > 0) {
-						buf[n] = '/0';
+						buf[n] = '\0';
 						write(dataPipe[1], buf, strlen(buf));
-						write(unique_file, buf, strlen(buf));
-						sendBytes('N', 1);
+						outf << buf;
+						sendBytes("N", 1);
 					}
 				}
 			}
@@ -99,7 +100,7 @@ int UART::stopDataCollection() {
 			int status;
 			kill(m_pid, SIGTERM);
 			sleep(1);
-			if (waitpid(m_pid, &status, WHOHANG) == m_pid) died = true;
+			if (waitpid(m_pid, &status, WNOHANG) == m_pid) died = true;
 		}
 		if (died) {
 			fprintf(stdout, "IMU and ImP Terminated\n");
@@ -107,7 +108,7 @@ int UART::stopDataCollection() {
 			fprintf(stdout, "IMU and ImP Killed\n");
 			kill(m_pid, SIGKILL);
 		}
-		sendBytes('S', 1);
+		sendBytes("S", 1);
 		close(uart_filestream);
 	}
 	return 0;

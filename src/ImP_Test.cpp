@@ -1,7 +1,7 @@
 /*
  * Simple file to test functionality of the UART to get data from the ImP
  */
-#include <Uart/UART.h>
+#include <UART/UART.h>
 #include <string>
 #include <unistd.h>
 #include <stdio.h>
@@ -16,23 +16,23 @@ UART ImP = UART();
 
 int main() {
 	wiringPiSetup();
-	pinMode(3, INPUT);
-	pinMode(4, INPUT);
+	pinMode(START, INPUT);
+	pinMode(STOP, INPUT);
+	pullUpDnControl(START, PUD_UP);
+	pullUpDnControl(STOP, PUD_UP);
+	fprintf(stdout, "Ready to start");
+	fflush(stdout);
 	// Wait for low signal to request ImP measurements
-	while (digitalRead(3)) delay(10);
-
+	while (digitalRead(START)) delay(10);
+	fprintf(stdout, "Start command recieved");
+	fflush(stdout);
 	int data_stream = ImP.startDataCollection("test");
 	char buf[256];
 	delay(500);
-	FILE* fd = fdopen(data_stream, 'r');
-	for (i = 0; i < 50; i++) {
-		int n;
-		while (1) {
-			char c = getc(fd);
-			if (c != EOF) putc(c, stdout);
-		}
-		fprintf(cout, "%s%s", buf, "\n");
+	FILE* fd = fdopen(data_stream, "r");
+	while (digitalRead(STOP)) {
+		char c = getc(fd);
+		if (c != EOF) putc(c, stdout);
 	}
-
 	return 0;
 }
