@@ -1,3 +1,16 @@
+#data and video files
+./Docs/Video/*.h264
+./Docs/Data/*.txt
+
+#build files
+build/
+
+#develepment files
+dev/
+
+# Netbeans project files
+nbproject/
+
 # Prerequisites
 *.d
 
