@@ -12,9 +12,10 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include "RPi_IMU.h"
-#include "camera.h"
-#include "Ethernet.h"
+#include "RPi_IMU/RPi_IMU.h"
+#include "camera/camera.h"
+#include "Ethernet/Ethernet.h"
+
 #include <wiringPi.h>
 
 // Main inputs for experiment control
@@ -144,7 +145,7 @@ int main() {
 	pwmSetClock(PWM_CLOCK); //Freq = 19200000 / (Range*Clock)
 	pwmWrite(1, 0);
 	// Create necessary directories for saving files
-	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video")
+	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	fprintf(stdout, "Pi 1 is alive and running.\n");
 	// TODO Implement Listening for communications from RXSM
 
