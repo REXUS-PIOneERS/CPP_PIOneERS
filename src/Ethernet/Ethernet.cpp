@@ -1,11 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
 
 #include "Ethernet.h"
 
@@ -99,33 +94,10 @@ int Client::setup() {
 	return 0;
 }
 
-void Client::open_connection() {
-	int n;
-	char buffer[256];
+int Client::open_connection() {
 	if (connect(m_sockfd, (struct sockaddr *) &m_serv_addr, sizeof (m_serv_addr)) < 0)
-		error("ERROR connecting");
-	while (1) {
-		printf("Please enter the message: ");
-		bzero(buffer, 256);
-		fgets(buffer, 255, stdin);
-		n = write(m_sockfd, buffer, strlen(buffer));
-		if (n < 0)
-			error("ERROR writing to socket");
-
-		if (strncmp(buffer, "E", 1) == 0) {
-			printf("Disconnecting from server...");
-			break;
-		}
-		bzero(buffer, 256);
-		n = read(m_sockfd, buffer, 255);
-		if (n < 0)
-			error("ERROR reading from socket");
-		printf("%s\n", buffer);
-	}
-	close(m_sockfd);
-}
-
-Client::~Client() {
+		return -1; // Failed to connect!
+	return 0;
 }
 
 std::string Client::send_packet(std::string packet) {
@@ -134,6 +106,32 @@ std::string Client::send_packet(std::string packet) {
 	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
 	 * Data uses consistent overhead byte stuffing
 	 */
-
+	int n = 0;
+	char buffer[256];
+	bzero(buffer, 256);
+	int attempts = 0;
+	// Try to send the packet (maximum of 3 attempts)
+	while (n <= 0 && attempts++ < 3)
+		n = write(m_sockfd, packet, strlen(packet));
+	// Get a response from the server
+	n = read(m_sockfd, buffer, 255);
+	buffer[n] = 0; // Add null character for termination of string
+	// Convert char* to std::string then return
+	std::string rtn(buffer);
+	return rtn;
 }
+
+int Client::close_connection() {
+	send_packet("EXIT"); // When this command is received server terminates connection
+	close(m_sockfd);
+}
+
+Client::~Client() {
+	if (m_sockfd) {
+		send_packet("EXIT");
+		close(m_sockfd);
+	}
+}
+
+
 

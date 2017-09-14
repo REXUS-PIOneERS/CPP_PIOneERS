@@ -36,9 +36,9 @@ class Client {
 public:
 	Client(int port, std::string host_name);
 	int setup();
-	void open_connection();
+	int open_connection();
 	std::string send_packet(std::string packet);
-	std::string exit();
+	int close_connection();
 	~Client();
 private:
 	int m_port;

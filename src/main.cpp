@@ -1,3 +1,11 @@
+/*
+ * Pi 1 is connected to the IMU and RTC via I2C, RXSM via UART and GPIO,
+ * Camera via CSI, Motor via PWM and GPIO and Pi 2 via Ethernet.
+ *
+ * This program controls most of the main logic and for the PIOneERs mission
+ * on board REXUS.
+ */
+
 #include <stdio.h>
 #include <cstdint>
 #include <unistd.h> //For sleep
@@ -6,6 +14,7 @@
 
 #include "RPi_IMU.h"
 #include "camera.h"
+#include "Ethernet.h"
 #include <wiringPi.h>
 
 // Main inputs for experiment control
@@ -34,6 +43,8 @@ RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 int IMU_data_stream;
 
 // TODO Setup Ethernet communication variables
+std::string server_name = "...";
+
 
 // TODO Setup UART connections
 
