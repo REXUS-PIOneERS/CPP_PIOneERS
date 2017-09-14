@@ -18,6 +18,11 @@
 #include <string>
 #include "timer.h"
 #include <fstream>  //For writing to files
+// Includes for I2c
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+#include "LSM9DS0.h"
 
 RPi_IMU::RPi_IMU() {
 	//Open the I2C bus
@@ -251,7 +256,7 @@ int RPi_IMU::startDataCollection(char* filename) {
 				readAcc(acc_data);
 				readGyr(gyr_data);
 				readMag(mag_data);
-				int time = mmeasurement_time.elapsed();
+				int time = measurement_time.elapsed();
 				//Output data to the file (all one line)
 				outf << time << "," << "Acc," << acc_data[0] << "," <<
 						acc_data[1] << "," << acc_data[2] << "Gyr," <<
@@ -259,7 +264,7 @@ int RPi_IMU::startDataCollection(char* filename) {
 						gyr_data[2] << "Mag," << mag_data[0] << "," <<
 						mag_data[1] << "," << mag_data[2] << std::endl;
 				write(dataPipe[1], 0x00, 1); // Each set of values is separated by a zero
-				write(dataPipe[1], time, sizeof (time));
+				write(dataPipe[1], (void*)time, sizeof (time));
 				write(dataPipe[1], acc_data, sizeof (acc_data));
 				write(dataPipe[1], gyr_data, sizeof (gyr_data));
 				write(dataPipe[1], mag_data, sizeof (mag_data));
