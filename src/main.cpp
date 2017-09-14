@@ -43,9 +43,10 @@ PiCamera Cam = PiCamera();
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 int IMU_data_stream;
 
-// TODO Setup Ethernet communication variables
-std::string server_name = "...";
-
+// Ethernet communication setup and variables (Pi 2 acts as server)
+std::string server_name = "PIOneERS2.local";
+int port_no = 51717; // Random unused port for communication
+Client ethernet_comms = Client(server_name, port_no);
 
 // TODO Setup UART connections
 
@@ -74,6 +75,8 @@ int SOE_SIGNAL() {
 	 */
 	fprintf(stdout, "Signal Received: SOE\n");
 	fflush(stdout);
+	// Setup the IMU and start recording
+	// TODO ensure IMU setup register values are as desired
 	IMU = RPi_IMU();
 	IMU.setupAcc();
 	IMU.setupGyr();
@@ -89,6 +92,7 @@ int SOE_SIGNAL() {
 		piLock(1);
 		if (encoder_count >= 40) // TODO what should the count be?
 			break;
+		// TODO periodically send the count to ground
 		piUnlock(1);
 		delay(500);
 	}
@@ -98,8 +102,10 @@ int SOE_SIGNAL() {
 	fflush(stdout);
 
 	// Wait for the next signal to continue the program
-	while (digitalRead(SODS))
+	while (digitalRead(SODS)) {
+		// TODO sharing of data and sending to ground
 		delay(10);
+	}
 	return SODS_SIGNAL();
 }
 
@@ -109,15 +115,16 @@ int LO_SIGNAL() {
 	 * are set to start recording video and we then wait to receive the 'Start
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
-	fprintf(stdout, "Signal Received: LO\nWaiting 10 seconds\n");
+	printf("Signal Received: LO\n");
 	fflush(stdout);
-	delay(10000); // Wait 10 seconds TODO check timing
 	Cam.startVideo();
-	fprintf(stdout, "Video running in background\n");
 	fflush(stdout);
 	// Poll the SOE pin until signal is received
-	while (digitalRead(SOE))
-		delay(10); // 10 s delay to save CPU
+	// TODO implement check to make sure no false signals!
+	while (digitalRead(SOE)) {
+		// TODO implement RXSM communications
+		delay(10);
+	}
 	return SOE_SIGNAL();
 }
 
@@ -147,15 +154,31 @@ int main() {
 	// Create necessary directories for saving files
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	fprintf(stdout, "Pi 1 is alive and running.\n");
-	// TODO Implement Listening for communications from RXSM
+	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
+	while (!digitalRead(ALIVE))
+		delay(10);
+
+	if (ethernet_comms.open_connection() < 0) // Open connection
+		printf("I can't connect, something is wrong");
+	// TODO handle error where we can't connect to he server
 
 	// Check for LO signal.
-
-	while (digitalRead(LO))
-		delay(10); // 10 ms delay to save CPU
+	bool signal_recieved = false;
+	while (!signal_recieved) {
+		delay(10);
+		// Implements a loop to ensure LO signal has actually been received
+		if (digitalRead(LO)) {
+			int count = 0;
+			for (int i = 0; i < 5; i++) {
+				count += digitalRead(LO);
+				delayMicroseconds(200);
+			}
+			if (count >= 3) signal_recieved = true;
+		}
+		// TODO Implement communications with RXSM
+	}
 	return LO_SIGNAL();
 }
-
 
 
 /*
