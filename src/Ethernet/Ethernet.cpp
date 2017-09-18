@@ -71,6 +71,7 @@ Server::~Server() {
 Client::Client(int port, std::string host_name) {
 	m_host_name = host_name;
 	m_port = port;
+	setup();
 }
 
 int Client::setup() {
@@ -133,5 +134,81 @@ Client::~Client() {
 	}
 }
 
+/*
+ * Specific functions for the PIOneERS implementation. The client and server
+ * both run as a separate process with a pipe for passing data back and forth.
+ * The client regularly checks the pipe for data to be sent and does so.
+ * Whenever the server receives a request it also checks it's own pipe for data
+ * to be transferred to the client and does so.
+ *
+ * General format of communication:
+ * Client initiates communication and sends first data packet
+ * Server responds by acknowledging receipt of the packet
+ * Client continues to send packets while it has some and the server responds
+ *		accordingly
+ * Client informs the server it has finished sending packets.
+ * Server then sends any packets it has to the client in a similar process.
+ * Server informs the client it is finished and both server and client end
+ *		the connection
+ */
 
-
+int Client::run(int pipes[2]) {
+	/*
+	 * Generate a pipe for transferring the data, fork the process and send
+	 * back the required pipes.
+	 * The child process stays open periodically checking the pipe for data
+	 * packets and sending these to the server as well as receiving packets
+	 * in return.
+	 */
+	int sendPipe[2]; // This pipe sends data back to the main process
+	int recvPipe[2]; // This pipe receives data from the main process
+	open_connection();
+	if (pipe(sendPipe)) {
+		fprintf(stderr, "Client failed to make sendPipe");
+		return -1;
+	}
+	if (pipe(recvPipe)) {
+		fprintf(stderr, "Client failed to make recvPipe");
+		return -1;
+	}
+	if ((m_pid = fork()) == 0) {
+		// This is the child process. First close the pipes we don't need
+		close(sendPipe[0]);
+		close(recvPipe[1]);
+		// Now in an infinite loop, check for data in the recvPipe and send it
+		while (1) {
+			// Read the data a byte at a time checking for the NULL character
+			int n = 0;
+			char buf[256];
+			while ((buf[n++] = getc(recvPipe[0])) != 0 && n < 255) continue;
+			if (n > 1) {
+				// We got some data! We now need to send it.
+				std::string str(buf, n); // Convert it to a string
+				std::string response = send_packet(str);
+				// Check response
+				if (response != "ACK") {
+					//TODO error handling
+					break;
+				}
+			}
+			if (n <= 1) {
+				// We have finished getting all the data
+				std::string response = send_packet("FINISHED");
+				// Now we receive data from the server
+				while (response != "FINISHED") {
+					// Write the response to the main program
+					write(sendPipe[1], response, sizeof (response));
+					response = send_packet("ACK"); // Acknowledge data received
+				}
+			}
+		}
+	} else {
+		// Assign the pipes for the main process and close the un-needed ones
+		pipes[0] = sendPipe[0];
+		pipes[1] = recvPipe[1];
+		close(sendPipe[1]);
+		close(recvPipe[0]);
+		return 0;
+	}
+	return 0;
+}

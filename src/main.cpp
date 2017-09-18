@@ -46,8 +46,8 @@ int IMU_data_stream;
 // Ethernet communication setup and variables (Pi 2 acts as server)
 std::string server_name = "PIOneERS2.local";
 int port_no = 51717; // Random unused port for communication
+int ethernet_streams[2];
 Client ethernet_comms = Client(server_name, port_no);
-
 // TODO Setup UART connections
 
 int SODS_SIGNAL() {
@@ -103,8 +103,11 @@ int SOE_SIGNAL() {
 
 	// Wait for the next signal to continue the program
 	while (digitalRead(SODS)) {
-		// TODO sharing of data and sending to ground
-		delay(10);
+		// Read data from IMU_data_stream and send on to Ethernet
+		int ch = 0;
+		while ((ch = getc(ethernet_streams[0])) != 0 && n != 255)
+			putc(ch, stdout); // TODO Need to echo characters to UART stream
+		delay(50);
 	}
 	return SODS_SIGNAL();
 }
@@ -158,8 +161,7 @@ int main() {
 	while (!digitalRead(ALIVE))
 		delay(10);
 
-	if (ethernet_comms.open_connection() < 0) // Open connection
-		printf("I can't connect, something is wrong");
+	ethernet_comms.run(ethernet_streams);
 	// TODO handle error where we can't connect to he server
 
 	// Check for LO signal.
