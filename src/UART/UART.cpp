@@ -2,6 +2,10 @@
 #include <unistd.h>  //Used for UART
 #include <fcntl.h>  //Used for UART
 #include <termios.h> //Used for UART
+// For multiprocessing
+#include <signal>
+#include <sys/wait.h>
+#include <stdlib.h>
 #include "UART.h"
 
 void UART::setupUART() {
@@ -44,4 +48,65 @@ int UART::getBytes(unsigned char buf[256]) {
 		return 0;
 	} else
 		return buf_length;
+}
+
+int UART::startDataCollection(std::string filename) {
+	/*
+	 * Sends request to the ImP to begin sending data. Returns the file stream
+	 * to the main program and continually writes the data to this stream.
+	 */
+	int dataPipe[2];
+	pipe(dataPipe);
+
+	if ((m_pid = fork()) == 0) {
+		// This is the child process
+		close(dataPipe[0]); // Not needed
+		// Infinite loop for data collection
+		for (int j = 0;; j++) {
+			std::ofstream outf;
+			char unique_file[50];
+			sprintf(unique_file, "%s%04d.txt", filename, j);
+			outf.open(unique_file);
+			sendBytes("RUN", sizeof ("RUN"));
+			// Take five measurements then change the file
+			for (int i = 0; i < 5; i++) {
+				char buf[256];
+				int i = 0;
+				bool got_data = false;
+				// Wait for data to come through
+				while (!got_data) {
+					while (buf[i++] = getc(uart_filestream) != 0) continue;
+					if (i > 1) got_data = true;
+				}
+				write(dataPipe[1], buf, strlen(buf));
+				fprintf(unique_file, "%s%s", buf, "\n");
+			}
+		}
+	} else {
+		close(dataPipe[1]);
+		return dataPipe[0];
+	}
+	return -1; // This should never happen.
+}
+
+int UART::stopDataCollection() {
+	if (m_pid) {
+		bool died = false;
+		fprintf(stdout, "Stopping IMU and ImP... ID:%d\n", m_pid);
+		for (int i = 0, !died && i < 5, i++) {
+			int status;
+			kill(m_pid, SIGTERM);
+			sleep(1);
+			if (waitpid(m_pid, &status, WHOHANG) == m_pid) died = true;
+		}
+		if (died) {
+			fprintf(stdout, "IMU and ImP Terminated\n");
+		} else {
+			fprintf(stdout, "IMU and ImP Killed\n");
+			kill(pid, SIGKILL);
+		}
+		UART::sendBytes("KILL", sizeof ("KILL"));
+		cllose(uart_filestream);
+	}
+	return 0
 }
