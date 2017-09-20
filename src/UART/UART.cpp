@@ -93,7 +93,7 @@ int UART::stopDataCollection() {
 	if (m_pid) {
 		bool died = false;
 		fprintf(stdout, "Stopping IMU and ImP... ID:%d\n", m_pid);
-		for (int i = 0, !died && i < 5, i++) {
+		for (int i = 0; !died && i < 5; i++) {
 			int status;
 			kill(m_pid, SIGTERM);
 			sleep(1);
@@ -108,5 +108,5 @@ int UART::stopDataCollection() {
 		UART::sendBytes("KILL", sizeof ("KILL"));
 		cllose(uart_filestream);
 	}
-	return 0
+	return 0;
 }
