@@ -62,22 +62,27 @@ int UART::startDataCollection(std::string filename) {
 		// This is the child process
 		close(dataPipe[0]); // Not needed
 		// Infinite loop for data collection
+		sendBytes('\0', 1);
 		for (int j = 0;; j++) {
 			std::ofstream outf;
 			char unique_file[50];
 			sprintf(unique_file, "%s%04d.txt", filename, j);
 			outf.open(unique_file);
-			sendBytes("RUN", sizeof ("RUN"));
+			sendBytes('N', 1);
 			// Take five measurements then change the file
 			for (int i = 0; i < 5; i++) {
 				char buf[256];
-				int i = 0;
-				bool got_data = false;
 				// Wait for data to come through
-				while (!got_data) {
-					while (buf[i++] = getc(uart_filestream) != 0) continue;
-					if (i > 1) got_data = true;
+				while (1) {
+					int i = 0;
+					buf[i] = getc(uart_filestream);
+					// Check if we actually have some data
+					if (feof(uart_filestream)) continue;
+					// Get the data till the next break
+					while ((buf[++i] = getc(uart_filestream)) != '\0') continue;
+					break;
 				}
+				// Send the data back to the main program and write to file
 				write(dataPipe[1], buf, strlen(buf));
 				fprintf(unique_file, "%s%s", buf, "\n");
 			}
@@ -105,8 +110,8 @@ int UART::stopDataCollection() {
 			fprintf(stdout, "IMU and ImP Killed\n");
 			kill(pid, SIGKILL);
 		}
-		UART::sendBytes("KILL", sizeof ("KILL"));
-		cllose(uart_filestream);
+		UART::sendBytes('S', 1);
+		close(uart_filestream);
 	}
 	return 0;
 }
