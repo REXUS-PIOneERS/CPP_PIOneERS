@@ -61,8 +61,8 @@ SCENARIO("IMU is operational", "[IMU]") {
 
 				THEN("Data from magnetometer received") {
 					REQUIRE(x != 0xFFFF);
-					REQUIRE(x != 0xFFFF);
-					REQUIRE(x != 0xFFFF);
+					REQUIRE(y != 0xFFFF);
+					REQUIRE(z != 0xFFFF);
 				}
 			}
 
@@ -96,7 +96,8 @@ SCENARIO("IMU is operational", "[IMU]") {
 						//REQUIRE(!IMU.i2c_file.is_open());
 					}
 					// Get rid of all the test files
-					system("sudo rm -rf /*.txt");
+					sleep(1);
+					system("sudo rm -rf ./*.txt");
 				}
 			}
 		}
