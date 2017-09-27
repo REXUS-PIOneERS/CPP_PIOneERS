@@ -76,7 +76,7 @@ int UART::startDataCollection(std::string filename) {
 				while (1) {
 					int i = 0;
 					buf[i] = getc(uart_filestream);
-					// Check if we actually have some data
+					// Check if we actually have some data or got nothing
 					if (feof(uart_filestream)) continue;
 					// Get the data till the next break
 					while ((buf[++i] = getc(uart_filestream)) != '\0') continue;
@@ -108,7 +108,7 @@ int UART::stopDataCollection() {
 			fprintf(stdout, "IMU and ImP Terminated\n");
 		} else {
 			fprintf(stdout, "IMU and ImP Killed\n");
-			kill(pid, SIGKILL);
+			kill(m_pid, SIGKILL);
 		}
 		UART::sendBytes('S', 1);
 		close(uart_filestream);

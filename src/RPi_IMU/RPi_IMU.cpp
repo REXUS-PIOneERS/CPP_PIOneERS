@@ -296,6 +296,9 @@ int RPi_IMU::stopDataCollection() {
 		} else {
 			fprintf(stdout, "IMU Killed\n");
 			kill(pid, SIGKILL);
+			sleep(1);
+			if (waitpid(pid, &status, WNOHANG) == pid) died = true;
+			else return -1;
 		}
 		resetRegisters();
 		close(i2c_file);
