@@ -225,6 +225,12 @@ void RPi_IMU::resetRegisters() {
 	writeReg(MAG_ADDRESS, CTRL_REG7_XM, 0);
 }
 
+void signalHandler(int signum) {
+	printf("Received Signal: SIGTERM\n");
+	exit(signum);
+}
+
+
 int RPi_IMU::startDataCollection(char* filename) {
 	int dataPipe[2];
 	// Create a pipe for sharing data
@@ -235,6 +241,7 @@ int RPi_IMU::startDataCollection(char* filename) {
 	// Create the parent and child processes
 	if ((pid = fork()) == 0) {
 		// This is the child process which controls data collection
+		signal(SIGTERM, signalHandler);
 		close(dataPipe[0]);
 		// Collect data
 		int16_t acc_data[3] = {0, 0, 0};
@@ -294,6 +301,7 @@ int RPi_IMU::stopDataCollection() {
 		if (died) {
 			fprintf(stdout, "IMU Terminated\n");
 		} else {
+			int status;
 			fprintf(stdout, "IMU Killed\n");
 			kill(pid, SIGKILL);
 			sleep(1);
@@ -301,11 +309,9 @@ int RPi_IMU::stopDataCollection() {
 			else return -1;
 		}
 		resetRegisters();
-		close(i2c_file);
 		return 0;
 	}
 	resetRegisters();
-	close(i2c_file);
 	return 0;
 }
 
