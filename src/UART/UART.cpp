@@ -68,23 +68,20 @@ int UART::startDataCollection(std::string filename) {
 			char unique_file[50];
 			sprintf(unique_file, "%s%04d.txt", filename, j);
 			outf.open(unique_file);
-			sendBytes('N', 1);
+			sendBytes('C', 1);
 			// Take five measurements then change the file
 			for (int i = 0; i < 5; i++) {
 				char buf[256];
 				// Wait for data to come through
 				while (1) {
-					int i = 0;
-					buf[i] = getc(uart_filestream);
-					// Check if we actually have some data or got nothing
-					if (feof(uart_filestream)) continue;
-					// Get the data till the next break
-					while ((buf[++i] = getc(uart_filestream)) != '\0') continue;
-					break;
+					int n = read(uart_filestream, buf, 256);
+					if (n > 0) {
+						buf[n] = '/0';
+						write(dataPipe[1], buf, strlen(buf));
+						write(unique_file, buf, strlen(buf));
+						sendBytes('N', 1);
+					}
 				}
-				// Send the data back to the main program and write to file
-				write(dataPipe[1], buf, strlen(buf));
-				fprintf(unique_file, "%s%s", buf, "\n");
 			}
 		}
 	} else {
@@ -110,7 +107,7 @@ int UART::stopDataCollection() {
 			fprintf(stdout, "IMU and ImP Killed\n");
 			kill(m_pid, SIGKILL);
 		}
-		UART::sendBytes('S', 1);
+		sendBytes('S', 1);
 		close(uart_filestream);
 	}
 	return 0;

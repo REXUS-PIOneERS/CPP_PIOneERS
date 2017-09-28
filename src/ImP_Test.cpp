@@ -24,9 +24,13 @@ int main() {
 	int data_stream = ImP.startDataCollection("test");
 	char buf[256];
 	delay(500);
+	FILE* fd = fdopen(data_stream, 'r');
 	for (i = 0; i < 50; i++) {
 		int n;
-		while ((buf[n++] = getc(data_stream)) != 0) continue;
+		while (1) {
+			char c = getc(fd);
+			if (c != EOF) putc(c, stdout);
+		}
 		fprintf(cout, "%s%s", buf, "\n");
 	}
 
