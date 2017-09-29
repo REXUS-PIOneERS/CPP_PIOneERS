@@ -15,11 +15,9 @@ int main() {
 	std::string msg = "This is a test message\n";
 	char buf[256];
 	while (1) {
-		printf("Entering Loop\n");
-		int n = write(pipes[1], msg.c_str(), 10);
-		//int n = read(pipes[0], buf, 256);
-		if (n != -1)
-			printf("Message (%d): \n", n);
+		write(pipes[1], msg.c_str(), 10);
+		int n = read(pipes[0], buf, 256);
+		printf("Message (%d): \n", n);
 		delay(100);
 	}
 

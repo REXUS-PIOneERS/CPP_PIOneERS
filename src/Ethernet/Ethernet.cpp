@@ -172,15 +172,11 @@ int Client::run(int pipes[2]) {
 	int read_pipe[2]; // This pipe receives data from the main process
 	pipe(write_pipe);
 	pipe(read_pipe);
-	fcntl(write_pipe[0], F_SETFL, O_NONBLOCK);
-	fcntl(write_pipe[1], F_SETFL, O_NONBLOCK);
-	fcntl(read_pipe[0], F_SETFL, O_NONBLOCK);
-	fcntl(read_pipe[1], F_SETFL, O_NONBLOCK);
+	open_connection();
 	if ((m_pid = fork()) == 0) {
 		// This is the child process.
 		close(write_pipe[0]);
 		close(read_pipe[1]);
-		open_connection();
 		// Loop for sending and receiving data
 		std::ofstream outf;
 		outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
@@ -205,10 +201,10 @@ int Client::run(int pipes[2]) {
 		outf.close();
 	} else {
 		// Assign the pipes for the main process and close the un-needed ones
-		pipes[0] = write_pipe[0];
-		pipes[1] = read_pipe[1];
 		close(write_pipe[1]);
 		close(read_pipe[0]);
+		pipes[0] = write_pipe[0];
+		pipes[1] = read_pipe[1];
 		return 0;
 	}
 	return 0;
@@ -220,23 +216,17 @@ int Server::run(int *pipes) {
 	int write_pipe[2];
 	pipe(read_pipe);
 	pipe(write_pipe);
-	fcntl(read_pipe[0], F_SETFL, O_NONBLOCK);
-	fcntl(read_pipe[1], F_SETFL, O_NONBLOCK);
-	fcntl(write_pipe[1], F_SETFL, O_NONBLOCK);
-	fcntl(write_pipe[0], F_SETFL, O_NONBLOCK);
 
+	printf("Waiting for client connection...\n");
+	m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
+	if (m_newsockfd < 0) error("ERROR: on accept");
+	printf("Connection established with a new client...\n"
+			"Beginning data sharing...\n");
 	if ((m_pid = fork()) = 0) {
 		// This is the child process that handles all the requests
 		close(read_pipe[1]);
 		close(write_pipe[0]);
-
 		while (1) {
-			printf("Waiting for client connection...\n");
-			m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-			if (m_newsockfd < 0) error("ERROR: on accept");
-			printf("Connection established with a new client...\n"
-					"Beginning data sharing...\n");
-
 			// Loop for receiving data
 			std::ofstream outf;
 			outf.open("/Docs/Data/Pi_2/backup.txt", std::ofstream::out);
