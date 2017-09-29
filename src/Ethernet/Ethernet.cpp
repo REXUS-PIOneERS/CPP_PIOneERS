@@ -44,8 +44,8 @@ std::string Server::receive_packet() {
 	char buf[256];
 	int n;
 	n = read(m_newsockfd, buf, 255);
-	if (n < 0)
-		return NULL;
+	if (n <= 0)
+		return "";
 	buf[n] = '\0';
 	std::string packet(buf);
 	return packet;
@@ -124,14 +124,13 @@ std::string Client::receive_packet() {
 	char buf[256];
 	int n = read(m_sockfd, buf, 255);
 	if (n <= 0)
-		return NULL;
+		return "";
 	buf[n] = '\0';
 	std::string packet(buf);
 	return packet;
 }
 
 int Client::close_connection() {
-	send_packet("E"); // When this command is received server terminates connection
 	close(m_sockfd);
 }
 
@@ -185,7 +184,7 @@ int Client::run(int pipes[2]) {
 			bzero(buf, 256);
 			// Send any data we have
 			int n = read(read_pipe[0], buf, 255);
-			if (n == -1)
+			if (n <= 0)
 				continue;
 			buf[n] = '\0';
 			std::string packet_send(buf);
@@ -240,7 +239,7 @@ int Server::run(int *pipes) {
 				}
 				// Try to send data to the Client
 				int n = read(read_pipe[0], buf, 255);
-				if (n < 0)
+				if (n <= 0)
 					continue;
 				std::string packet_send(buf);
 				if (send_packet(packet_send) != 0)
