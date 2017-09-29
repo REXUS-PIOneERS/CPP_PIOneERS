@@ -178,7 +178,7 @@ int Client::run(int pipes[2]) {
 		close(read_pipe[1]);
 		// Loop for sending and receiving data
 		std::ofstream outf;
-		outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
+		outf.open("backup.txt", std::ofstream::out);
 		while (1) {
 			char buf[256];
 			bzero(buf, 256);
@@ -221,32 +221,31 @@ int Server::run(int *pipes) {
 	if (m_newsockfd < 0) error("ERROR: on accept");
 	printf("Connection established with a new client...\n"
 			"Beginning data sharing...\n");
-	if ((m_pid = fork()) = 0) {
+	if ((m_pid = fork()) == 0) {
 		// This is the child process that handles all the requests
 		close(read_pipe[1]);
 		close(write_pipe[0]);
+		// Loop for receiving data
+		std::ofstream outf;
+		outf.open("backup.txt", std::ofstream::out);
+		char buf[256];
 		while (1) {
-			// Loop for receiving data
-			std::ofstream outf;
-			outf.open("/Docs/Data/Pi_2/backup.txt", std::ofstream::out);
-			char buf[256];
-			while (1) {
-				// Try to get data from the Client
-				std::string packet_recv = receive_packet();
-				if (!packet_recv.empty()) {
-					outf << packet_recv;
-					write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
-				}
-				// Try to send data to the Client
-				int n = read(read_pipe[0], buf, 255);
-				if (n <= 0)
-					continue;
-				std::string packet_send(buf);
-				if (send_packet(packet_send) != 0)
-					continue; // TODO Handling this error
+			// Try to get data from the Client
+			std::string packet_recv = receive_packet();
+			if (!packet_recv.empty()) {
+				outf << packet_recv;
+				write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 			}
-			outf.close();
+			// Try to send data to the Client
+			int n = read(read_pipe[0], buf, 255);
+			if (n <= 0)
+				continue;
+			buf[n] = '\0';
+			std::string packet_send(buf);
+			if (send_packet(packet_send) != 0)
+				continue; // TODO Handling this error
 		}
+		outf.close();
 	} else {
 		// This is the main parent process
 		close(read_pipe[0]);

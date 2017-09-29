@@ -16,7 +16,7 @@ int main() {
 	while (1) {
 		write(pipes[1], msg.c_str(), msg.length());
 		int n = read(pipes[0], buf, 256);
-		printf("%s", buf);
+		printf("Message (%d): %s\n", n, buf);
 		delay(100);
 	}
 }
