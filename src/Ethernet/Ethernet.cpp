@@ -171,14 +171,15 @@ int Client::run(int pipes[2]) {
 	int read_pipe[2]; // This pipe receives data from the main process
 	pipe(write_pipe);
 	pipe(read_pipe);
-	open_connection();
+	if (open_connection() == -1)
+		return -1;
 	if ((m_pid = fork()) == 0) {
 		// This is the child process.
 		close(write_pipe[0]);
 		close(read_pipe[1]);
 		// Loop for sending and receiving data
 		std::ofstream outf;
-		outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
+		outf.open("backup.txt", std::ofstream::out);
 		while (1) {
 			char buf[256];
 			bzero(buf, 256);
