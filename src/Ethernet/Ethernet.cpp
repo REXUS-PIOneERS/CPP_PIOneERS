@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <string.h>
+#include <fcntl.h>
 
 #include "Ethernet.h"
 
@@ -169,19 +170,17 @@ int Client::run(int pipes[2]) {
 	 */
 	int write_pipe[2]; // This pipe sends data back to the main process
 	int read_pipe[2]; // This pipe receives data from the main process
-	if (pipe(write_pipe)) {
-		fprintf(stderr, "Client failed to make write_pipe");
-		return -1;
-	}
-	if (pipe(read_pipe)) {
-		fprintf(stderr, "Client failed to make read_pipe");
-		return -1;
-	}
+	pipe(write_pipe);
+	pipe(read_pipe);
+	fcntl(write_pipe[0], F_SETFL, O_NONBLOCK);
+	fcntl(write_pipe[1], F_SETFL, O_NONBLOCK);
+	fcntl(read_pipe[0], F_SETFL, O_NONBLOCK);
+	fcntl(read_pipe[1], F_SETFL, O_NONBLOCK);
 	if ((m_pid = fork()) == 0) {
 		// This is the child process.
-		open_connection();
 		close(write_pipe[0]);
 		close(read_pipe[1]);
+		open_connection();
 		// Loop for sending and receiving data
 		std::ofstream outf;
 		outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
@@ -190,7 +189,7 @@ int Client::run(int pipes[2]) {
 			bzero(buf, 256);
 			// Send any data we have
 			int n = read(read_pipe[0], buf, 255);
-			if (n <= 0)
+			if (n == -1)
 				continue;
 			buf[n] = '\0';
 			std::string packet_send(buf);
@@ -221,6 +220,10 @@ int Server::run(int *pipes) {
 	int write_pipe[2];
 	pipe(read_pipe);
 	pipe(write_pipe);
+	fcntl(read_pipe[0], F_SETFL, O_NONBLOCK);
+	fcntl(read_pipe[1], F_SETFL, O_NONBLOCK);
+	fcntl(write_pipe[1], F_SETFL, O_NONBLOCK);
+	fcntl(write_pipe[0], F_SETFL, O_NONBLOCK);
 
 	if ((m_pid = fork()) = 0) {
 		// This is the child process that handles all the requests
