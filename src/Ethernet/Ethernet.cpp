@@ -45,9 +45,7 @@ std::string Server::receive_packet() {
 	n = read(m_newsockfd, buf, 255);
 	if (n < 0)
 		return NULL;
-
 	buf[n] = '\0';
-	n = write(m_newsockfd, "A", 1);
 	std::string packet(buf);
 	return packet;
 }
@@ -58,19 +56,10 @@ int Server::send_packet(std::string packet) {
 	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
 	 * Data uses consistent overhead byte stuffing
 	 */
-	int n = 0;
 	char buf[256];
-	int attempts = 0;
-	n = write(m_newsockfd, packet, strlen(packet));
+	int n = write(m_newsockfd, packet, strlen(packet));
 	// Check we managed to send the data
-	if (n <= 0)
-		return -1;
-	// Get a response from the server
-	n = read(m_newsockfd, buf, 255);
-	if (buf[0] == 'A')
-		return 0;
-	else
-		return -1;
+	return (n > 0) ? 0 : -1;
 }
 
 Server::~Server() {
@@ -122,32 +111,21 @@ int Client::send_packet(std::string packet) {
 	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
 	 * Data uses consistent overhead byte stuffing
 	 */
-	int n = 0;
 	char buf[256];
 	bzero(buf, 256);
-	n = write(m_sockfd, packet, strlen(packet));
-	// Get a response from the server
-	n = read(m_sockfd, buf, 255);
+	int n = write(m_sockfd, packet, strlen(packet));
 	// Check receipt has been acknowledged
-	if (buf[0] == 'A')
-		return 0;
-	else
-		return -1;
+	return (n > 0) ? 0 : -1;
 }
 
 std::string Client::receive_packet() {
 	// Receives a data packet from the server
-	int n = 0;
 	char buf[256];
-	bzero(buf, 256);
-	char ack[] = "A";
-	n = read(m_sockfd, buf, 255);
-
+	int n = read(m_sockfd, buf, 255);
 	if (n <= 0)
 		return NULL;
 	buf[n] = '\0';
 	std::string packet(buf);
-	n = write(m_sockfd, ack, 1);
 	return packet;
 }
 
@@ -205,35 +183,27 @@ int Client::run(int pipes[2]) {
 		close(write_pipe[0]);
 		close(read_pipe[1]);
 		// Loop for sending and receiving data
+		std::ofstream outf;
+		outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
 		while (1) {
 			char buf[256];
 			bzero(buf, 256);
-			// Loop for sending packets
-			FILE* read_stream = fdopen(read_pipe[0], "r");
-			while (1) {
-				char *check = fgets(buf, 255, read_stream);
-				if (check == NULL) // End of stream reached
-					break;
-				std::string packet(buf);
-				if (send_packet(packet) != 0)
-					continue; // TODO handle the error
-			}
-			fdclose(read_stream);
-			send_packet("F");
+			// Send any data we have
+			int n = read(read_pipe[0], buf, 255);
+			if (n <= 0)
+				continue;
+			buf[n] = '\0';
+			std::string packet(buf);
+			if (send_packet(packet) != 0)
+				continue; // TODO handle the error
 			// Loop for receiving packets
-			std::ofstream outf;
-			outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
-			FILE* write_stream = fdopen(write_pipe[0], "a");
-			while (1) {
-				std::string packet = receive_packet();
-				if (packet[0] == 'F')
-					break;
+			std::string packet = receive_packet();
+			if (packet != NULL) {
 				outf << packet;
-				fputs(packet.c_str(), write_stream);
+				write(write_pipe[1], packet.c_str(), packet.length());
 			}
-			fdclose(write_stream);
-			close(outf);
 		}
+		close(outf);
 	} else {
 		// Assign the pipes for the main process and close the un-needed ones
 		pipes[0] = write_pipe[0];
@@ -265,29 +235,24 @@ int Server::run(int *pipes) {
 					"Beginning data sharing...\n");
 
 			// Loop for receiving data
-			std::string msg = "Placeholder";
 			std::ofstream outf;
 			outf.open("/Docs/Data/Pi_2/backup.txt", std::ofstream::out);
+			char buf[256];
 			while (1) {
-				msg = receive_packet();
-				if (msg[0] == 'F')
-					break;
-				outf << msg;
-			}
-			close(outf);
-			// Loop for sending data
-			FILE* read_stream = fdopen(read_pipe[0], "r");
-			while (1) {
-				// First we need to extract a packet from the data stream
-				char buf[256];
-				char *check = fgets(buf, 255, read_stream);
-				if (check == NULL)
-					break; // EOF is reached
-				std::string packet(buf);
-				if (send_packet(packet) != 0)
+				// Try to get data from the Client
+				std::string packet_recv = receive_packet();
+				if (packet_recv != NULL) {
+					outf << packet_recv;
+					write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
+				}
+				// Try to send data to the Client
+				int n = read(read_pipe[0], buf, 255);
+				if (n < 0)
+					continue;
+				std::string packet_send(buf);
+				if (send_packet(packet_send) != 0)
 					continue; // TODO Handling this error
 			}
-			fdclose(read_stream);
 		}
 	} else {
 		// This is the main parent process

@@ -5,19 +5,20 @@
 
 int main() {
 
-	Client client = Client();
+	Client client = Client(31415, "amisonpi.local");
 	int pipes[2];
 
 	client.run(pipes);
 	// Loop for sending and receiving data via pipes
-	char* msg[50] = "This is a test message\n";
+	std::string msg = "This is a test message\n";
 	char* buf[256];
-	FILE* read_stream = fdopen(pipes[1], "w");
-	FILE* write_stream = fdopen(pipes[0], "r");
+	std::string msg = "This is a test message";
+	char buf[256];
 	while (1) {
-		fputs(msg, file_stream);
-		fgets(buf, 255, write_stream);
-		fprintf(stdout, "%s", buf);
+		write(pipes[1], msg.c_str(), msg.length());
+		read(pipes[0], buf, 256);
+		printf(stdout, "%s", buf);
+		delay(100);
 	}
 
 	return 0;
