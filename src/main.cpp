@@ -14,6 +14,7 @@
 
 #include "RPi_IMU/RPi_IMU.h"
 #include "camera/camera.h"
+#include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
 
 #include <wiringPi.h>
@@ -41,6 +42,7 @@ void count_encoder() {
 // Global variable for the Camera and IMU
 PiCamera Cam = PiCamera();
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
+UART RXSM = UART();
 int IMU_data_stream;
 
 // Ethernet communication setup and variables (Pi 2 acts as server)

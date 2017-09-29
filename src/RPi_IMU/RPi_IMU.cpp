@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+
 #include <string>
 #include "timer.h"
 #include <fstream>  //For writing to files
@@ -224,47 +225,52 @@ void RPi_IMU::resetRegisters() {
 	writeReg(MAG_ADDRESS, CTRL_REG7_XM, 0);
 }
 
+void signalHandler(int signum) {
+	printf("Received Signal: SIGTERM\n");
+	exit(signum);
+}
+
+
 int RPi_IMU::startDataCollection(char* filename) {
 	int dataPipe[2];
-	//Create a pipe for sharing data
+	// Create a pipe for sharing data
 	if (pipe(dataPipe)) {
 		fprintf(stderr, "Pipe Failed.\n");
 		return -1;
 	}
-	//Create the parent and child processes
+	// Create the parent and child processes
 	if ((pid = fork()) == 0) {
-		//This is the child process which controls data collection
+		// This is the child process which controls data collection
+		signal(SIGTERM, signalHandler);
 		close(dataPipe[0]);
-		//Collect data
+		// Collect data
 		int16_t acc_data[3] = {0, 0, 0};
 		int16_t gyr_data[3] = {0, 0, 0};
 		int16_t mag_data[3] = {0, 0, 0};
-		//Setup the pipe for data output
-
 		double intv = 0.2;
 		Timer measurement_time;
-		//Infinite loop for taking measurements
+		// Infinite loop for taking measurements
 		for (int j = 0;; j++) {
-			//Open the file for saving data
+			// Open the file for saving data
 			std::ofstream outf;
 			char unique_file[50];
 			sprintf(unique_file, "%s%04d.txt", filename, j);
 			outf.open(unique_file);
-			//Take 5 measurements i.e. 1 seconds worth of data
+			// Take 5 measurements i.e. 1 seconds worth of data
 			for (int i = 0; i < 5; i++) {
 				Timer tmr;
 				readAcc(acc_data);
 				readGyr(gyr_data);
 				readMag(mag_data);
 				int time = measurement_time.elapsed();
-				//Output data to the file (all one line)
+				// Output data to the file (all one line)
 				outf << time << "," << "Acc," << acc_data[0] << "," <<
 						acc_data[1] << "," << acc_data[2] << "Gyr," <<
 						gyr_data[0] << "," << gyr_data[1] << "," <<
 						gyr_data[2] << "Mag," << mag_data[0] << "," <<
 						mag_data[1] << "," << mag_data[2] << std::endl;
 				write(dataPipe[1], 0x00, 1); // Each set of values is separated by a zero
-				write(dataPipe[1], (void*)time, sizeof (time));
+				write(dataPipe[1], (void*) time, sizeof (time));
 				write(dataPipe[1], acc_data, sizeof (acc_data));
 				write(dataPipe[1], gyr_data, sizeof (gyr_data));
 				write(dataPipe[1], mag_data, sizeof (mag_data));
@@ -272,13 +278,13 @@ int RPi_IMU::startDataCollection(char* filename) {
 					std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				}
 			}
-			//Close the current file, ready to start a new one
+			// Close the current file, ready to start a new one
 			outf.close();
 		}
 	} else {
-		//This is the parent process
-		close(dataPipe[1]); //Parent process closes write portion of the pipe
-		return dataPipe[0]; //Return the read portion of the pipe
+		// This is the parent process
+		close(dataPipe[1]); // Parent process closes write portion of the pipe
+		return dataPipe[0]; // Return the read portion of the pipe
 	}
 }
 
@@ -295,15 +301,17 @@ int RPi_IMU::stopDataCollection() {
 		if (died) {
 			fprintf(stdout, "IMU Terminated\n");
 		} else {
+			int status;
 			fprintf(stdout, "IMU Killed\n");
 			kill(pid, SIGKILL);
+			sleep(1);
+			if (waitpid(pid, &status, WNOHANG) == pid) died = true;
+			else return -1;
 		}
 		resetRegisters();
-		close(i2c_file);
 		return 0;
 	}
 	resetRegisters();
-	close(i2c_file);
 	return 0;
 }
 
