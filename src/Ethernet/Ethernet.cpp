@@ -171,7 +171,8 @@ int Client::run(int pipes[2]) {
 	int read_pipe[2]; // This pipe receives data from the main process
 	pipe(write_pipe);
 	pipe(read_pipe);
-	open_connection();
+	if (open_connection() == -1)
+		return -1;
 	if ((m_pid = fork()) == 0) {
 		// This is the child process.
 		close(write_pipe[0]);
