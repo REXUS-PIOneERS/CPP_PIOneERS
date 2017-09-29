@@ -22,7 +22,7 @@
 class Server {
 public:
 	Server(int port);
-	int setup();
+	int run(int *pipes);
 	~Server();
 private:
 	int m_sockfd, m_newsockfd, m_port, m_pid;
@@ -30,16 +30,18 @@ private:
 	struct sockaddr_in m_serv_addr, m_cli_addr;
 	char m_buf[256];
 
+	int setup();
+	std::string receive_packet();
+	int send_packet(std::string packet);
+
 };
 
 class Client {
 public:
 	Client(int port, std::string host_name);
 
-	int run(int pipes[2]);
-	int open_connection();
-	std::string send_packet(std::string packet);
-	int close_connection();
+	int run(int *pipes);
+
 	~Client();
 private:
 	int m_port, m_pid;
@@ -48,8 +50,12 @@ private:
 	struct sockaddr_in m_serv_addr;
 	struct hostent *m_server;
 
-	int setup();
 	int open_connection();
+	int close_connection();
+
+	int send_packet(std::string packet);
+	std::string receive_packet();
+	int setup();
 };
 
 #endif /* ETHERNET_H */
