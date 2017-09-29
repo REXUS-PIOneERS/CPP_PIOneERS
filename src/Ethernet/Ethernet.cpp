@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fstream>
+#include <string.h>
 
 #include "Ethernet.h"
 
@@ -18,7 +19,7 @@ Server::Server(int port) {
 	setup();
 }
 
-int Server::setup(int *pipes) {
+int Server::setup() {
 	// Open the socket for Ethernet connection
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0)
@@ -41,7 +42,6 @@ std::string Server::receive_packet() {
 	// Receive a packet of data from the client and ackowledge receipt
 	char buf[256];
 	int n;
-	bzero(buf, 256);
 	n = read(m_newsockfd, buf, 255);
 	if (n < 0)
 		return NULL;
@@ -60,7 +60,6 @@ int Server::send_packet(std::string packet) {
 	 */
 	int n = 0;
 	char buf[256];
-	bzero(buf, 256);
 	int attempts = 0;
 	n = write(m_newsockfd, packet, strlen(packet));
 	// Check we managed to send the data
@@ -141,7 +140,7 @@ std::string Client::receive_packet() {
 	int n = 0;
 	char buf[256];
 	bzero(buf, 256);
-	char ack[1] = "A";
+	char ack[] = "A";
 	n = read(m_sockfd, buf, 255);
 
 	if (n <= 0)
@@ -219,11 +218,11 @@ int Client::run(int pipes[2]) {
 				if (send_packet(packet) != 0)
 					continue; // TODO handle the error
 			}
-			close(read_stream);
+			fdclose(read_stream);
 			send_packet("F");
 			// Loop for receiving packets
 			std::ofstream outf;
-			outf.open("/Docs/Data/Pi_1/backup.txt", "a");
+			outf.open("/Docs/Data/Pi_1/backup.txt", std::ofstream::out);
 			FILE* write_stream = fdopen(write_pipe[0], "a");
 			while (1) {
 				std::string packet = receive_packet();
@@ -232,7 +231,7 @@ int Client::run(int pipes[2]) {
 				outf << packet;
 				fputs(packet.c_str(), write_stream);
 			}
-			close(write_stream);
+			fdclose(write_stream);
 			close(outf);
 		}
 	} else {
@@ -268,7 +267,7 @@ int Server::run(int *pipes) {
 			// Loop for receiving data
 			std::string msg = "Placeholder";
 			std::ofstream outf;
-			outf.open("/Docs/Data/Pi_2/backup.txt");
+			outf.open("/Docs/Data/Pi_2/backup.txt", std::ofstream::out);
 			while (1) {
 				msg = receive_packet();
 				if (msg[0] == 'F')
@@ -288,7 +287,7 @@ int Server::run(int *pipes) {
 				if (send_packet(packet) != 0)
 					continue; // TODO Handling this error
 			}
-			close(read_stream);
+			fdclose(read_stream);
 		}
 	} else {
 		// This is the main parent process
