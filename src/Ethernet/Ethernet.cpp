@@ -57,7 +57,7 @@ int Server::send_packet(std::string packet) {
 	 * Data uses consistent overhead byte stuffing
 	 */
 	char buf[256];
-	int n = write(m_newsockfd, packet, strlen(packet));
+	int n = write(m_newsockfd, packet.c_str(), packet.length());
 	// Check we managed to send the data
 	return (n > 0) ? 0 : -1;
 }
@@ -113,7 +113,7 @@ int Client::send_packet(std::string packet) {
 	 */
 	char buf[256];
 	bzero(buf, 256);
-	int n = write(m_sockfd, packet, strlen(packet));
+	int n = write(m_sockfd, packet.c_str(), packet.length());
 	// Check receipt has been acknowledged
 	return (n > 0) ? 0 : -1;
 }
@@ -193,17 +193,17 @@ int Client::run(int pipes[2]) {
 			if (n <= 0)
 				continue;
 			buf[n] = '\0';
-			std::string packet(buf);
-			if (send_packet(packet) != 0)
+			std::string packet_send(buf);
+			if (send_packet(packet_send) != 0)
 				continue; // TODO handle the error
 			// Loop for receiving packets
-			std::string packet = receive_packet();
-			if (packet != NULL) {
-				outf << packet;
-				write(write_pipe[1], packet.c_str(), packet.length());
+			std::string packet_recv = receive_packet();
+			if (!packet_recv.empty()) {
+				outf << packet_recv;
+				write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 			}
 		}
-		close(outf);
+		outf.close();
 	} else {
 		// Assign the pipes for the main process and close the un-needed ones
 		pipes[0] = write_pipe[0];
@@ -229,7 +229,7 @@ int Server::run(int *pipes) {
 
 		while (1) {
 			printf("Waiting for client connection...\n");
-			m_newsockfd = accept(m_sockfd, (struct(sockaddr*) & m_cli_addr), &m_clilen);
+			m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
 			if (m_newsockfd < 0) error("ERROR: on accept");
 			printf("Connection established with a new client...\n"
 					"Beginning data sharing...\n");
@@ -241,7 +241,7 @@ int Server::run(int *pipes) {
 			while (1) {
 				// Try to get data from the Client
 				std::string packet_recv = receive_packet();
-				if (packet_recv != NULL) {
+				if (!packet_recv.empty()) {
 					outf << packet_recv;
 					write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 				}
@@ -253,6 +253,7 @@ int Server::run(int *pipes) {
 				if (send_packet(packet_send) != 0)
 					continue; // TODO Handling this error
 			}
+			outf.close();
 		}
 	} else {
 		// This is the main parent process
