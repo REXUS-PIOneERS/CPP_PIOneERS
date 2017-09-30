@@ -79,7 +79,7 @@ bool RPi_IMU::writeReg(int addr, int reg, int value) {
 	}
 }
 
-std::int16_t RPi_IMU::readAccAxis(int axis) {
+uint16_t RPi_IMU::readAccAxis(int axis) {
 	//Select the device
 	activateSensor(ACC_ADDRESS);
 	//axis is either 1:x, 2:y, 3:z
@@ -103,12 +103,12 @@ std::int16_t RPi_IMU::readAccAxis(int axis) {
 	//Read from the registers
 	uint8_t Acc_L = i2c_smbus_read_word_data(i2c_file, reg1);
 	uint8_t Acc_H = i2c_smbus_read_word_data(i2c_file, reg2);
-	int16_t data = (int16_t) (Acc_L | Acc_H << 8);
+	uint16_t data = (uint16_t) (Acc_L | Acc_H << 8);
 
 	return data;
 }
 
-int16_t RPi_IMU::readGyrAxis(int axis) {
+uint16_t RPi_IMU::readGyrAxis(int axis) {
 	//Select the device
 	activateSensor(GYR_ADDRESS);
 	//axis is either 1:x, 2:y, 3:z
@@ -132,12 +132,12 @@ int16_t RPi_IMU::readGyrAxis(int axis) {
 	//Read from the registers
 	uint8_t Gyr_L = i2c_smbus_read_word_data(i2c_file, reg1);
 	uint8_t Gyr_H = i2c_smbus_read_word_data(i2c_file, reg2);
-	int16_t data = (int16_t) (Gyr_L | Gyr_H << 8);
+	uint16_t data = (uint16_t) (Gyr_L | Gyr_H << 8);
 
 	return data;
 }
 
-int16_t RPi_IMU::readMagAxis(int axis) {
+uint16_t RPi_IMU::readMagAxis(int axis) {
 	//Select the device
 	activateSensor(MAG_ADDRESS);
 	//axis is either 1:x, 2:y, 3:z
@@ -161,7 +161,7 @@ int16_t RPi_IMU::readMagAxis(int axis) {
 	//Read from the registers
 	uint8_t Gyr_L = i2c_smbus_read_word_data(i2c_file, reg1);
 	uint8_t Gyr_H = i2c_smbus_read_word_data(i2c_file, reg2);
-	int16_t data = (int16_t) (Gyr_L | Gyr_H << 8);
+	uint16_t data = (uint16_t) (Gyr_L | Gyr_H << 8);
 
 	return data;
 }
@@ -170,7 +170,7 @@ int16_t RPi_IMU::readMagAxis(int axis) {
 
 //Functions for reading data
 
-void RPi_IMU::readAcc(int16_t *data) {
+void RPi_IMU::readAcc(uint16_t *data) {
 	//Select the accelerometer
 	activateSensor(ACC_ADDRESS);
 	//Request reading from the accelerometer
@@ -178,38 +178,38 @@ void RPi_IMU::readAcc(int16_t *data) {
 	uint8_t *block_addr = block;
 	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_A, sizeof (block), block_addr);
 	//Calculate x, y and z values
-	data[0] = (int16_t) (block[0] | block[1] << 8);
-	data[1] = (int16_t) (block[2] | block[3] << 8);
-	data[2] = (int16_t) (block[4] | block[5] << 8);
+	data[0] = (uint16_t) (block[0] | block[1] << 8);
+	data[1] = (uint16_t) (block[2] | block[3] << 8);
+	data[2] = (uint16_t) (block[4] | block[5] << 8);
 
 	return;
 }
 
-void RPi_IMU::readGyr(int16_t *data) {
+void RPi_IMU::readGyr(uint16_t *data) {
 	//Select the gyro sensor
 	activateSensor(GYR_ADDRESS);
 	//Request reading from the gyro
-	std::uint8_t block[6];
-	std::uint8_t *block_addr = block;
+	uint8_t block[6];
+	uint8_t *block_addr = block;
 	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_G, sizeof (block), block_addr);
 	//Calculate x, y and z values
-	data[0] = (int16_t) (block[0] | block[1] << 8);
-	data[1] = (int16_t) (block[2] | block[3] << 8);
-	data[2] = (int16_t) (block[4] | block[5] << 8);
+	data[0] = (uint16_t) (block[0] | block[1] << 8);
+	data[1] = (uint16_t) (block[2] | block[3] << 8);
+	data[2] = (uint16_t) (block[4] | block[5] << 8);
 
 	return;
 }
 
-void RPi_IMU::readMag(int16_t *data) {
+void RPi_IMU::readMag(uint16_t *data) {
 	//Select the magnetometer
 	activateSensor(MAG_ADDRESS);
 	//Request data
-	std::uint8_t block[6];
-	std::uint8_t *block_addr = block;
+	uint8_t block[6];
+	uint8_t *block_addr = block;
 	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_M, sizeof (block), block_addr);
-	data[0] = (int16_t) (block[0] | block[1] << 8);
-	data[1] = (int16_t) (block[2] | block[3] << 8);
-	data[2] = (int16_t) (block[4] | block[5] << 8);
+	data[0] = (uint16_t) (block[0] | block[1] << 8);
+	data[1] = (uint16_t) (block[2] | block[3] << 8);
+	data[2] = (uint16_t) (block[4] | block[5] << 8);
 
 	return;
 }
@@ -230,7 +230,6 @@ void signalHandler(int signum) {
 	exit(signum);
 }
 
-
 int RPi_IMU::startDataCollection(char* filename) {
 	int dataPipe[2];
 	// Create a pipe for sharing data
@@ -244,9 +243,9 @@ int RPi_IMU::startDataCollection(char* filename) {
 		signal(SIGTERM, signalHandler);
 		close(dataPipe[0]);
 		// Collect data
-		int16_t acc_data[3] = {0, 0, 0};
-		int16_t gyr_data[3] = {0, 0, 0};
-		int16_t mag_data[3] = {0, 0, 0};
+		uint16_t acc_data[3] = {0, 0, 0};
+		uint16_t gyr_data[3] = {0, 0, 0};
+		uint16_t mag_data[3] = {0, 0, 0};
 		double intv = 0.2;
 		Timer measurement_time;
 		// Infinite loop for taking measurements
