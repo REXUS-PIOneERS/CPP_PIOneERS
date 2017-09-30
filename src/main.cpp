@@ -47,7 +47,7 @@ int IMU_data_stream;
 
 // Setup for the UART communications
 int baud = 230400;
-UART RXSM = UART(baud);
+UART RXSM = UART();
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication

@@ -32,12 +32,12 @@ public:
 	bool writeReg(int addr, int reg, int value);
 
 	//Functions to get results
-	void readAcc(int16_t *data);
-	void readGyr(int16_t *data);
-	void readMag(int16_t *data);
-	int16_t readAccAxis(int axis);
-	int16_t readGyrAxis(int axis);
-	int16_t readMagAxis(int axis);
+	void readAcc(uint16_t *data);
+	void readGyr(uint16_t *data);
+	void readMag(uint16_t *data);
+	uint16_t readAccAxis(int axis);
+	uint16_t readGyrAxis(int axis);
+	uint16_t readMagAxis(int axis);
 
 	int startDataCollection(char* filename);
 	int stopDataCollection();
