@@ -41,7 +41,8 @@ public:
 	Client(int port, std::string host_name);
 
 	int run(int *pipes);
-
+	int open_connection();
+	int close_connection();
 	~Client();
 private:
 	int m_port, m_pid;
@@ -49,9 +50,6 @@ private:
 	int m_sockfd;
 	struct sockaddr_in m_serv_addr;
 	struct hostent *m_server;
-
-	int open_connection();
-	int close_connection();
 
 	int send_packet(std::string packet);
 	std::string receive_packet();

@@ -131,7 +131,9 @@ std::string Client::receive_packet() {
 }
 
 int Client::close_connection() {
-	close(m_sockfd);
+	if (m_sockfd) {
+		send_packet("E");
+	}
 }
 
 Client::~Client() {
@@ -191,6 +193,9 @@ int Client::run(int pipes[2]) {
 			std::string packet_send(buf);
 			if (send_packet(packet_send) != 0)
 				continue; // TODO handle the error
+			// Check for exit message
+			if (packet_send[0] == 'E')
+				break;
 			// Loop for receiving packets
 			std::string packet_recv = receive_packet();
 			if (!packet_recv.empty()) {
@@ -199,6 +204,7 @@ int Client::run(int pipes[2]) {
 			}
 		}
 		outf.close();
+
 	} else {
 		// Assign the pipes for the main process and close the un-needed ones
 		close(write_pipe[1]);
@@ -217,43 +223,48 @@ int Server::run(int *pipes) {
 	pipe(read_pipe);
 	pipe(write_pipe);
 
-	printf("Waiting for client connection...\n");
-	m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-	if (m_newsockfd < 0) error("ERROR: on accept");
-	printf("Connection established with a new client...\n"
-			"Beginning data sharing...\n");
-	if ((m_pid = fork()) == 0) {
-		// This is the child process that handles all the requests
-		close(read_pipe[1]);
-		close(write_pipe[0]);
-		// Loop for receiving data
-		std::ofstream outf;
-		outf.open("backup.txt", std::ofstream::out);
-		char buf[256];
-		while (1) {
-			// Try to get data from the Client
-			std::string packet_recv = receive_packet();
-			if (!packet_recv.empty()) {
-				outf << packet_recv;
-				write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
+	while (1) {
+		printf("Waiting for client connection...\n");
+		m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
+		if (m_newsockfd < 0) error("ERROR: on accept");
+		printf("Connection established with a new client...\n"
+				"Beginning data sharing...\n");
+		if ((m_pid = fork()) == 0) {
+			// This is the child process that handles all the requests
+			close(read_pipe[1]);
+			close(write_pipe[0]);
+			// Loop for receiving data
+			std::ofstream outf;
+			outf.open("backup.txt", std::ofstream::out);
+			char buf[256];
+			while (1) {
+				// Try to get data from the Client
+				std::string packet_recv = receive_packet();
+				if (!packet_recv.empty()) {
+					outf << packet_recv;
+					write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
+					if (packet_recv[0] == 'E')
+						break;
+				}
+				// Try to send data to the Client
+				int n = read(read_pipe[0], buf, 255);
+				if (n <= 0)
+					continue;
+				buf[n] = '\0';
+				std::string packet_send(buf);
+				if (send_packet(packet_send) != 0)
+					continue; // TODO Handling this error
 			}
-			// Try to send data to the Client
-			int n = read(read_pipe[0], buf, 255);
-			if (n <= 0)
-				continue;
-			buf[n] = '\0';
-			std::string packet_send(buf);
-			if (send_packet(packet_send) != 0)
-				continue; // TODO Handling this error
+			outf.close();
+		} else {
+			// This is the main parent process
+			close(read_pipe[0]);
+			close(write_pipe[1]);
+			pipes[0] = write_pipe[0];
+			pipes[1] = read_pipe[1];
+			return 0;
 		}
-		outf.close();
-	} else {
-		// This is the main parent process
-		close(read_pipe[0]);
-		close(write_pipe[1]);
-		pipes[0] = write_pipe[0];
-		pipes[1] = read_pipe[1];
-		return 0;
+		close(m_newsockfd);
 	}
 	return -1; // Something must have gone wrong because this shouldn't happen
 }

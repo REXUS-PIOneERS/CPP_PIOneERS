@@ -1,6 +1,6 @@
 /*
- * Pi 1 is connected to the IMU and RTC via I2C, RXSM via UART and GPIO,
- * Camera via CSI, Motor via PWM and GPIO and Pi 2 via Ethernet.
+ * Pi 1 is connected to the ImP/IMU via UART, Camera via CSI, Burn Wire Relay
+ * via GPIO and Pi 1 via Ethernet and GPIO for LO, SOE and SODS signals.
  *
  * This program controls most of the main logic and for the PIOneERs mission
  * on board REXUS.
@@ -24,16 +24,17 @@ int LO = 29;
 int SOE = 28;
 int SODS = 27;
 
-// Motor Setup (PWM Control)
-int MOTOR_OUT = 1;
+// Burn Wire Setup
+int MOTOR_PWM = 1;
+int MOTOR_CW = 4;
+int MOTOR_ACW = 5;
 int MOTOR_IN = 0;
 int PWM_RANGE = 2000;
 int PWM_CLOCK = 2000;
 int encoder_count = 0;
 
 void count_encoder() {
-	// Advances the encoder_count variable by one. Lock is used to keep
-	// everything thread-safe.
+	// Advances the encoder_count variable by one.
 	piLock(1);
 	encoder_count++;
 	piUnlock(1);
@@ -42,15 +43,18 @@ void count_encoder() {
 // Global variable for the Camera and IMU
 PiCamera Cam = PiCamera();
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
-UART RXSM = UART();
 int IMU_data_stream;
 
-// Ethernet communication setup and variables (Pi 2 acts as server)
-std::string server_name = "PIOneERS2.local";
-int port_no = 51717; // Random unused port for communication
-int ethernet_streams[2];
-Client ethernet_comms = Client(server_name, port_no);
-// TODO Setup UART connections
+// Setup for the UART communications
+int baud = 230400;
+UART RXSM = UART(baud);
+
+// Ethernet communication setup and variables (we are acting as client)
+int port_no = 31415; // Random unused port for communication
+std::string server_name = "PIOneERS1.local";
+int ethernet_streams[2]; // 0 = read, 1 = write
+Client ethernet_comms = Client(port_no, server_name);
+int ALIVE = 2;
 
 int SODS_SIGNAL() {
 	/*
@@ -63,6 +67,8 @@ int SODS_SIGNAL() {
 	fflush(stdout);
 	Cam.stopVideo();
 	IMU.stopDataCollection();
+	// Send terminate message to server
+	write(ethernet_streams[1], "EXIT", 4);
 	return 0;
 }
 
@@ -76,7 +82,6 @@ int SOE_SIGNAL() {
 	 * count of the encoder is sent to ground.
 	 */
 	fprintf(stdout, "Signal Received: SOE\n");
-	fflush(stdout);
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
 	IMU = RPi_IMU();
@@ -85,31 +90,45 @@ int SOE_SIGNAL() {
 	IMU.setupMag();
 	// Start data collection and store the stream where data is coming through
 	IMU_data_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
-	// TODO Pass the data stream to UART so data can be sent to ground
+	char buf[256]; // Buffer for reading data from the IMU stream
+	// Extend the boom!
 	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
-	pwmWrite(1, 1000); // Second number should be half of range set above
+	digitalWrite(MOTOR_CW, 1);
+	digitalWrite(MOTOR_ACW, 0);
+	pwmWrite(MOTOR_PWM, PWM_RANGE); // Sets the motor turning at maximum
 	// Keep checking the encoder count till it reaches the required amount.
+	fprintf(stdout, "INFO: Boom deploying...\n");
 	while (1) {
 		// Lock is used to keep everything thread safe
 		piLock(1);
-		if (encoder_count >= 40) // TODO what should the count be?
+		if (encoder_count >= 10000) // TODO what should the count be?
 			break;
-		// TODO periodically send the count to ground
+		fprintf(stdout, "INFO: Encoder Count-%d\n", encoder_count);
 		piUnlock(1);
-		delay(500);
+		// TODO periodically send the count to ground
+		int n = read(IMU_data_stream, buf, 255);
+		if (n > 0) {
+			buf[n] = '\0';
+			fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
+			write(ethernet_streams[1], buf, n);
+		}
+		delay(100);
 	}
-	piUnlock(1);
 	pwmWrite(1, 0); // Stops sending pulses through the PWM pin.
-	fprintf(stdout, "Info: Boom deployed!\n");
+	fprintf(stdout, "INFO: Boom deployed :D\n");
 	fflush(stdout);
 
 	// Wait for the next signal to continue the program
 	while (digitalRead(SODS)) {
-		// Read data from IMU_data_stream and send on to Ethernet
-		int ch = 0;
-		while ((ch = getc(ethernet_streams[0])) != 0 && n != 255)
-			putc(ch, stdout); // TODO Need to echo characters to UART stream
-		delay(50);
+		// Read data from IMU_data_stream and echo it to Ethernet
+		char buf[256];
+		int n = read(IMU_data_stream, buf, 255);
+		if (n > 0) {
+			buf[n] = '\0';
+			fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
+			write(ethernet_streams[1], buf, n);
+		}
+		delay(100);
 	}
 	return SODS_SIGNAL();
 }
@@ -120,12 +139,11 @@ int LO_SIGNAL() {
 	 * are set to start recording video and we then wait to receive the 'Start
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
-	printf("Signal Received: LO\n");
-	fflush(stdout);
+	fprintf(stdout, "Signal Received: LO\n");
 	Cam.startVideo();
-	fflush(stdout);
 	// Poll the SOE pin until signal is received
 	// TODO implement check to make sure no false signals!
+	fprintf(stdout, "Waiting for SOE signal...\n");
 	while (digitalRead(SOE)) {
 		// TODO implement RXSM communications
 		delay(10);
@@ -149,23 +167,26 @@ int main() {
 	pullUpDnControl(SOE, PUD_UP);
 	pinMode(SODS, INPUT);
 	pullUpDnControl(SODS, PUD_UP);
+	pinMode(ALIVE, INPUT);
+	pullUpDnControl(ALIVE, PUD_DOWN);
 
 	// Setup PWM
-	pinMode(MOTOR_OUT, PWM_OUTPUT);
-	pwmSetMode(PWM_MODE_MS);
+	pinMode(MOTOR_PWM, PWM_OUTPUT);
 	pwmSetRange(PWM_RANGE);
-	pwmSetClock(PWM_CLOCK); //Freq = 19200000 / (Range*Clock)
-	pwmWrite(1, 0);
+	pwmSetClock(PWM_CLOCK);
+	pwmWrite(MOTOR_PWM, 0);
 	// Create necessary directories for saving files
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	fprintf(stdout, "Pi 1 is alive and running.\n");
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		delay(10);
-
-	ethernet_comms.run(ethernet_streams);
+	fprintf(stdout, "Pi 2 is now running, trying to establish Ethernet connection.\n");
+	// Keep trying to connect until we are successful
+	while (ethernet_comms.run(ethernet_streams) == -1)
+		continue;
 	// TODO handle error where we can't connect to he server
-
+	fprintf(stdout, "Connection to server successful\nWaiting for LO signal...\n");
 	// Check for LO signal.
 	bool signal_recieved = false;
 	while (!signal_recieved) {
