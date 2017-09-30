@@ -181,7 +181,7 @@ int Client::run(int pipes[2]) {
 		close(read_pipe[1]);
 		// Loop for sending and receiving data
 		std::ofstream outf;
-		outf.open("backup.txt", std::ofstream::out);
+		outf.open("Docs/Data/Pi2/backup.txt");
 		while (1) {
 			char buf[256];
 			bzero(buf, 256);
@@ -200,7 +200,7 @@ int Client::run(int pipes[2]) {
 			std::string packet_recv = receive_packet();
 			if (!packet_recv.empty()) {
 				outf << packet_recv;
-				write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
+				//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 			}
 		}
 		outf.close();
@@ -235,14 +235,14 @@ int Server::run(int *pipes) {
 			close(write_pipe[0]);
 			// Loop for receiving data
 			std::ofstream outf;
-			outf.open("backup.txt", std::ofstream::out);
+			outf.open("Docs/Data/Pi1/backup.txt");
 			char buf[256];
 			while (1) {
 				// Try to get data from the Client
 				std::string packet_recv = receive_packet();
 				if (!packet_recv.empty()) {
 					outf << packet_recv;
-					write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
+					//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 					if (packet_recv[0] == 'E')
 						break;
 				}
