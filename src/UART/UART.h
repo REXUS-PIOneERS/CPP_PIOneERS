@@ -1,8 +1,12 @@
+#include <stdlib.h>
+#include <string>
+
 #ifndef UART_H
 #define UART_H
 
 class UART {
-	int uart_filestream = -1;
+	int uart_filestream;
+	int m_pid;
 
 public:
 
@@ -11,8 +15,10 @@ public:
 	}
 
 	void setupUART();
-	int sendBytes(unsigned char *buf, size_t count);
-	int getBytes(unsigned char buf[256]);
+	int sendBytes(char *buf, size_t count);
+	int getBytes(char buf[256]);
+	int startDataCollection(std::string filename);
+	int stopDataCollection();
 };
 
 

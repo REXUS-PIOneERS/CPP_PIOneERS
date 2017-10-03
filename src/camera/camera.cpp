@@ -14,7 +14,8 @@ void PiCamera::startVideo() {
 	if ((camera_pid = fork()) == 0) {
 		//Create the command structure
 		fprintf(stderr, "Camera Starting...\n");
-		const char* cmd = {"raspivid",
+		char* cmd[] = {
+			"raspivid",
 			"-n",
 			"-t", "10",
 			"-s",
@@ -24,7 +25,7 @@ void PiCamera::startVideo() {
 			"-w", "1920",
 			"-h", "1080",
 			"-fps", "30",
-			NULL}
+			NULL};
 		execv("/usr/bin/raspivid", cmd);
 	}
 }
