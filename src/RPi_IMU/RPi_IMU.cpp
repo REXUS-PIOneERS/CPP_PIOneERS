@@ -268,7 +268,7 @@ int RPi_IMU::startDataCollection(char* filename) {
 						gyr_data[0] << "," << gyr_data[1] << "," <<
 						gyr_data[2] << "Mag," << mag_data[0] << "," <<
 						mag_data[1] << "," << mag_data[2] << std::endl;
-				write(dataPipe[1], 0x00, 1); // Each set of values is separated by a zero
+				//write(dataPipe[1], 0x00, 1); // Each set of values is separated by a zero
 				write(dataPipe[1], (void*) time, sizeof (time));
 				write(dataPipe[1], acc_data, sizeof (acc_data));
 				write(dataPipe[1], gyr_data, sizeof (gyr_data));

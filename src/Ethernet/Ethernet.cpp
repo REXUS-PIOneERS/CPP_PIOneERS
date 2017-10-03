@@ -199,7 +199,7 @@ int Client::run(int pipes[2]) {
 			// Loop for receiving packets
 			std::string packet_recv = receive_packet();
 			if (!packet_recv.empty()) {
-				outf << packet_recv;
+				outf << packet_recv << "\n";
 				//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 			}
 		}
@@ -241,7 +241,7 @@ int Server::run(int *pipes) {
 				// Try to get data from the Client
 				std::string packet_recv = receive_packet();
 				if (!packet_recv.empty()) {
-					outf << packet_recv;
+					outf << packet_recv << "\n";
 					//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
 					if (packet_recv[0] == 'E')
 						break;

@@ -95,7 +95,6 @@ int SOE_SIGNAL() {
 	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
 	digitalWrite(MOTOR_CW, 1);
 	digitalWrite(MOTOR_ACW, 0);
-	pwmWrite(MOTOR_PWM, PWM_RANGE); // Sets the motor turning at maximum
 	// Keep checking the encoder count till it reaches the required amount.
 	fprintf(stdout, "INFO: Boom deploying...\n");
 	while (1) {
@@ -109,12 +108,12 @@ int SOE_SIGNAL() {
 		int n = read(IMU_data_stream, buf, 255);
 		if (n > 0) {
 			buf[n] = '\0';
-			fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
+			//fprintf(stdout, "DATA (%d): %s\n", n, buf); // TODO change to send to RXSM
 			write(ethernet_streams[1], buf, n);
 		}
 		delay(100);
 	}
-	pwmWrite(1, 0); // Stops sending pulses through the PWM pin.
+	digitalWrite(MOTOR_CW, 0); // Stops the motor.
 	fprintf(stdout, "INFO: Boom deployed :D\n");
 	fflush(stdout);
 
@@ -125,7 +124,7 @@ int SOE_SIGNAL() {
 		int n = read(IMU_data_stream, buf, 255);
 		if (n > 0) {
 			buf[n] = '\0';
-			fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
+			//fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
 			write(ethernet_streams[1], buf, n);
 		}
 		delay(100);
@@ -170,11 +169,11 @@ int main() {
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
 
-	// Setup PWM
-	pinMode(MOTOR_PWM, PWM_OUTPUT);
-	pwmSetRange(PWM_RANGE);
-	pwmSetClock(PWM_CLOCK);
-	pwmWrite(MOTOR_PWM, 0);
+	// Setup Motor Pins
+	pinMode(MOTOR_CW, OUTPUT);
+	pinMode(MOTOR_ACW, OUTPUT);
+	digitalWrite(MOTOR_CW, 0);
+	digitalWrite(MOTOR_ACW, 0);
 	// Create necessary directories for saving files
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	fprintf(stdout, "Pi 1 is alive and running.\n");
