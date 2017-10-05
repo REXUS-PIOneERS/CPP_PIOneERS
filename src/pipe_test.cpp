@@ -27,12 +27,21 @@ int main() {
 			if (!msg.empty()) {
 				sprintf(buf, "%s (%d)", msg.c_str(), i);
 				i = 0;
-				streams.strwrite(buf);
-				if (msg[0] == 'E')
+				int n = streams.strwrite(buf);
+				if (n < 0)
 					break;
-			} else
+			} else {
 				i++;
+				try {
+					int n = streams.strwrite("Random Message\n");
+				} catch (PipeException e) {
+					break;
+				}
+				fprintf(stdout, "FILLER\n");
+				delay(10);
+			}
 		}
+		fprintf(stdout, "We have left the loop\n");
 	} else {
 		// This is the parent process
 		char buf[256];
@@ -49,8 +58,8 @@ int main() {
 				}
 			}
 		}
-		fprintf(stdout, "Closing parent pipe\n")
-		streams.close();
+		fprintf(stdout, "Closing parent pipe\n");
+		streams.close_pipes();
 		delay(10000);
 		fprintf(stdout, "EXITING PROGRAM\n");
 	}

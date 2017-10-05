@@ -5,11 +5,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
 
 #include "pipes.h"
 
 bool poll_read(int fd) {
 	// Checks a file descriptor is ready for reading
+	signal(SIGPIPE, SIG_IGN);
 	struct pollfd fds[1];
 	int timeout = 0;
 	fds[0].fd = fd;
@@ -25,7 +27,7 @@ int poll_write(int fd) {
 	int timeout = 0;
 	fds[0].fd = fd;
 	fds[0].events = POLLOUT | POLLHUP;
-	if (poll(fds, 1, timout)) {
+	if (poll(fds, 1, timeout)) {
 		if (fds[0].revents & POLLHUP)
 			return -2;
 		else if (fds[0].revents & POLLOUT)
@@ -123,11 +125,7 @@ std::string Pipe::strread() {
 	}
 }
 
-void Pipe::close() {
-	~Pipe();
-}
-
-Pipe::~Pipe() {
+void Pipe::close_pipes() {
 	if (m_pid == 0) {
 		close(m_ch_read);
 		close(m_ch_write);
@@ -135,4 +133,8 @@ Pipe::~Pipe() {
 		close(m_par_read);
 		close(m_par_write);
 	}
+}
+
+Pipe::~Pipe() {
+	close_pipes();
 }

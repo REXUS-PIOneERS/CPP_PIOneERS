@@ -30,7 +30,7 @@ public:
 	std::string strread();
 	int binread(void* data, int n = 0);
 
-	void close();
+	void close_pipes();
 	~Pipe();
 
 private:
