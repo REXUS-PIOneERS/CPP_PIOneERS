@@ -46,7 +46,7 @@ private:
 class PipeException {
 public:
 
-	PipeException(std::string error) {
+	PipeException(std::string error, int error_no) {
 		m_error = error;
 	}
 
@@ -54,8 +54,20 @@ public:
 		return m_error.c_str();
 	}
 
+	int errno() {
+		return error_no;
+	}
+
 private:
 	std::string m_error;
+	int error_no;
+	/*
+	 * Error Numbers meaning:
+	 *		-1 : Undefined error
+	 *		-2 : Broken write pipe
+	 *		-3 : Broken read pipe
+	 *		-4 : Pipe unavailable for writing
+	 */
 };
 
 

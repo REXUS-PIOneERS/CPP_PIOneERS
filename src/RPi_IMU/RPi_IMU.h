@@ -38,6 +38,7 @@ public:
 	uint16_t readAccAxis(int axis);
 	uint16_t readGyrAxis(int axis);
 	uint16_t readMagAxis(int axis);
+	void readRegisters(uint16_t *data);
 
 	int startDataCollection(char* filename);
 	int stopDataCollection();

@@ -79,10 +79,15 @@ int Pipe::getWritefd() {
 int Pipe::binwrite(void* data, int n) {
 	// Write n bytes of data to the pipe.
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
-	if (n == write(write_fd, data, n))
-		return n;
-	else
-		throw PipeException("ERROR: Failed to write data to pipe");
+	int poll_val = poll_write(write_fd);
+	if (poll_val == 0) {
+		if (n == write(write_fd, data, n))
+			return n;
+		else
+			throw PipeException("ERROR: Pipe is broken", -2);
+	} else
+		throw PipeException("ERROR: The pipe is unavailbale for writing", -4);
+
 }
 
 int Pipe::strwrite(std::string str) {
@@ -93,10 +98,12 @@ int Pipe::strwrite(std::string str) {
 		int n = str.length();
 		if (n == write(write_fd, str.c_str(), n))
 			return n;
+		else if (n == -1)
+			throw PipeException("ERROR: Pipe is broken", -2);
 		else
-			throw PipeException("ERROR: Failed to write string to pipe");
+			throw PipeException("ERROR: The pipe is unavailable for writing", -4);
 	} else
-		return poll_val;
+		throw PipeException("ERROR: The pipe is unavailable for writing", -4);
 }
 
 int Pipe::binread(void* data, int n) {
@@ -106,7 +113,10 @@ int Pipe::binread(void* data, int n) {
 	if (!poll_read(read_fd))
 		return 0;
 	int bytes_read = read(read_fd, data, n);
-	return bytes_read;
+	if (bytes_read == -1)
+		throw PipeException("ERROR: Pipe is broken", -3);
+	else
+		return bytes_read;
 }
 
 std::string Pipe::strread() {
@@ -116,8 +126,8 @@ std::string Pipe::strread() {
 		return std::string();
 	char buf[256];
 	int n = read(read_fd, buf, 255);
-	if (n < 0)
-		return std::string();
+	if (n == -1)
+		throw PipeException("ERROR: Pipe is broken, -3");
 	else {
 		buf[n] = '\0';
 		std::string rtn(buf);
