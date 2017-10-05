@@ -49,6 +49,10 @@ int main() {
 				}
 			}
 		}
+		fprintf(stdout, "Closing parent pipe\n")
+		streams.close();
+		delay(10000);
+		fprintf(stdout, "EXITING PROGRAM\n");
 	}
 
 	return 0;

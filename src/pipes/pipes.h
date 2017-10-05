@@ -26,9 +26,11 @@ public:
 	int Fork();
 	// Read and write functions
 	int strwrite(std::string);
-	int binwrite(char* data, int n);
+	int binwrite(void* data, int n);
 	std::string strread();
-	int binread(char* data, int n = 0);
+	int binread(void* data, int n = 0);
+
+	void close();
 	~Pipe();
 
 private:

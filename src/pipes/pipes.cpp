@@ -19,6 +19,22 @@ bool poll_read(int fd) {
 		return fds[0].revents & POLLIN;
 }
 
+int poll_write(int fd) {
+	// Checks if a file descriptor is available for reading to
+	struct pollfd fds[1];
+	int timeout = 0;
+	fds[0].fd = fd;
+	fds[0].events = POLLOUT | POLLHUP;
+	if (poll(fds, 1, timout)) {
+		if (fds[0].revents & POLLHUP)
+			return -2;
+		else if (fds[0].revents & POLLOUT)
+			return 0;
+		else
+			return -1;
+	}
+}
+
 Pipe::Pipe() {
 	if (pipe(m_pipes1))
 		throw PipeException("ERROR: Unable to create pipes");
@@ -58,7 +74,7 @@ int Pipe::getWritefd() {
 		return m_ch_write;
 }
 
-int Pipe::binwrite(char* data, int n) {
+int Pipe::binwrite(void* data, int n) {
 	// Write n bytes of data to the pipe.
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
 	if (n == write(write_fd, data, n))
@@ -70,14 +86,18 @@ int Pipe::binwrite(char* data, int n) {
 int Pipe::strwrite(std::string str) {
 	// Write a string of characters to the pipe
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
-	int n = str.length();
-	if (n == write(write_fd, str.c_str(), n))
-		return n;
-	else
-		throw PipeException("ERROR: Failed to write string to pipe");
+	int poll_val = poll_write(write_fd);
+	if (poll_val == 0) {
+		int n = str.length();
+		if (n == write(write_fd, str.c_str(), n))
+			return n;
+		else
+			throw PipeException("ERROR: Failed to write string to pipe");
+	} else
+		return poll_val;
 }
 
-int Pipe::binread(char* data, int n) {
+int Pipe::binread(void* data, int n) {
 	// Reads upto n bytes into the character array, returns bytes read
 	int read_fd = (m_pid) ? m_par_read : m_ch_read;
 	// Check if there is any data to read
@@ -103,13 +123,15 @@ std::string Pipe::strread() {
 	}
 }
 
+void Pipe::close() {
+	~Pipe();
+}
 
 Pipe::~Pipe() {
 	if (m_pid == 0) {
 		close(m_ch_read);
 		close(m_ch_write);
-	}
-	else {
+	} else {
 		close(m_par_read);
 		close(m_par_write);
 	}
