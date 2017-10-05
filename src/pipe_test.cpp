@@ -20,13 +20,14 @@ int main() {
 		 * no data to read then this will be displayed.
 		 */
 		std::string msg;
+		char buf[256];
 		int i;
 		while (1) {
 			msg = streams.strread();
 			if (!msg.empty()) {
-				sprintf(msg, "%s (%d)", msg, i);
+				sprintf(buf, "%s (%d)", msg.c_str(), i);
 				i = 0;
-				streams.strwrite(msg);
+				streams.strwrite(buf);
 				if (msg[0] == 'E')
 					break;
 			} else
@@ -34,11 +35,19 @@ int main() {
 		}
 	} else {
 		// This is the parent process
+		char buf[256];
 		for (int i = 0; i < 10; i++) {
 			delay(100);
-			std::string msg;
-			sprintf(msg, "%s (%d)", msg, i);
+			std::string msg = "TEST";
+			sprintf(buf, "%s (%d)", msg.c_str(), i);
 			streams.strwrite(msg);
+			while (1) {
+				msg = streams.strread();
+				if (!msg.empty()) {
+					fprintf(stdout, "%s\n", msg.c_str());
+					break;
+				}
+			}
 		}
 	}
 

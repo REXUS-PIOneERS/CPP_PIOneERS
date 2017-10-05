@@ -16,11 +16,6 @@
 #include <string>
 #include <stdint.h>
 
-enum Pipe {
-	PIPE_READ,
-	PIPE_WRITE,
-};
-
 class Pipe {
 public:
 	Pipe();
@@ -34,7 +29,7 @@ public:
 	int binwrite(char* data, int n);
 	std::string strread();
 	int binread(char* data, int n = 0);
-
+	~Pipe();
 
 private:
 	int m_pipes1[2];
@@ -44,7 +39,6 @@ private:
 	int m_ch_read;
 	int m_ch_write;
 	int m_pid; // 0 => child, >0 => parent
-	~Pipe();
 };
 
 class PipeException {

@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <poll.h>
 
-#include <pipes.h>
+#include "pipes.h"
 
 bool poll_read(int fd) {
 	// Checks a file descriptor is ready for reading
@@ -58,7 +58,7 @@ int Pipe::getWritefd() {
 		return m_ch_write;
 }
 
-int Pipe::binwrite(uint8_t* data, int n) {
+int Pipe::binwrite(char* data, int n) {
 	// Write n bytes of data to the pipe.
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
 	if (n == write(write_fd, data, n))
@@ -71,7 +71,7 @@ int Pipe::strwrite(std::string str) {
 	// Write a string of characters to the pipe
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
 	int n = str.length();
-	if (n == write(write_fd, str, n))
+	if (n == write(write_fd, str.c_str(), n))
 		return n;
 	else
 		throw PipeException("ERROR: Failed to write string to pipe");
@@ -91,8 +91,8 @@ std::string Pipe::strread() {
 	int read_fd = (m_pid) ? m_par_read : m_ch_read;
 	// Check if there is anything to read
 	if (!poll_read(read_fd))
-		return 0;
-	char* buf[256];
+		return std::string();
+	char buf[256];
 	int n = read(read_fd, buf, 255);
 	if (n < 0)
 		return std::string();
@@ -100,5 +100,17 @@ std::string Pipe::strread() {
 		buf[n] = '\0';
 		std::string rtn(buf);
 		return rtn;
+	}
+}
+
+
+Pipe::~Pipe() {
+	if (m_pid == 0) {
+		close(m_ch_read);
+		close(m_ch_write);
+	}
+	else {
+		close(m_par_read);
+		close(m_par_write);
 	}
 }
