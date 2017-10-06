@@ -25,8 +25,10 @@ void PiCamera::startVideo() {
 			"-w", "1920",
 			"-h", "1080",
 			"-fps", "30",
-			NULL};
+			NULL
+		};
 		execv("/usr/bin/raspivid", cmd);
+		perror("PiCamera: ");
 	}
 }
 
