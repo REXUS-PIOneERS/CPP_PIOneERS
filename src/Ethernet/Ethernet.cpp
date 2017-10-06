@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fstream>
-#include <string.h>
+
+#include <fstream> //for std::ofstream
+#include <iostream>  //for std::endl
+
+#include <string>
 #include <fcntl.h>
 
 #include "Ethernet.h"
+#include "pipes/pipes.h"
 
 void error(const char *msg) {
 	perror(msg);
@@ -161,7 +165,7 @@ Client::~Client() {
  *		the connection
  */
 
-int Client::run(int pipes[2]) {
+Pipe Client::run() {
 	/*
 	 * Generate a pipe for transferring the data, fork the process and send
 	 * back the required pipes.
@@ -169,102 +173,97 @@ int Client::run(int pipes[2]) {
 	 * packets and sending these to the server as well as receiving packets
 	 * in return.
 	 */
-	int write_pipe[2]; // This pipe sends data back to the main process
-	int read_pipe[2]; // This pipe receives data from the main process
-	pipe(write_pipe);
-	pipe(read_pipe);
-	if (open_connection() == -1)
-		return -1;
-	if ((m_pid = fork()) == 0) {
-		// This is the child process.
-		close(write_pipe[0]);
-		close(read_pipe[1]);
-		// Loop for sending and receiving data
-		std::ofstream outf;
-		outf.open("Docs/Data/Pi2/backup.txt");
-		while (1) {
-			char buf[256];
-			bzero(buf, 256);
-			// Send any data we have
-			int n = read(read_pipe[0], buf, 255);
-			if (n <= 0)
-				continue;
-			buf[n] = '\0';
-			std::string packet_send(buf);
-			if (send_packet(packet_send) != 0)
-				continue; // TODO handle the error
-			// Check for exit message
-			if (packet_send[0] == 'E')
-				break;
-			// Loop for receiving packets
-			std::string packet_recv = receive_packet();
-			if (!packet_recv.empty()) {
-				outf << packet_recv << "\n";
-				//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
-			}
-		}
-		outf.close();
-
-	} else {
-		// Assign the pipes for the main process and close the un-needed ones
-		close(write_pipe[1]);
-		close(read_pipe[0]);
-		pipes[0] = write_pipe[0];
-		pipes[1] = read_pipe[1];
-		return 0;
-	}
-	return 0;
-}
-
-int Server::run(int *pipes) {
-	// Fork a process to handle server stuff
-	int read_pipe[2];
-	int write_pipe[2];
-	pipe(read_pipe);
-	pipe(write_pipe);
-
-	while (1) {
-		printf("Waiting for client connection...\n");
-		m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-		if (m_newsockfd < 0) error("ERROR: on accept");
-		printf("Connection established with a new client...\n"
-				"Beginning data sharing...\n");
-		if ((m_pid = fork()) == 0) {
-			// This is the child process that handles all the requests
-			close(read_pipe[1]);
-			close(write_pipe[0]);
-			// Loop for receiving data
+	try {
+		Pipe pipes = Pipe();
+		if ((m_pid = pipes.Fork()) == 0) {
+			// This is the child process.
 			std::ofstream outf;
-			outf.open("Docs/Data/Pi1/backup.txt");
-			char buf[256];
+			outf.open("Docs/Data/Pi2/backup.txt");
+			// Loop for sending and receiving data
 			while (1) {
-				// Try to get data from the Client
-				std::string packet_recv = receive_packet();
-				if (!packet_recv.empty()) {
-					outf << packet_recv << "\n";
-					//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
-					if (packet_recv[0] == 'E')
-						break;
-				}
-				// Try to send data to the Client
-				int n = read(read_pipe[0], buf, 255);
-				if (n <= 0)
+				char buf[256];
+				bzero(buf, 256);
+				// Send any data we have
+				int n = pipes.binread(buf, 255);
+				if (n = 0)
 					continue;
 				buf[n] = '\0';
 				std::string packet_send(buf);
 				if (send_packet(packet_send) != 0)
-					continue; // TODO Handling this error
+					continue; // TODO handle the error
+				// Check for exit message
+				if (packet_send[0] == 'E')
+					break;
+				// Loop for receiving packets
+				std::string packet_recv = receive_packet();
+				if (!packet_recv.empty()) {
+					outf << packet_recv << std::endl;
+					//pipes.strwrite(packet_recv);
+				}
 			}
 			outf.close();
+			pipes.close_pipes();
+			exit(0);
 		} else {
-			// This is the main parent process
-			close(read_pipe[0]);
-			close(write_pipe[1]);
-			pipes[0] = write_pipe[0];
-			pipes[1] = read_pipe[1];
-			return 0;
+			// Assign the pipes for the main process and close the un-needed ones
+			return pipes;
 		}
-		close(m_newsockfd);
+	} catch (PipeException e) {
+		fprintf(stdout, "%s\n", e.what());
+		exit(0);
+	} catch (...) {
+		fprintf(stdout, "ERROR: Unknown problem with client\n");
+		exit(1);
 	}
-	return -1; // Something must have gone wrong because this shouldn't happen
+}
+
+Pipe Server::run() {
+	// Fork a process to handle server stuff
+	try {
+		Pipe pipes = Pipe();
+		while (1) {
+			printf("Waiting for client connection...\n");
+			m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
+			if (m_newsockfd < 0) error("ERROR: on accept");
+			printf("Connection established with a new client...\n"
+					"Beginning data sharing...\n");
+			if ((m_pid = pipes.Fork()) == 0) {
+				// This is the child process that handles all the requests
+				std::ofstream outf;
+				outf.open("Docs/Data/Pi1/backup.txt");
+				// Loop for receiving data
+				char buf[256];
+				while (1) {
+					// Try to get data from the Client
+					std::string packet_recv = receive_packet();
+					if (!packet_recv.empty()) {
+						outf << packet_recv << std::endl;
+						//pipes.strwrite(packet);
+						if (packet_recv[0] == 'E')
+							break;
+					}
+					// Try to send data to the Client
+					int n = pipes.binread(buf, 255);
+					if (n == 0)
+						continue;
+					buf[n] = '\0';
+					std::string packet_send(buf);
+					if (send_packet(packet_send) != 0)
+						continue; // TODO Handling this error
+				}
+				outf.close();
+			} else {
+				// This is the main parent process
+				return pipes;
+			}
+			close(m_newsockfd);
+		}
+	} catch (PipeException e) {
+		// Ignore it and exit gracefully
+		fprintf(stdout, "%s\n", e.what());
+		exit(0);
+	} catch (...) {
+		fprintf(stdout, "ERROR: Unknown problem with server\n");
+		exit(1);
+	}
 }

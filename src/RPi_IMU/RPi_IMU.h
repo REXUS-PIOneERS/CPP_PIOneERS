@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "LSM9DS0.h"   //Stores addresses for the BerryIMU
+#include "pipes/pipes.h"
 
 #include <sys/types.h>
 
@@ -40,7 +41,7 @@ public:
 	uint16_t readMagAxis(int axis);
 	void readRegisters(uint16_t *data);
 
-	int startDataCollection(char* filename);
+	Pipe startDataCollection(char* filename);
 	int stopDataCollection();
 
 	~RPi_IMU() {

@@ -285,9 +285,12 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 		}
 	} catch (PipeException e) {
 		// Ignore a broken pipe and exit silently
-		fprintf(stdout, "%s", e.what());
-		exit(EXIT_SUCCESS); // Happily end the process
+		fprintf(stdout, "%s\n", e.what());
+		exit(0); // Happily end the process
 		// TODO handle different types of exception!
+	} catch (...) {
+		fprintf(stdout, "ERROR: Unknown problem with IMU caused early exit");
+		exit(1);
 	}
 }
 

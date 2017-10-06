@@ -16,6 +16,7 @@
 #include "camera/camera.h"
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
+#include "pipes/pipes.h"
 
 #include <wiringPi.h>
 
@@ -43,16 +44,17 @@ void count_encoder() {
 // Global variable for the Camera and IMU
 PiCamera Cam = PiCamera();
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
-int IMU_data_stream;
+Pipe IMU_stream;
 
 // Setup for the UART communications
 int baud = 230400;
 UART RXSM = UART();
+Pipe UART_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
 std::string server_name = "PIOneERS1.local";
-int ethernet_streams[2]; // 0 = read, 1 = write
+Pipe ethernet_stream; // 0 = read, 1 = write
 Client ethernet_comms = Client(port_no, server_name);
 int ALIVE = 2;
 
@@ -66,9 +68,12 @@ int SODS_SIGNAL() {
 	fprintf(stdout, "Signal Received: SODS\n");
 	fflush(stdout);
 	Cam.stopVideo();
-	IMU.stopDataCollection();
+	IMU_stream.close_pipes();
+	//IMU.stopDataCollection();
 	// Send terminate message to server
-	write(ethernet_streams[1], "EXIT", 4);
+	ethernet_stream.strwrite("EXIT");
+	ethernet_stream.close_pipes();
+	// TODO copy data to a further backup directory
 	return 0;
 }
 
@@ -89,7 +94,7 @@ int SOE_SIGNAL() {
 	IMU.setupGyr();
 	IMU.setupMag();
 	// Start data collection and store the stream where data is coming through
-	IMU_data_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
+	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
 	char buf[256]; // Buffer for reading data from the IMU stream
 	// Extend the boom!
 	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
@@ -105,11 +110,11 @@ int SOE_SIGNAL() {
 		fprintf(stdout, "INFO: Encoder Count-%d\n", encoder_count);
 		piUnlock(1);
 		// TODO periodically send the count to ground
-		int n = read(IMU_data_stream, buf, 255);
+		int n = IMU_stream.binread(buf, 255);
 		if (n > 0) {
 			buf[n] = '\0';
 			//fprintf(stdout, "DATA (%d): %s\n", n, buf); // TODO change to send to RXSM
-			write(ethernet_streams[1], buf, n);
+			ethernet_stream.binwrite(buf, n);
 		}
 		delay(100);
 	}
@@ -121,11 +126,11 @@ int SOE_SIGNAL() {
 	while (digitalRead(SODS)) {
 		// Read data from IMU_data_stream and echo it to Ethernet
 		char buf[256];
-		int n = read(IMU_data_stream, buf, 255);
+		int n = IMU_stream.binread(buf, 255);
 		if (n > 0) {
 			buf[n] = '\0';
 			//fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
-			write(ethernet_streams[1], buf, n);
+			ethernet_stream.binwrite(buf, n);
 		}
 		delay(100);
 	}
@@ -181,11 +186,10 @@ int main() {
 	while (!digitalRead(ALIVE))
 		delay(10);
 	fprintf(stdout, "Pi 2 is now running, trying to establish Ethernet connection.\n");
-	// Keep trying to connect until we are successful
-	while (ethernet_comms.run(ethernet_streams) == -1)
-		continue;
-	// TODO handle error where we can't connect to he server
-	fprintf(stdout, "Connection to server successful\nWaiting for LO signal...\n");
+	// Try to connect to Pi 2
+	ethernet_stream = ethernet_comms.run()
+			// TODO handle error where we can't connect to the server
+			fprintf(stdout, "Connection to server successful\nWaiting for LO signal...\n");
 	// Check for LO signal.
 	bool signal_recieved = false;
 	while (!signal_recieved) {

@@ -16,13 +16,15 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "pipes/pipes.h"
+
 #ifndef ETHERNET_H
 #define ETHERNET_H
 
 class Server {
 public:
 	Server(int port);
-	int run(int *pipes);
+	Pipe run();
 	~Server();
 private:
 	int m_sockfd, m_newsockfd, m_port, m_pid;
@@ -40,7 +42,7 @@ class Client {
 public:
 	Client(int port, std::string host_name);
 
-	int run(int *pipes);
+	Pipe run();
 	int open_connection();
 	int close_connection();
 	~Client();
