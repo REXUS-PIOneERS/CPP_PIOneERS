@@ -17,11 +17,13 @@ To install them you can run the following commands:
 ```
 // To install git tools
 sudo apt-get install git
+
 // To install wiringPi
 cd
 git clone git://git.drogon.net/wiringPi
 cd ~/wiringPi
 ./build
+
 // To install i2c tools
 sudo apt-get install i2c-tools
 ```
@@ -46,6 +48,7 @@ make ./bin/runner
 This can also be used to compile tests to check everything is properly setup.
 ```
 make ./bin/test
+
 // To run tests
 ./bin/runner
 ```
@@ -58,4 +61,4 @@ Connect the various components to the Pi as shown in the pinout diagram.
 
 ![Alt text](/img/Pinout.JPG)
 
-### Usage Instructions (Ground Communication)
+### Usage Instructions
