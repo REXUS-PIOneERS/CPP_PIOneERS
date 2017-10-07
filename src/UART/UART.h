@@ -16,8 +16,8 @@ public:
 	}
 
 	void setupUART();
-	int sendBytes(char *buf, size_t count);
-	int getBytes(char buf[256]);
+	int sendBytes(char *buf, int n);
+	int getBytes(char buf[256], int n);
 	Pipe startDataCollection(std::string filename);
 	int stopDataCollection();
 };

@@ -27,9 +27,8 @@ Server::Server(int port) {
 int Server::setup() {
 	// Open the socket for Ethernet connection
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sockfd < 0) {
+	if (m_sockfd < 0)
 		throw EthernetException("ERROR: Server Failed to Open Socket");
-	}
 	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	// Setup details for the server address
 	m_serv_addr.sin_family = AF_INET;
@@ -41,6 +40,7 @@ int Server::setup() {
 	// Sets backlog queue to 5 connections and allows socket to listen
 	listen(m_sockfd, 5);
 	m_clilen = sizeof (m_cli_addr);
+	return 0;
 }
 
 std::string Server::receive_packet() {
@@ -84,11 +84,11 @@ int Client::setup() {
 	// Open the socket
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0)
-		throw EthernetException("ERROR: Client failed to open socket")
+		throw EthernetException("ERROR: Client failed to open socket");
 		// Look for server host by given name
 		m_server = gethostbyname(m_host_name.c_str());
 	if (m_server == NULL)
-		throw EthernetException("ERROR: No such host")
+		throw EthernetException("ERROR: No such host");
 		bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	m_serv_addr.sin_family = AF_INET;
 	bcopy((char *) m_server->h_addr,
@@ -180,7 +180,7 @@ Pipe Client::run() {
 				bzero(buf, 256);
 				// Send any data we have
 				int n = pipes.binread(buf, 255);
-				if (n = 0)
+				if (n == 0)
 					continue;
 				buf[n] = '\0';
 				std::string packet_send(buf);

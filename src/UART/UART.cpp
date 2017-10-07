@@ -29,8 +29,8 @@ void UART::setupUART() {
 	tcsetattr(uart_filestream, TCSANOW, &options);
 }
 
-int UART::sendBytes(char *buf, size_t count) {
-	int sent = write(uart_filestream, (void*) buf, count);
+int UART::sendBytes(char *buf, int n) {
+	int sent = write(uart_filestream, (void*) buf, n);
 	if (sent < 0) {
 		fprintf(stderr, "Failed to send bytes");
 		return -1;
@@ -38,7 +38,7 @@ int UART::sendBytes(char *buf, size_t count) {
 	return 0;
 }
 
-int UART::getBytes(void* buf, int n) {
+int UART::getBytes(char* buf, int n) {
 	/*
 	 * Gets bytes that are waiting in the UART stream (max 255 bytes)
 	 */

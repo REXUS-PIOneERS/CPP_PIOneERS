@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include "pipes/pipes.h"
+#include <sys/wait.h>  // For waitpid
 
 #include <string>
 #include "timer.h"
@@ -217,11 +218,11 @@ void RPi_IMU::readMag(uint16_t *data) {
 void RPi_IMU::readRegisters(uint16_t *data) {
 	// Read all data for accelerometer, magnetometer and gyroscope
 	int n = 0;
-	for (int i = 0; i < 3; i++ n++)
+	for (int i = 0; i < 3; i++, n++)
 		data[n] = readAccAxis(i);
-	for (int i = 0; i < 3; i++ n++)
+	for (int i = 0; i < 3; i++, n++)
 		data[n] = readGyrAxis(i);
-	for (int i = 0; i < 3; i++ n++)
+	for (int i = 0; i < 3; i++, n++)
 		data[n] = readMagAxis(i);
 }
 

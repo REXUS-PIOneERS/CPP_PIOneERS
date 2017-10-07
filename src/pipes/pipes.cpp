@@ -114,7 +114,7 @@ int Pipe::binread(void* data, int n) {
 		return 0;
 	int bytes_read = read(read_fd, data, n);
 	if (bytes_read == -1)
-		throw PipeException("ERROR: Pipe is broken", -3);
+		throw PipeException("ERROR: Pipe is broken");
 	else
 		return bytes_read;
 }

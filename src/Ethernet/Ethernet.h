@@ -11,6 +11,7 @@
  * Created on 05 September 2017, 19:05
  */
 #include <string>
+#include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -63,7 +64,7 @@ class EthernetException {
 public:
 
 	EthernetException(std::string error) {
-		m_error = error + strerror(errno);
+		m_error = error + std::strerror(errno);
 	}
 
 	const char * what() {

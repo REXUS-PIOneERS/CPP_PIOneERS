@@ -59,16 +59,16 @@ Pipe ethernet_stream; // 0 = read, 1 = write
 Client ethernet_comms = Client(port_no, server_name);
 int ALIVE = 2;
 
-void signal_handler(sig_t s) {
+void signal_handler(int s) {
 	fprintf(stdout, "Caught signal %d\n"
 			"Ending child processes...\n", s);
 	Cam.stopVideo();
-	if (ethernet_stream != NULL) {
+	if (&ethernet_stream != NULL) {
 		ethernet_stream.strwrite("EXIT");
 		delay(100);
 		ethernet_stream.close_pipes();
 	}
-	if (IMU_stream != NULL)
+	if (&IMU_stream != NULL)
 		IMU_stream.close_pipes();
 	fprintf(stdout, "Child processes closed, exiting program\n");
 	exit(1); // This was an unexpected end so we will exit with an error!

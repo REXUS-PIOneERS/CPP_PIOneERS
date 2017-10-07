@@ -4,7 +4,7 @@
 TARGET = ./bin/runner
 
 CC = g++
-OBJS = ./build/main.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
+OBJS = ./build/main.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
 LFLAGS = -Wall
 CFLAGS = -Wall -c -std=c++11
 INCLUDES = -lwiringPi -I/home/pi/Pi_1/src
@@ -14,6 +14,7 @@ IMUSRC = ./src/RPi_IMU/RPi_IMU.cpp
 UARTSRC = ./src/UART/UART.cpp
 CAMSRC = ./src/camera/camera.cpp
 ETHSRC = ./src/Ethernet/Ethernet.cpp
+PIPESRC = ./src/pipes/pipes.cpp
 
 TESTOUT = ./bin/test
 TESTOBJS = ./build/test.o ./build/IMU_Tests.o ./build/RPi_IMU.o
@@ -27,6 +28,9 @@ $(TARGET): $(OBJS)
 	$(CC) $(LFLAGS) $^ -o $@ $(INCLUDES)
 
 ./build/main.o: $(MAINSRC)
+	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
+
+./build/pipes.o: $(PIPESRC)
 	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
 
 ./build/RPi_IMU.o: $(IMUSRC)

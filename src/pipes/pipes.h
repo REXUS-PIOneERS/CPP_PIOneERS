@@ -14,6 +14,7 @@
 #define PIPES_H
 
 #include <string>
+#include <cstring>
 #include <stdint.h>
 #include <error.h>  // For errno
 
@@ -48,7 +49,7 @@ class PipeException {
 public:
 
 	PipeException(std::string error) {
-		m_error = error + strerror(errno);
+		m_error = error + std::strerror(errno);
 	}
 
 	const char * what() {
