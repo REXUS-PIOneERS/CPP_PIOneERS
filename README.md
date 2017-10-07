@@ -54,6 +54,8 @@ Note: If everything is not set up (i.e. camera, IMU, motor etc) tests will fail.
 
 ### Pinout Instructions
 
-Connect all the things to the right place.
+Connect the various components to the Pi as shown in the pinout diagram.
+
+![Alt text](/img/Pinout.JPG)
 
 ### Usage Instructions (Ground Communication)
