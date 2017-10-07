@@ -15,6 +15,7 @@
 
 #include <string>
 #include <stdint.h>
+#include <error.h>  // For errno
 
 class Pipe {
 public:
@@ -46,28 +47,16 @@ private:
 class PipeException {
 public:
 
-	PipeException(std::string error, int error_no) {
-		m_error = error;
+	PipeException(std::string error) {
+		m_error = error + strerror(errno);
 	}
 
 	const char * what() {
 		return m_error.c_str();
 	}
 
-	int errno() {
-		return error_no;
-	}
-
 private:
 	std::string m_error;
-	int error_no;
-	/*
-	 * Error Numbers meaning:
-	 *		-1 : Undefined error
-	 *		-2 : Broken write pipe
-	 *		-3 : Broken read pipe
-	 *		-4 : Pipe unavailable for writing
-	 */
 };
 
 

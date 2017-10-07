@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <error.h>  // For errno
 
 #include "pipes/pipes.h"
 
@@ -56,6 +57,22 @@ private:
 	int send_packet(std::string packet);
 	std::string receive_packet();
 	int setup();
+};
+
+class EthernetException {
+public:
+
+	EthernetException(std::string error) {
+		m_error = error + strerror(errno);
+	}
+
+	const char * what() {
+		return m_error.c_str();
+	}
+
+private:
+
+	std::string m_error;
 };
 
 #endif /* ETHERNET_H */

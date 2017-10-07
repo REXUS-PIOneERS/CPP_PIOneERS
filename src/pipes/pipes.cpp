@@ -84,9 +84,9 @@ int Pipe::binwrite(void* data, int n) {
 		if (n == write(write_fd, data, n))
 			return n;
 		else
-			throw PipeException("ERROR: Pipe is broken", -2);
+			throw PipeException("ERROR: Pipe is broken");
 	} else
-		throw PipeException("ERROR: The pipe is unavailbale for writing", -4);
+		throw PipeException("ERROR: Pipe unavailbale for writing");
 
 }
 
@@ -99,11 +99,11 @@ int Pipe::strwrite(std::string str) {
 		if (n == write(write_fd, str.c_str(), n))
 			return n;
 		else if (n == -1)
-			throw PipeException("ERROR: Pipe is broken", -2);
+			throw PipeException("ERROR: Pipe is broken");
 		else
-			throw PipeException("ERROR: The pipe is unavailable for writing", -4);
+			throw PipeException("ERROR: Pipe unavailable for writing");
 	} else
-		throw PipeException("ERROR: The pipe is unavailable for writing", -4);
+		throw PipeException("ERROR: Pipe unavailable for writing");
 }
 
 int Pipe::binread(void* data, int n) {
@@ -127,7 +127,7 @@ std::string Pipe::strread() {
 	char buf[256];
 	int n = read(read_fd, buf, 255);
 	if (n == -1)
-		throw PipeException("ERROR: Pipe is broken, -3");
+		throw PipeException("ERROR: Pipe is broken");
 	else {
 		buf[n] = '\0';
 		std::string rtn(buf);

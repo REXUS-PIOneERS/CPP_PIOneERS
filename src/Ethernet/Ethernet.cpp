@@ -27,17 +27,17 @@ Server::Server(int port) {
 int Server::setup() {
 	// Open the socket for Ethernet connection
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sockfd < 0)
-		error("ERROR opening socket");
+	if (m_sockfd < 0) {
+		throw EthernetException("ERROR: Server Failed to Open Socket");
+	}
 	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	// Setup details for the server address
 	m_serv_addr.sin_family = AF_INET;
 	m_serv_addr.sin_addr.s_addr = INADDR_ANY;
 	m_serv_addr.sin_port = m_port;
 	// Bind the socket to given address and port number
-	if (bind(m_sockfd, (struct sockaddr *) &m_serv_addr,
-			sizeof (m_serv_addr)) < 0)
-		error("ERROR on binding");
+	if (bind(m_sockfd, (struct sockaddr *) &m_serv_addr, sizeof (m_serv_addr)) < 0)
+		throw EthernetException("ERROR: On binding server");
 	// Sets backlog queue to 5 connections and allows socket to listen
 	listen(m_sockfd, 5);
 	m_clilen = sizeof (m_cli_addr);
@@ -72,9 +72,6 @@ Server::~Server() {
 	close(m_sockfd);
 }
 
-
-
-
 // Functions for setting up as a client
 
 Client::Client(int port, std::string host_name) {
@@ -87,14 +84,12 @@ int Client::setup() {
 	// Open the socket
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0)
-		error("ERROR: failed to open socket");
-	// Look for server host by given name
-	m_server = gethostbyname(m_host_name.c_str());
-	if (m_server == NULL) {
-		fprintf(stderr, "ERROR, no such host\n");
-		exit(0);
-	}
-	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
+		throw EthernetException("ERROR: Client failed to open socket")
+		// Look for server host by given name
+		m_server = gethostbyname(m_host_name.c_str());
+	if (m_server == NULL)
+		throw EthernetException("ERROR: No such host")
+		bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	m_serv_addr.sin_family = AF_INET;
 	bcopy((char *) m_server->h_addr,
 			(char *) &m_serv_addr.sin_addr.s_addr,
@@ -224,7 +219,8 @@ Pipe Server::run() {
 		while (1) {
 			printf("Waiting for client connection...\n");
 			m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-			if (m_newsockfd < 0) error("ERROR: on accept");
+			if (m_newsockfd < 0)
+				throw EthernetException("ERROR: on accept");
 			printf("Connection established with a new client...\n"
 					"Beginning data sharing...\n");
 			if ((m_pid = pipes.Fork()) == 0) {

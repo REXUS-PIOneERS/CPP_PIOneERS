@@ -11,6 +11,7 @@
 #include <unistd.h> //For sleep
 #include <stdlib.h>
 #include <iostream>
+#include <signal.h>  // For catching signals!
 
 #include "RPi_IMU/RPi_IMU.h"
 #include "camera/camera.h"
@@ -58,6 +59,21 @@ Pipe ethernet_stream; // 0 = read, 1 = write
 Client ethernet_comms = Client(port_no, server_name);
 int ALIVE = 2;
 
+void signal_handler(sig_t s) {
+	fprintf(stdout, "Caught signal %d\n"
+			"Ending child processes...\n", s);
+	Cam.stopVideo();
+	if (ethernet_stream != NULL) {
+		ethernet_stream.strwrite("EXIT");
+		delay(100);
+		ethernet_stream.close_pipes();
+	}
+	if (IMU_stream != NULL)
+		IMU_stream.close_pipes();
+	fprintf(stdout, "Child processes closed, exiting program\n");
+	exit(1); // This was an unexpected end so we will exit with an error!
+}
+
 int SODS_SIGNAL() {
 	/*
 	 * When the 'Start of Data Storage' signal is received all data recording
@@ -66,12 +82,12 @@ int SODS_SIGNAL() {
 	 * directory.
 	 */
 	fprintf(stdout, "Signal Received: SODS\n");
-	fflush(stdout);
 	Cam.stopVideo();
 	IMU_stream.close_pipes();
 	//IMU.stopDataCollection();
 	// Send terminate message to server
 	ethernet_stream.strwrite("EXIT");
+	delay(100);
 	ethernet_stream.close_pipes();
 	// TODO copy data to a further backup directory
 	return 0;
@@ -101,15 +117,14 @@ int SOE_SIGNAL() {
 	digitalWrite(MOTOR_CW, 1);
 	digitalWrite(MOTOR_ACW, 0);
 	// Keep checking the encoder count till it reaches the required amount.
-	fprintf(stdout, "INFO: Boom deploying...\n");
+	fprintf(stdout, "INFO: Boom deploying...");
 	while (1) {
 		// Lock is used to keep everything thread safe
 		piLock(1);
 		if (encoder_count >= 10000) // TODO what should the count be?
 			break;
-		fprintf(stdout, "INFO: Encoder Count-%d\n", encoder_count);
+		fprintf(stdout, " %d,", encoder_count);
 		piUnlock(1);
-		// TODO periodically send the count to ground
 		int n = IMU_stream.binread(buf, 255);
 		if (n > 0) {
 			buf[n] = '\0';
@@ -123,7 +138,18 @@ int SOE_SIGNAL() {
 	fflush(stdout);
 
 	// Wait for the next signal to continue the program
-	while (digitalRead(SODS)) {
+	bool signal_received = false;
+	while (!signal_received) {
+		// Implements a loop to ensure SOE signal has actually been received
+		if (!digitalRead(SODS)) {
+			int count = 0;
+			for (int i = 0; i < 5; i++) {
+				count += digitalRead(SODS);
+				delayMicroseconds(200);
+			}
+			if (count >= 3) signal_received = true;
+		}
+
 		// Read data from IMU_data_stream and echo it to Ethernet
 		char buf[256];
 		int n = IMU_stream.binread(buf, 255);
@@ -132,7 +158,7 @@ int SOE_SIGNAL() {
 			//fprintf(stdout, "DATA: %s\n", buf); // TODO change to send to RXSM
 			ethernet_stream.binwrite(buf, n);
 		}
-		delay(100);
+		delay(10);
 	}
 	return SODS_SIGNAL();
 }
@@ -148,9 +174,19 @@ int LO_SIGNAL() {
 	// Poll the SOE pin until signal is received
 	// TODO implement check to make sure no false signals!
 	fprintf(stdout, "Waiting for SOE signal...\n");
-	while (digitalRead(SOE)) {
-		// TODO implement RXSM communications
+	bool signal_received = false;
+	while (!signal_received) {
 		delay(10);
+		// Implements a loop to ensure SOE signal has actually been received
+		if (!digitalRead(SOE)) {
+			int count = 0;
+			for (int i = 0; i < 5; i++) {
+				count += digitalRead(SOE);
+				delayMicroseconds(200);
+			}
+			if (count >= 3) signal_received = true;
+		}
+		// TODO Implement communications with RXSM
 	}
 	return SOE_SIGNAL();
 }
@@ -162,6 +198,7 @@ int main() {
 	 * required tests, regularly reporting status until the LO Signal is
 	 * received.
 	 */
+	signal(SIGINT, signal_handler);
 	// Setup wiringpi
 	wiringPiSetup();
 	// Setup main signal pins
@@ -185,23 +222,24 @@ int main() {
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		delay(10);
-	fprintf(stdout, "Pi 2 is now running, trying to establish Ethernet connection.\n");
+	fprintf(stdout, "Pi 2 running, establishing Ethernet connection...\n");
 	// Try to connect to Pi 2
-	ethernet_stream = ethernet_comms.run()
-			// TODO handle error where we can't connect to the server
-			fprintf(stdout, "Connection to server successful\nWaiting for LO signal...\n");
+	ethernet_stream = ethernet_comms.run();
+	// TODO handle error where we can't connect to the server
+	fprintf(stdout, "Connection to Pi 2 successful\n"
+			"Waiting for LO signal...\n");
 	// Check for LO signal.
-	bool signal_recieved = false;
-	while (!signal_recieved) {
+	bool signal_received = false;
+	while (!signal_received) {
 		delay(10);
 		// Implements a loop to ensure LO signal has actually been received
-		if (digitalRead(LO)) {
+		if (!digitalRead(LO)) {
 			int count = 0;
 			for (int i = 0; i < 5; i++) {
 				count += digitalRead(LO);
 				delayMicroseconds(200);
 			}
-			if (count >= 3) signal_recieved = true;
+			if (count >= 3) signal_received = true;
 		}
 		// TODO Implement communications with RXSM
 	}
