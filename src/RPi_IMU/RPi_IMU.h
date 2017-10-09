@@ -45,8 +45,10 @@ public:
 	int stopDataCollection();
 
 	~RPi_IMU() {
-		resetRegisters();
-		// close(i2c_file);
+		if (i2c_file) {
+			resetRegisters();
+			close(i2c_file);
+		}
 	}
 
 private:
