@@ -88,11 +88,12 @@ Pipe UART::startDataCollection(std::string filename) {
 			return pipes;
 		}
 	} catch (PipeException e) {
+		sendBytes("S", 1);
 		fprintf(stdout, "%s\n", e.what());
 		close(uart_filestream);
 		exit(0);
 	} catch (...) {
-		fprintf(stderr, "ERROR: An unknown problem caused ImP data collection to terminate\n");
+		perror("ERROR with ImP");
 		close(uart_filestream);
 		exit(1);
 	}

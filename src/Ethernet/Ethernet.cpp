@@ -85,11 +85,11 @@ int Client::setup() {
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0)
 		throw EthernetException("ERROR: Client failed to open socket");
-		// Look for server host by given name
-		m_server = gethostbyname(m_host_name.c_str());
+	// Look for server host by given name
+	m_server = gethostbyname(m_host_name.c_str());
 	if (m_server == NULL)
 		throw EthernetException("ERROR: No such host");
-		bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
+	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	m_serv_addr.sin_family = AF_INET;
 	bcopy((char *) m_server->h_addr,
 			(char *) &m_serv_addr.sin_addr.s_addr,
@@ -207,7 +207,7 @@ Pipe Client::run() {
 		fprintf(stdout, "%s\n", e.what());
 		exit(0);
 	} catch (...) {
-		fprintf(stdout, "ERROR: Unknown problem with client\n");
+		perror("Error with client");
 		exit(1);
 	}
 }
@@ -259,7 +259,7 @@ Pipe Server::run() {
 		fprintf(stdout, "%s\n", e.what());
 		exit(0);
 	} catch (...) {
-		fprintf(stdout, "ERROR: Unknown problem with server\n");
+		perror("ERROR with server");
 		exit(1);
 	}
 }

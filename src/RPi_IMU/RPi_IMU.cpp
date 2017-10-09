@@ -290,7 +290,7 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 		exit(0); // Happily end the process
 		// TODO handle different types of exception!
 	} catch (...) {
-		fprintf(stdout, "ERROR: Unknown problem with IMU caused early exit");
+		perror("ERROR with IMU");
 		exit(1);
 	}
 }
