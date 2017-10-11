@@ -1,9 +1,11 @@
-/*
- * Pi 1 is connected to the ImP/IMU via UART, Camera via CSI, Burn Wire Relay
- * via GPIO and Pi 1 via Ethernet and GPIO for LO, SOE and SODS signals.
+/**
+ * REXUS PIOneERS - Pi_1
+ * main.cpp
+ * Purpose: Main logic control of the REXUS PIOneERS experiment handling data
+ * communication and transfer as well as the boom and antenna sub-systems.
  *
- * This program controls most of the main logic and for the PIOneERs mission
- * on board REXUS.
+ * @author David Amison
+ * @version 2.0 10/10/2017
  */
 
 #include <stdio.h>
@@ -26,17 +28,16 @@ int LO = 29;
 int SOE = 28;
 int SODS = 27;
 
-// Burn Wire Setup
-int MOTOR_PWM = 1;
+// Motor Setup
 int MOTOR_CW = 4;
 int MOTOR_ACW = 5;
 int MOTOR_IN = 0;
-int PWM_RANGE = 2000;
-int PWM_CLOCK = 2000;
 int encoder_count = 0;
 
+/**
+ * Advances the encoder_count variable by one.
+ */
 void count_encoder() {
-	// Advances the encoder_count variable by one.
 	piLock(1);
 	encoder_count++;
 	piUnlock(1);
@@ -48,7 +49,7 @@ RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 Pipe IMU_stream;
 
 // Setup for the UART communications
-int baud = 230400;
+int baud = 230400; // TODO find right value for RXSM
 UART RXSM = UART();
 Pipe UART_stream;
 
@@ -57,56 +58,66 @@ int port_no = 31415; // Random unused port for communication
 std::string server_name = "PIOneERS1.local";
 Pipe ethernet_stream; // 0 = read, 1 = write
 Client ethernet_comms = Client(port_no, server_name);
-int ALIVE = 2;
+int ALIVE = 3;
 
+/**
+ * Handles any SIGINT signals received by the program (i.e. ctrl^c), making sure
+ * we end all child processes cleanly and reset the gpio pins.
+ * @param s: Signal received
+ */
 void signal_handler(int s) {
 	fprintf(stdout, "Caught signal %d\n"
 			"Ending child processes...\n", s);
 	Cam.stopVideo();
-	if (&ethernet_stream != NULL) {
-		ethernet_stream.strwrite("EXIT");
-		delay(100);
+	if (&ethernet_stream != NULL)
 		ethernet_stream.close_pipes();
-	}
 	if (&IMU_stream != NULL)
 		IMU_stream.close_pipes();
 	fprintf(stdout, "Child processes closed, exiting program\n");
+
+	digitalWrite(MOTOR_CW, 0);
+	digitalWrite(MOTOR_ACW, 0);
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
+/**
+ * When the 'Start of Data Storage' signal is received all data recording
+ * is stopped (IMU and Camera) and power to the camera is cut off to stop
+ * shorting due to melting on re-entry. All data is copied into a backup
+ * directory.
+ * @return 0 for success, otherwise for failure
+ */
 int SODS_SIGNAL() {
-	/*
-	 * When the 'Start of Data Storage' signal is received all data recording
-	 * is stopped (IMU and Camera) and power to the camera is cut off to stop
-	 * shorting due to melting on re-entry. All data is copied into a backup
-	 * directory.
-	 */
 	fprintf(stdout, "Signal Received: SODS\n");
 	Cam.stopVideo();
-	IMU_stream.close_pipes();
-	//IMU.stopDataCollection();
-	// Send terminate message to server
-	ethernet_stream.strwrite("EXIT");
-	delay(100);
-	ethernet_stream.close_pipes();
+	if (&ethernet_stream != NULL)
+		ethernet_stream.close_pipes();
+	if (&IMU_stream != NULL)
+		IMU_stream.close_pipes();
+	fprintf(stdout, "Child processes closed...\n");
+
+	digitalWrite(MOTOR_CW, 0);
+	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
 	return 0;
 }
 
+/**
+ * When the 'Start of Experiment' signal is received the boom needs to be
+ * deployed and the ImP and IMU to start taking measurements. For boom
+ * deployment is there is no increase in the encoder count or ?? seconds
+ * have passed since start of deployment then it is assumed that either the
+ * boom has reached it's full length or something has gone wrong and the
+ * count of the encoder is sent to ground.
+ * @return 0 for success, otherwise  for failure
+ */
 int SOE_SIGNAL() {
-	/*
-	 * When the 'Start of Experiment' signal is received the boom needs to be
-	 * deployed and the ImP and IMU to start taking measurements. For boom
-	 * deployment is there is no increase in the encoder count or ?? seconds
-	 * have passed since start of deployment then it is assumed that either the
-	 * boom has reached it's full length or something has gone wrong and the
-	 * count of the encoder is sent to ground.
-	 */
 	fprintf(stdout, "Signal Received: SOE\n");
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
 	IMU = RPi_IMU();
-	IMU.setupAcc();
+	IMU.
+			IMU.setupAcc();
 	IMU.setupGyr();
 	IMU.setupMag();
 	// Start data collection and store the stream where data is coming through
@@ -147,7 +158,7 @@ int SOE_SIGNAL() {
 				count += digitalRead(SODS);
 				delayMicroseconds(200);
 			}
-			if (count >= 3) signal_received = true;
+			if (count < 3) signal_received = true;
 		}
 
 		// Read data from IMU_data_stream and echo it to Ethernet
@@ -163,12 +174,12 @@ int SOE_SIGNAL() {
 	return SODS_SIGNAL();
 }
 
+/**
+ * When the 'Lift Off' signal is received from the REXUS Module the cameras
+ * are set to start recording video and we then wait to receive the 'Start
+ * of Experiment' signal (when the nose-cone is ejected)
+ */
 int LO_SIGNAL() {
-	/*
-	 * When the 'Lift Off' signal is received from the REXUS Module the cameras
-	 * are set to start recording video and we then wait to receive the 'Start
-	 * of Experiment' signal (when the nose-cone is ejected)
-	 */
 	fprintf(stdout, "Signal Received: LO\n");
 	Cam.startVideo();
 	// Poll the SOE pin until signal is received
@@ -184,20 +195,20 @@ int LO_SIGNAL() {
 				count += digitalRead(SOE);
 				delayMicroseconds(200);
 			}
-			if (count >= 3) signal_received = true;
+			if (count < 3) signal_received = true;
 		}
 		// TODO Implement communications with RXSM
 	}
 	return SOE_SIGNAL();
 }
 
-int main() {
-	/*
-	 * This part of the program is run before the Lift-Off. In effect it
-	 * continually listens for commands from the ground station and runs any
-	 * required tests, regularly reporting status until the LO Signal is
-	 * received.
-	 */
+/**
+ * This part of the program is run before the Lift-Off. In effect it
+ * continually listens for commands from the ground station and runs any
+ * required tests, regularly reporting status until the LO Signal is
+ * received.
+ */
+int main(int argc, char* argv[]) {
 	signal(SIGINT, signal_handler);
 	// Setup wiringpi
 	wiringPiSetup();
@@ -239,36 +250,9 @@ int main() {
 				count += digitalRead(LO);
 				delayMicroseconds(200);
 			}
-			if (count >= 3) signal_received = true;
+			if (count < 3) signal_received = true;
 		}
 		// TODO Implement communications with RXSM
 	}
 	return LO_SIGNAL();
 }
-
-
-/*
-
-Redundant code for this file but will be needed later for the data stream
-to be read by the ethernet and by the UART.
-
-for (int i = 0; i < 10; i++) {
-	char buf[256];
-			sleep(1);
-			int num_char = read(data_stream, buf, 255);
-	if (num_char < 0) {
-		fprintf(stderr, "Error reading data from IMU stream\n");
-	} else if (num_char == 0) {
-		fprintf(stdout, "There was no data to read from the IMU stream\n");
-	} else {
-		buf[num_char] = '\0';
-				fprintf(stdout, "DATA(%d): ", num_char / 2);
-		for (int i = 0; i < num_char; i += 2) {
-			std::int16_t datum = (buf[i] << 0 | buf[i + 1] << 8);
-					fprintf(stdout, "%d ", datum);
-		}
-		fprintf(stdout, "\n");
-	}
-	fflush(stdout);
-}
- */

@@ -1,5 +1,11 @@
-/*
- * Function implementations for the Pipe class
+/**
+ * REXUS PIOneERS - Pi_1
+ * pipes.cpp
+ * Purpose: Function declarations for implementation of pipes class for data
+ *			communication between processes
+ *
+ * @author David Amison
+ * @version 1.0 10/10/2017
  */
 #include <string>
 #include <unistd.h>
@@ -9,9 +15,14 @@
 
 #include "pipes.h"
 
-bool poll_read(int fd) {
+/**
+ * Check whether a file descriptor is ready for reading
+ *
+ * @param fd, file descriptor to be checked
+ * @return boolean indicating whether fd is ready for read
+ */
+bool poll_read(const int fd) {
 	// Checks a file descriptor is ready for reading
-	signal(SIGPIPE, SIG_IGN);
 	struct pollfd fds[1];
 	int timeout = 0;
 	fds[0].fd = fd;
@@ -21,7 +32,13 @@ bool poll_read(int fd) {
 		return fds[0].revents & POLLIN;
 }
 
-int poll_write(int fd) {
+/**
+ * Check whether a file descriptor is ready for writing
+ *
+ * @param fd: File descriptor to be checked
+ * @return Boolean indicating whether fd is ready for write
+ */
+int poll_write(const int fd) {
 	// Checks if a file descriptor is available for reading to
 	struct pollfd fds[1];
 	int timeout = 0;
@@ -38,10 +55,12 @@ int poll_write(int fd) {
 }
 
 Pipe::Pipe() {
+	// We'll handle pipe problems ourself!
+	signal(SIGPIPE, SIG_IGN);
 	if (pipe(m_pipes1))
-		throw PipeException("ERROR: Unable to create pipes");
+		throw PipeException("ERROR making pipes");
 	if (pipe(m_pipes2))
-		throw PipeException("ERROR: Unable to create pipes");
+		throw PipeException("ERROR making pipes");
 	m_ch_read = m_pipes1[0];
 	m_par_write = m_pipes1[1];
 	m_par_read = m_pipes2[0];
@@ -63,50 +82,50 @@ int Pipe::Fork() {
 }
 
 int Pipe::getReadfd() {
-	if (m_pid)
+	if (m_pid < 0)
+		return -1;
+	else if (m_pid > 0)
 		return m_par_read;
 	else
 		return m_ch_read;
 }
 
 int Pipe::getWritefd() {
-	if (m_pid)
+	if (m_pid < 0)
+		return -1;
+	else if (m_pid > 0)
 		return m_par_write;
 	else
 		return m_ch_write;
 }
 
-int Pipe::binwrite(void* data, int n) {
+int Pipe::binwrite(const void* data, const int n) {
 	// Write n bytes of data to the pipe.
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
 	int poll_val = poll_write(write_fd);
-	if (poll_val == 0) {
-		if (n == write(write_fd, data, n))
-			return n;
-		else
-			throw PipeException("ERROR: Pipe is broken");
-	} else
-		throw PipeException("ERROR: Pipe unavailbale for writing");
-
+	if (poll_write(write_fd) != 0)
+		throw PipeException("ERROR writing to pipe");
+	if (n == write(write_fd, data, n))
+		return n;
+	else
+		throw PipeException("ERROR writing to pipe");
 }
 
-int Pipe::strwrite(std::string str) {
+int Pipe::strwrite(const std::string str) {
 	// Write a string of characters to the pipe
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
-	int poll_val = poll_write(write_fd);
-	if (poll_val == 0) {
-		int n = str.length();
-		if (n == write(write_fd, str.c_str(), n))
-			return n;
-		else if (n == -1)
-			throw PipeException("ERROR: Pipe is broken");
-		else
-			throw PipeException("ERROR: Pipe unavailable for writing");
-	} else
-		throw PipeException("ERROR: Pipe unavailable for writing");
+
+	if (poll_write(write_fd) < 0)
+		throw PipeException("ERROR writing to pipe");
+
+	int n = str.length();
+	if (n == write(write_fd, str.c_str(), n))
+		return n;
+	else
+		throw PipeException("ERROR writing to pipe");
 }
 
-int Pipe::binread(void* data, int n) {
+int Pipe::binread(void* data, const int n) {
 	// Reads upto n bytes into the character array, returns bytes read
 	int read_fd = (m_pid) ? m_par_read : m_ch_read;
 	// Check if there is any data to read
@@ -136,7 +155,12 @@ std::string Pipe::strread() {
 }
 
 void Pipe::close_pipes() {
-	if (m_pid == 0) {
+	if (m_pid < 0) {
+		close(m_ch_read);
+		close(m_ch_write);
+		close(m_par_read);
+		close(m_par_write);
+	} else if (m_pid == 0) {
 		close(m_ch_read);
 		close(m_ch_write);
 	} else {
@@ -146,5 +170,4 @@ void Pipe::close_pipes() {
 }
 
 Pipe::~Pipe() {
-	close_pipes();
 }
