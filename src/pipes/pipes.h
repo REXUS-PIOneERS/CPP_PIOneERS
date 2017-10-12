@@ -53,7 +53,7 @@ public:
 	 * @param str: String to write
 	 * @return Number of bytes written
 	 */
-	int strwrite(std::string);
+	int strwrite(const std::string);
 
 	/**
 	 * Writes binary data to the pipe.
@@ -62,7 +62,7 @@ public:
 	 * @param n: Number of bytes to write (i.e. size of data array)
 	 * @return The number of bytes written
 	 */
-	int binwrite(void* data, int n);
+	int binwrite(const void* data, int n);
 
 	/**
 	 * Read a string from the pipe
@@ -78,7 +78,7 @@ public:
 	 * @param n: Maximum number of bytes to read (i.e. size of data buffer)
 	 * @return Number of bytes read (0 if pipe has no data for reading)
 	 */
-	int binread(void* data, int n = 0);
+	int binread(void* data, int n);
 
 	/**
 	 * Closes all the file descriptors

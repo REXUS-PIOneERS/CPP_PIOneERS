@@ -37,7 +37,7 @@ public:
 	 * @param n: Number of bytes to send
 	 * @return The number of bytes read
 	 */
-	int sendBytes(const void *buf, const int n);
+	int sendBytes(const void *buf, int n);
 
 	/**
 	 * Get bytes over the UART connection
@@ -46,7 +46,7 @@ public:
 	 * @param n: Maximum number of bytes to read
 	 * @return The number of bytes read
 	 */
-	int getBytes(void *buf, const int n);
+	int getBytes(void *buf, int n);
 
 	/**
 	 * Collect and save data from the ImP. Returned pipe receives all data from

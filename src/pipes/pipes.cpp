@@ -99,7 +99,7 @@ int Pipe::getWritefd() {
 		return m_ch_write;
 }
 
-int Pipe::binwrite(const void* data, const int n) {
+int Pipe::binwrite(const void* data, int n) {
 	// Write n bytes of data to the pipe.
 	int write_fd = (m_pid) ? m_par_write : m_ch_write;
 	int poll_val = poll_write(write_fd);
@@ -125,7 +125,7 @@ int Pipe::strwrite(const std::string str) {
 		throw PipeException("ERROR writing to pipe");
 }
 
-int Pipe::binread(void* data, const int n) {
+int Pipe::binread(void* data, int n) {
 	// Reads upto n bytes into the character array, returns bytes read
 	int read_fd = (m_pid) ? m_par_read : m_ch_read;
 	// Check if there is any data to read
