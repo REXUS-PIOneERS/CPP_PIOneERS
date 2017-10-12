@@ -21,6 +21,7 @@ class RPi_IMU {
 	char *filename = (char*) "/dev/i2c-1";
 	int i2c_file = 0;
 	int pid; //Id of the background process
+	Pipe m_pipes;
 
 public:
 	/**

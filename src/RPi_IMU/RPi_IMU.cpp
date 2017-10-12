@@ -1,8 +1,11 @@
-/*
- * File:   BerryIMU.cpp
- * Author: David
+/**
+ * REXUS PIOneERS - Pi_1
+ * RPi_IMU.cpp
+ * Purpose: Implementation of functions for controlling the BerryIMU as defined
+ *		in RPi_IMU class
  *
- * Created on 29 March 2017, 14:11
+ * @author David Amison
+ * @version 2.5 10/10/2017
  */
 
 #include "RPi_IMU.h"
@@ -244,8 +247,8 @@ void signalHandler(int signum) {
 
 Pipe RPi_IMU::startDataCollection(char* filename) {
 	try {
-		Pipe pipes = Pipe();
-		if ((pid = pipes.Fork()) == 0) {
+		m_pipes = Pipe();
+		if ((pid = m_pipes.Fork()) == 0) {
 			// This is the child process and controls data collection
 			signal(SIGTERM, signalHandler);
 			// Collect data
@@ -271,8 +274,8 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 							data[2] << "Mag," << data[0] << "," <<
 							data[1] << "," << data[2] << std::endl;
 					//write(dataPipe[1], 0x00, 1);
-					pipes.binwrite((void*) time, sizeof (time));
-					pipes.binwrite(data, sizeof (data));
+					m_pipes.binwrite((void*) time, sizeof (time));
+					m_pipes.binwrite(data, sizeof (data));
 					while (tmr.elapsed() < intv) {
 						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 					}
@@ -282,43 +285,26 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 			}
 		} else {
 			// This is the parent process
-			return pipes; // Return the read portion of the pipe
+			return m_pipes; // Return the read portion of the pipe
 		}
 	} catch (PipeException e) {
 		// Ignore a broken pipe and exit silently
+		resetRegisters();
+		m_pipes.close_pipes();
 		fprintf(stdout, "%s\n", e.what());
 		exit(0); // Happily end the process
 		// TODO handle different types of exception!
 	} catch (...) {
+		resetRegisters();
+		m_pipes.close_pipes();
 		perror("ERROR with IMU");
 		exit(1);
 	}
 }
 
 int RPi_IMU::stopDataCollection() {
-	if (pid) {
-		bool died = false;
-		fprintf(stdout, "Stopping IMU... ID:%d\n", pid);
-		for (int i = 0; !died && i < 5; i++) {
-			int status;
-			kill(pid, SIGTERM);
-			sleep(1);
-			if (waitpid(pid, &status, WNOHANG) == pid) died = true;
-		}
-		if (died) {
-			fprintf(stdout, "IMU Terminated\n");
-		} else {
-			int status;
-			fprintf(stdout, "IMU Killed\n");
-			kill(pid, SIGKILL);
-			sleep(1);
-			if (waitpid(pid, &status, WNOHANG) == pid) died = true;
-			else return -1;
-		}
-		resetRegisters();
-		return 0;
-	}
-	resetRegisters();
+	if (pid)
+		m_pipes.close_pipes();
 	return 0;
 }
 

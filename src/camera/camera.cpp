@@ -1,25 +1,33 @@
+/**
+ * REXUS PIOneERS - Pi_1
+ * camera.cpp
+ * Purpose: Implementation of functions in the PiCamera class
+ *
+ * @author David Amison
+ * @version 2.0 10/10/2017
+ */
+
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "camera.h"
 #include <sys/wait.h>
+#include <string>
 
-void PiCamera::startVideo() {
-	/*
-	 * Sets the camera recording video split into 5 second segments saved as
-	 * rexus_video0001.h264, rexus_video0002.h264 etc.
-	 * Video is stopped by sending the USR1 signal to the child process.
-	 */
+void PiCamera::startVideo(std::string filename) {
 	if ((camera_pid = fork()) == 0) {
 		//Create the command structure
 		fprintf(stderr, "Camera Starting...\n");
+		// raspivid -n -t 10 -s -o rexus_video%04d.h264 -sg 5000 -g 25 -w 1920 -h 1080 -fps 25
+		char unique_file[50];
+		sprintf(unique_file, "%s%%04d.h264", filename.c_str());
 		char* cmd[] = {
 			"raspivid",
 			"-n",
 			"-t", "10",
 			"-s",
-			"-o", "Docs/Video/rexus_video%04d.h264",
+			"-o", unique_file,
 			"-sg", "5000",
 			"-g", "30",
 			"-w", "1920",
@@ -31,8 +39,6 @@ void PiCamera::startVideo() {
 		perror("PiCamera: ");
 	}
 }
-
-// raspivid -n -t 10 -s -o rexus_video%04d.h264 -sg 5000 -g 25 -w 1920 -h 1080 -fps 25
 
 void PiCamera::stopVideo() {
 	if (camera_pid) {

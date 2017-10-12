@@ -28,6 +28,10 @@ int LO = 29;
 int SOE = 28;
 int SODS = 27;
 
+int LAUNCH_MODE_OUT = 10;
+int LAUNCH_MODE_IN = 11;
+bool flight_mode = false;
+
 // Motor Setup
 int MOTOR_CW = 4;
 int MOTOR_ACW = 5;
@@ -43,6 +47,21 @@ void count_encoder() {
 	piUnlock(1);
 }
 
+/**
+ * Checks whether input is activated
+ * @param pin: GPIO to be checked
+ * @return true or false
+ */
+bool poll_input(int pin) {
+	int count = 0;
+	for (int i = 0; i < 5; i++) {
+		count += digitalRead(pin);
+		delayMicroseconds(200);
+	}
+	return (count < 3) ? true : false;
+}
+
+
 // Global variable for the Camera and IMU
 PiCamera Cam = PiCamera();
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
@@ -55,9 +74,9 @@ Pipe UART_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-std::string server_name = "PIOneERS1.local";
+std::string server_name = "raspi2.local";
 Pipe ethernet_stream; // 0 = read, 1 = write
-Client ethernet_comms = Client(port_no, server_name);
+Client raspi1 = Client(port_no, server_name);
 int ALIVE = 3;
 
 /**
@@ -77,6 +96,7 @@ void signal_handler(int s) {
 
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
+	digitalWrite(LAUNCH_MODE_OUT, 0);
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
@@ -116,8 +136,7 @@ int SOE_SIGNAL() {
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
 	IMU = RPi_IMU();
-	IMU.
-			IMU.setupAcc();
+	IMU.setupAcc();
 	IMU.setupGyr();
 	IMU.setupMag();
 	// Start data collection and store the stream where data is coming through
@@ -152,15 +171,7 @@ int SOE_SIGNAL() {
 	bool signal_received = false;
 	while (!signal_received) {
 		// Implements a loop to ensure SOE signal has actually been received
-		if (!digitalRead(SODS)) {
-			int count = 0;
-			for (int i = 0; i < 5; i++) {
-				count += digitalRead(SODS);
-				delayMicroseconds(200);
-			}
-			if (count < 3) signal_received = true;
-		}
-
+		signal_received = poll_input(SODS);
 		// Read data from IMU_data_stream and echo it to Ethernet
 		char buf[256];
 		int n = IMU_stream.binread(buf, 255);
@@ -181,7 +192,7 @@ int SOE_SIGNAL() {
  */
 int LO_SIGNAL() {
 	fprintf(stdout, "Signal Received: LO\n");
-	Cam.startVideo();
+	Cam.startVideo("Docs/Video/rexus_video");
 	// Poll the SOE pin until signal is received
 	// TODO implement check to make sure no false signals!
 	fprintf(stdout, "Waiting for SOE signal...\n");
@@ -189,14 +200,7 @@ int LO_SIGNAL() {
 	while (!signal_received) {
 		delay(10);
 		// Implements a loop to ensure SOE signal has actually been received
-		if (!digitalRead(SOE)) {
-			int count = 0;
-			for (int i = 0; i < 5; i++) {
-				count += digitalRead(SOE);
-				delayMicroseconds(200);
-			}
-			if (count < 3) signal_received = true;
-		}
+		signal_received = poll_input(SOE);
 		// TODO Implement communications with RXSM
 	}
 	return SOE_SIGNAL();
@@ -222,6 +226,13 @@ int main(int argc, char* argv[]) {
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
 
+	// Setup pins and check whether we are in flight mode
+	pinMode(LAUNCH_MODE_OUT, OUTPUT);
+	pinMode(LAUNCH_MODE_IN, INPUT);
+	pullUpDnControl(LAUNCH_MODE_IN, PUD_DOWN);
+	digitalWrite(LAUNCH_MODE_OUT, 1);
+	flight_mode = digitalRead(LAUNCH_MODE_IN);
+
 	// Setup Motor Pins
 	pinMode(MOTOR_CW, OUTPUT);
 	pinMode(MOTOR_ACW, OUTPUT);
@@ -235,7 +246,7 @@ int main(int argc, char* argv[]) {
 		delay(10);
 	fprintf(stdout, "Pi 2 running, establishing Ethernet connection...\n");
 	// Try to connect to Pi 2
-	ethernet_stream = ethernet_comms.run();
+	ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
 	// TODO handle error where we can't connect to the server
 	fprintf(stdout, "Connection to Pi 2 successful\n"
 			"Waiting for LO signal...\n");
@@ -244,14 +255,7 @@ int main(int argc, char* argv[]) {
 	while (!signal_received) {
 		delay(10);
 		// Implements a loop to ensure LO signal has actually been received
-		if (!digitalRead(LO)) {
-			int count = 0;
-			for (int i = 0; i < 5; i++) {
-				count += digitalRead(LO);
-				delayMicroseconds(200);
-			}
-			if (count < 3) signal_received = true;
-		}
+		signal_received = poll_input(LO);
 		// TODO Implement communications with RXSM
 	}
 	return LO_SIGNAL();

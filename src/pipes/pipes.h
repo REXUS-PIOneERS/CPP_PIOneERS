@@ -1,4 +1,4 @@
-/*
+/**
  * REXUS PIOneERS - Pi_1
  * pipes.h
  * Purpose: Class definition for implementation of pipes class for data

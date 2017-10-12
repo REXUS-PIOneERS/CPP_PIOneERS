@@ -1,3 +1,14 @@
+/**
+ * REXUS PIOneERS - Pi_1
+ * Ethernet.cpp
+ * Purpose: Implementation of functions for the Server and Client classes for
+ *		ethernet communication
+ *
+ * @author David Amison
+ * @version 2.0 12/10/2017
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,14 +22,9 @@
 #include "Ethernet.h"
 #include "pipes/pipes.h"
 
-void error(const char *msg) {
-	perror(msg);
-	exit(1);
-}
-
 // Functions for setting up as a server
 
-Server::Server(int port) {
+Server::Server(const int port) {
 	m_port = port;
 
 	setup();
@@ -55,7 +61,7 @@ std::string Server::receive_packet() {
 	return packet;
 }
 
-int Server::send_packet(std::string packet) {
+int Server::send_packet(const std::string packet) {
 	/*
 	 * Sends a data packet to the server. General format is:
 	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
@@ -74,7 +80,7 @@ Server::~Server() {
 
 // Functions for setting up as a client
 
-Client::Client(int port, std::string host_name) {
+Client::Client(const int port, const std::string host_name) {
 	m_host_name = host_name;
 	m_port = port;
 	setup();
@@ -105,7 +111,7 @@ int Client::open_connection() {
 	return 0;
 }
 
-int Client::send_packet(std::string packet) {
+int Client::send_packet(const std::string packet) {
 	/*
 	 * Sends a data packet to the server. General format is:
 	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
@@ -132,14 +138,13 @@ std::string Client::receive_packet() {
 int Client::close_connection() {
 	if (m_sockfd) {
 		send_packet("E");
+		close(m_sockfd);
+		m_pipes.close_pipes();
 	}
 }
 
 Client::~Client() {
-	if (m_sockfd) {
-		send_packet("E");
-		close(m_sockfd);
-	}
+	close_connection();
 }
 
 /*
@@ -160,7 +165,7 @@ Client::~Client() {
  *		the connection
  */
 
-Pipe Client::run() {
+Pipe Client::run(std::string filename) {
 	/*
 	 * Generate a pipe for transferring the data, fork the process and send
 	 * back the required pipes.
@@ -169,17 +174,17 @@ Pipe Client::run() {
 	 * in return.
 	 */
 	try {
-		Pipe pipes = Pipe();
-		if ((m_pid = pipes.Fork()) == 0) {
+		m_pipes = Pipe();
+		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
 			std::ofstream outf;
-			outf.open("Docs/Data/Pi2/backup.txt");
+			outf.open(filename);
 			// Loop for sending and receiving data
 			while (1) {
 				char buf[256];
 				bzero(buf, 256);
 				// Send any data we have
-				int n = pipes.binread(buf, 255);
+				int n = m_pipes.binread(buf, 255);
 				if (n == 0)
 					continue;
 				buf[n] = '\0';
@@ -197,69 +202,79 @@ Pipe Client::run() {
 				}
 			}
 			outf.close();
-			pipes.close_pipes();
+			m_pipes.close_pipes();
 			exit(0);
 		} else {
 			// Assign the pipes for the main process and close the un-needed ones
-			return pipes;
+			return m_pipes;
 		}
 	} catch (PipeException e) {
 		fprintf(stdout, "%s\n", e.what());
+		m_pipes.close_pipes();
 		exit(0);
 	} catch (...) {
 		perror("Error with client");
+		m_pipes.close_pipes();
 		exit(1);
 	}
 }
 
-Pipe Server::run() {
+Pipe Server::run(std::string filename) {
 	// Fork a process to handle server stuff
 	try {
-		Pipe pipes = Pipe();
-		while (1) {
-			printf("Waiting for client connection...\n");
-			m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-			if (m_newsockfd < 0)
-				throw EthernetException("ERROR: on accept");
-			printf("Connection established with a new client...\n"
-					"Beginning data sharing...\n");
-			if ((m_pid = pipes.Fork()) == 0) {
-				// This is the child process that handles all the requests
-				std::ofstream outf;
-				outf.open("Docs/Data/Pi1/backup.txt");
-				// Loop for receiving data
-				char buf[256];
-				while (1) {
-					// Try to get data from the Client
-					std::string packet_recv = receive_packet();
-					if (!packet_recv.empty()) {
-						outf << packet_recv << std::endl;
-						//pipes.strwrite(packet);
-						if (packet_recv[0] == 'E')
-							break;
-					}
-					// Try to send data to the Client
-					int n = pipes.binread(buf, 255);
-					if (n == 0)
-						continue;
-					buf[n] = '\0';
-					std::string packet_send(buf);
-					if (send_packet(packet_send) != 0)
-						continue; // TODO Handling this error
+		m_pipes = Pipe();
+		printf("Waiting for client connection...\n");
+		m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
+		if (m_newsockfd < 0)
+			throw EthernetException("ERROR: on accept");
+		printf("Connection established with client...\n"
+				"Beginning data sharing...\n");
+		if ((m_pid = m_pipes.Fork()) == 0) {
+			// This is the child process that handles all the requests
+			std::ofstream outf;
+			outf.open(filename);
+			// Loop for receiving data
+			char buf[256];
+			while (1) {
+				// Try to get data from the Client
+				std::string packet_recv = receive_packet();
+				if (!packet_recv.empty()) {
+					outf << packet_recv << std::endl;
+					//pipes.strwrite(packet);
+					if (packet_recv[0] == 'E')
+						break;
 				}
-				outf.close();
-			} else {
-				// This is the main parent process
-				return pipes;
+				// Try to send data to the Client
+				int n = m_pipes.binread(buf, 255);
+				if (n == 0)
+					continue;
+				buf[n] = '\0';
+				std::string packet_send(buf);
+				if (send_packet(packet_send) != 0)
+					continue; // TODO Handling this error
 			}
-			close(m_newsockfd);
+			outf.close();
+		} else {
+			// This is the main parent process
+			return m_pipes;
 		}
+		close(m_newsockfd);
+		close(m_sockfd);
+		m_pipes.close_pipes();
+		exit(0);
+
 	} catch (PipeException e) {
 		// Ignore it and exit gracefully
 		fprintf(stdout, "%s\n", e.what());
+		close(m_newsockfd);
+		close(m_sockfd);
+		m_pipes.close_pipes();
 		exit(0);
 	} catch (...) {
 		perror("ERROR with server");
+		close(m_newsockfd);
+		close(m_sockfd);
+		m_pipes.close_pipes();
 		exit(1);
 	}
 }

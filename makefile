@@ -1,6 +1,3 @@
-
-
-# Environment
 TARGET = ./bin/runner
 
 CC = g++
@@ -21,6 +18,8 @@ TESTOBJS = ./build/test.o ./build/IMU_Tests.o ./build/RPi_IMU.o
 TESTSRC = ./tests/test.cpp
 IMUTESTSRC = ./tests/IMU_Tests.cpp
 TESTINC = -I/home/pi/Pi_1/tests -I/home/pi/Pi_1/src
+
+all: $(TARGET) $(TESTOUT)
 
 # build
 $(TARGET): $(OBJS)
