@@ -1,11 +1,11 @@
 /**
  * REXUS PIOneERS - Pi_1
- * main.cpp
+ * raspi1.cpp
  * Purpose: Main logic control of the REXUS PIOneERS experiment handling data
  * communication and transfer as well as the boom and antenna sub-systems.
  *
  * @author David Amison
- * @version 2.0 10/10/2017
+ * @version 2.2 12/10/2017
  */
 
 #include <stdio.h>
