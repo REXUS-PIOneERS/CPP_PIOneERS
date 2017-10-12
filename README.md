@@ -65,6 +65,6 @@ Note: If everything is not set up (i.e. camera, IMU, motor etc) tests will fail.
 
 Connect the various components to the Pi 1 as shown in the pinout diagram.
 
-![Alt text](/img/Pinout.JPG)
+![Alt text](/img/pin_usage.JPG)
 
 ### Usage Instructions
