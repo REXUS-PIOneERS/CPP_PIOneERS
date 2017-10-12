@@ -74,7 +74,7 @@ Pipe UART_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-std::string server_name = "raspi2.local";
+std::string server_name = "255.0.0.1";
 Pipe ethernet_stream; // 0 = read, 1 = write
 Client raspi1 = Client(port_no, server_name);
 int ALIVE = 3;
@@ -239,8 +239,8 @@ int main(int argc, char* argv[]) {
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// Create necessary directories for saving files
-	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	fprintf(stdout, "Pi 1 is alive and running.\n");
+	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		delay(10);
