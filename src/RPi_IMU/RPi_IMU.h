@@ -1,8 +1,10 @@
-/*
- * File:   RPi_IMU.h
- * Author: David Amison
+/**
+ * REXUS PIOneERS - Pi_1
+ * RPi_IMU.h
+ * Purpose: Class definition for controlling the BerryIMU
  *
- * Created on 29 March 2017, 14:11
+ * @author David Amison
+ * @version 2.5 10/10/2017
  */
 
 #ifndef BERRYIMU_H
@@ -11,40 +13,113 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "LSM9DS0.h"   //Stores addresses for the BerryIMU
+#include "pipes/pipes.h"
 
 #include <sys/types.h>
 
 class RPi_IMU {
 	char *filename = (char*) "/dev/i2c-1";
 	int i2c_file = 0;
-	pid_t pid; //Id of the background process
+	int pid; //Id of the background process
+	Pipe m_pipes;
 
 public:
-	//Initialise the Class by opening the I2C bus
+	/**
+	 * Default constructor opens the i2c file ready for communication.
+	 */
 	RPi_IMU();
-	//Functions for setting up various components
+
+	/**
+	 * Sets up the accelerometer registers. See BerryIMU documentation for
+	 * details on the effect of different values.
+	 *
+	 * @param reg1_value: Value written to CTRL_REG1_XM
+	 * @param reg2_value: Value written to CTRL_REG2_XM
+	 * @return true: write successful, false: write failed
+	 */
 	bool setupAcc(int reg1_value = 0b01100111, int reg2_value = 0b00100000);
-	//Default 100Hz, x, y and z active, 773 Hz	Anti-Alias, +/- 16g
+
+	/**
+	 * Sets up the gyroscope registers. See BerryIMU documentation for details
+	 * on the effect of different values.
+	 *
+	 * @param reg1_value: Value written to CTRL_REG1_G
+	 * @param reg2_value: Value written to CTRL_REG2_G
+	 * @return true: write successful, false: write failed
+	 */
 	bool setupGyr(int reg1_value = 0b00001111, int reg2_value = 0b00110000);
+
+	/**
+	 * Sets up the magnetometer registers. See BerryIMU documentation for
+	 * details on the effect of different values.
+	 *
+	 * @param reg5_value: Value written to CTRL_REG5_XM
+	 * @param reg6_value: Value written to CTRL_REG6_XM
+	 * @param reg7_value: Value written to CTRL_REG7_XM
+	 * @return true: write successful, false: write failed
+	 */
 	bool setupMag(int reg5_value = 0b11110000, int reg6_value = 0b11000000,
 			int reg7_value = 0b00000000);
 
+	/**
+	 * Write a value to a register.
+	 *
+	 * @param addr: Address of the device
+	 * @param reg: Register to write to
+	 * @param value: Value to write to register
+	 * @return true: write successful, false: write failed
+	 */
 	bool writeReg(int addr, int reg, int value);
 
-	//Functions to get results
+	/**
+	 * Read the x, y and z valued of the accelerometer
+	 * @param data: Array of size 3 to store return values
+	 */
 	void readAcc(uint16_t *data);
+
+	/**
+	 * Read the x, y and z valued of the gyro
+	 * @param data: Array of size 3 to store return values
+	 */
 	void readGyr(uint16_t *data);
+
+	/**
+	 * Read the x, y and z valued of the magnetometer
+	 * @param data: Array of size 3 to store return values
+	 */
 	void readMag(uint16_t *data);
+
+	/**
+	 * Read accelerometer data from one axis
+	 * @param axis: 1=x, 2=y, 3=z
+	 * @return Value read from accelerometer
+	 */
 	uint16_t readAccAxis(int axis);
+
+	/**
+	 * Read gyro data from one axis
+	 * @param axis: 1=x, 2=y, 3=z
+	 * @return Value read from gyro
+	 */
 	uint16_t readGyrAxis(int axis);
+
+	/**
+	 * Read magnetometer data from one axis
+	 * @param axis: 1=x, 2=y, 3=z
+	 * @return Value read from magnetometer
+	 */
 	uint16_t readMagAxis(int axis);
 
-	int startDataCollection(char* filename);
+	/**
+	 * Read data from all axes of acc, gyro and mag.
+	 * @param data: Array of size 9 to store data
+	 */
+	void readRegisters(uint16_t *data);
+
+	Pipe startDataCollection(char* filename);
 	int stopDataCollection();
 
 	~RPi_IMU() {
-		resetRegisters();
-		// close(i2c_file);
 	}
 
 private:

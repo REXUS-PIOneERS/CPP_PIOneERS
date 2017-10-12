@@ -1,3 +1,12 @@
+/**
+ * REXUS PIOneERS - Pi_1
+ * UART.cpp
+ * Purpose: Function implementations for the UART class
+ *
+ * @author David Amison
+ * @version 2.2 12/10/2017
+ */
+
 #include <stdio.h>
 #include <unistd.h>  //Used for UART
 #include <fcntl.h>  //Used for UART
@@ -8,11 +17,12 @@
 #include <stdlib.h>
 #include "UART.h"
 #include <fstream>
-#include <string.h>
+#include <string>
+#include "pipes/pipes.h"
 
 void UART::setupUART() {
 	//Open the UART in non-blocking read/write mode
-	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY | O_NDELAY);
+	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY);
 	if (uart_filestream == -1) {
 		//ERROR: Failed to open serial port!
 		fprintf(stderr, "Error: unable to open serial port. Ensure it is correctly set up\n");
@@ -28,8 +38,8 @@ void UART::setupUART() {
 	tcsetattr(uart_filestream, TCSANOW, &options);
 }
 
-int UART::sendBytes(char *buf, size_t count) {
-	int sent = write(uart_filestream, (void*) buf, count);
+int UART::sendBytes(const void *buf, int n) {
+	int sent = write(uart_filestream, (void*) buf, n);
 	if (sent < 0) {
 		fprintf(stderr, "Failed to send bytes");
 		return -1;
@@ -37,11 +47,11 @@ int UART::sendBytes(char *buf, size_t count) {
 	return 0;
 }
 
-int UART::getBytes(char buf[256]) {
+int UART::getBytes(void* buf, int n) {
 	/*
 	 * Gets bytes that are waiting in the UART stream (max 255 bytes)
 	 */
-	int buf_length = read(uart_filestream, (void*) buf, 255);
+	int buf_length = read(uart_filestream, buf, n);
 	if (buf_length < 0) {
 		fprintf(stderr, "Error: Unable to read bytes");
 		return -1;
@@ -52,64 +62,57 @@ int UART::getBytes(char buf[256]) {
 		return buf_length;
 }
 
-int UART::startDataCollection(std::string filename) {
+Pipe UART::startDataCollection(const std::string filename) {
 	/*
 	 * Sends request to the ImP to begin sending data. Returns the file stream
 	 * to the main program and continually writes the data to this stream.
 	 */
-	int dataPipe[2];
-	pipe(dataPipe);
-
-	if ((m_pid = fork()) == 0) {
-		// This is the child process
-		close(dataPipe[0]); // Not needed
-		// Infinite loop for data collection
-		for (int j = 0;; j++) {
-			std::ofstream outf;
-			char unique_file[50];
-			sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
-			outf.open(unique_file);
-			sendBytes("C", 1);
-			// Take five measurements then change the file
-			for (int i = 0; i < 5; i++) {
-				char buf[256];
-				// Wait for data to come through
-				while (1) {
-					int n = read(uart_filestream, buf, 256);
-					if (n > 0) {
-						buf[n] = '\0';
-						write(dataPipe[1], buf, strlen(buf));
-						outf << buf;
-						sendBytes("N", 1);
+	try {
+		m_pipes = Pipe();
+		if ((m_pid = m_pipes.Fork()) == 0) {
+			// This is the child process
+			// Infinite loop for data collection
+			for (int j = 0;; j++) {
+				std::ofstream outf;
+				char unique_file[50];
+				sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
+				outf.open(unique_file);
+				sendBytes("C", 1);
+				// Take five measurements then change the file
+				for (int i = 0; i < 5; i++) {
+					char buf[256];
+					// Wait for data to come through
+					while (1) {
+						int n = getBytes(buf, 255);
+						if (n > 0) {
+							buf[n] = '\0';
+							m_pipes.binwrite(buf, n);
+							outf << buf << std::endl;
+							sendBytes("N", 1);
+						}
 					}
 				}
 			}
+		} else {
+			return m_pipes;
 		}
-	} else {
-		close(dataPipe[1]);
-		return dataPipe[0];
+	} catch (PipeException e) {
+		fprintf(stdout, "%s\n", e.what());
+		sendBytes("S", 1);
+		m_pipes.close_pipes();
+		close(uart_filestream);
+		exit(0);
+	} catch (...) {
+		perror("ERROR with ImP");
+		sendBytes("S", 1);
+		m_pipes.close_pipes();
+		close(uart_filestream);
+		exit(1);
 	}
-	return -1; // This should never happen.
 }
 
 int UART::stopDataCollection() {
-	if (m_pid) {
-		bool died = false;
-		fprintf(stdout, "Stopping IMU and ImP... ID:%d\n", m_pid);
-		for (int i = 0; !died && i < 5; i++) {
-			int status;
-			kill(m_pid, SIGTERM);
-			sleep(1);
-			if (waitpid(m_pid, &status, WNOHANG) == m_pid) died = true;
-		}
-		if (died) {
-			fprintf(stdout, "IMU and ImP Terminated\n");
-		} else {
-			fprintf(stdout, "IMU and ImP Killed\n");
-			kill(m_pid, SIGKILL);
-		}
-		sendBytes("S", 1);
-		close(uart_filestream);
-	}
+	if (m_pid)
+		m_pipes.close_pipes();
 	return 0;
 }
