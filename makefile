@@ -1,5 +1,5 @@
 TARGET1 = ./bin/raspi1
-TARGET2 - ./bin/raspi2
+TARGET2 = ./bin/raspi2
 
 CC = g++
 PI1OBJS = ./build/raspi1.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
@@ -23,12 +23,13 @@ IMUTESTSRC = ./tests/IMU_Tests.cpp
 TESTINC = -I/home/pi/Pi_1/tests -I/home/pi/Pi_1/src
 
 all: $(TARGET1) $(TARGET2) $(TESTOUT)
+	@echo "Making Everything..."
 
 # build
 $(TARGET1): $(PI1OBJS)
 	$(CC) $(LFLAGS) $^ -o $@ $(INCLUDES)
 
-$(TARGET1): $(PI2OBJS)
+$(TARGET2): $(PI2OBJS)
 	$(CC) $(LFLAGS) $^ -o $@ $(INCLUDES)
 
 ./build/raspi1.o: $(RASPI1SRC)
@@ -59,8 +60,8 @@ $(TESTOUT): $(TESTOBJS)
 ./build/test.o: $(TESTSRC)
 	$(CC) $(CFLAGS) -o $@ $^ $(TESTINC)
 
-#./build/IMU_Tests.o: $(IMUTESTSRC)
-#	$(CC) $(CFLAGS) -o $@ $^ $(TESTINC)
+./build/IMU_Tests.o: $(IMUTESTSRC)
+	$(CC) $(CFLAGS) -o $@ $^ $(TESTINC)
 
 # clean
 clean:

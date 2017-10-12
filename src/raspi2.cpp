@@ -126,8 +126,8 @@ int SOE_SIGNAL() {
 	digitalWrite(BURNWIRE, 0);
 
 	// Wait for the next signal to continue the program
-	bool signal_recieved = false;
-	while (!signal_recieved) {
+	bool signal_received = false;
+	while (!signal_received) {
 		delay(10);
 		signal_received = poll_input(SODS);
 		// Read data from IMU_data_stream and echo it to Ethernet
