@@ -21,6 +21,7 @@
 
 #include "Ethernet.h"
 #include "pipes/pipes.h"
+#include "packing/radiocom.h"
 
 // Functions for setting up as a server
 
@@ -177,28 +178,26 @@ Pipe Client::run(std::string filename) {
 		m_pipes = Pipe();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
+			rfcom::Transceiver pipe_comms(0x45, m_pipes);
+			rfcom::Transceiver eth_comms(0x45, m_sockfd);
+
 			std::ofstream outf;
 			outf.open(filename);
-			// Loop for sending and receiving data
 			while (1) {
-				char buf[256];
-				bzero(buf, 256);
-				// Send any data we have
-				int n = m_pipes.binread(buf, 255);
-				if (n == 0)
-					continue;
-				buf[n] = '\0';
-				std::string packet_send(buf);
-				if (send_packet(packet_send) != 0)
-					continue; // TODO handle the error
-				// Check for exit message
-				if (packet_send[0] == 'E')
-					break;
-				// Loop for receiving packets
-				std::string packet_recv = receive_packet();
-				if (!packet_recv.empty()) {
-					outf << packet_recv << std::endl;
-					//pipes.strwrite(packet_recv);
+				// Pass on packet from main program
+				rfcom::Packet p;
+				pipe_comms.recvNext();
+				if (pipe_comms.popPacket(&p) == 0) {
+					eth_comms.pushPacket(p);
+					eth_comms.sendNext();
+				}
+
+				// Get packet from the other pi
+				eth_comms.recvNext();
+				if (eth_comms.popPacket(&p) == 0) {
+					outf << p << std::endl;
+					pipe_comms.pushPacket(p);
+					pipe_comms.sendNext();
 				}
 			}
 			outf.close();

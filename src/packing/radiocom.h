@@ -47,9 +47,9 @@ namespace rfcom {
 	class Transceiver : public ComModule {
 	public:
 
-		Transceiver(byte2_t gen = CRC16_GEN_BUYPASS, int recv_fd, int send_fd) : ComModule(gen) {
-			_fd_send = send_fd;
-			_fd_recv = recv_fd;
+		Transceiver(byte2_t gen = CRC16_GEN_BUYPASS, int fd) : ComModule(gen) {
+			_fd_send = fd;
+			_fd_recv = fd;
 		}
 
 		Transeiver(byte2_t gen = CRC16_GEN_BUYPASS, Pipe pipes) : ComModule(gen) {
@@ -60,7 +60,7 @@ namespace rfcom {
 		~Transceiver() = default;
 
 		/**
-		   Try to pop the next packet from queue and unpack it.
+		   Try to pop the next packet from receive queue and unpack it.
 		   @params
 		   id: the reference of ID.
 		   index: the reference packet index.
@@ -75,7 +75,17 @@ namespace rfcom {
 		int unpack(byte1_t& id, byte2_t& index, byte1_t* p_data);
 
 		/**
-		   Try to pack up and push the packet into the queue.
+		   Try to pop the next packet from the receive queue.
+		   @params
+		   p: Packet from the queue
+		   @return
+		   0: Success. Packet deleted from queue
+		   -1: No packets in queue
+		 */
+		int popPacket(Packet &p);
+
+		/**
+		   Try to pack up and push the packet into the send queue.
 		   @params
 		   id
 		   index
@@ -85,6 +95,13 @@ namespace rfcom {
 		   -1: invalid id.
 		 */
 		int pack(byte1_t id, byte2_t index, byte1_t* p_pata);
+
+		/**
+		   Push a packet to the send queue
+		   @params
+		   p: Packet to be pushed
+		 */
+		void pushPacket(Packet p);
 
 		/**
 		   Send the next packet in the queue.

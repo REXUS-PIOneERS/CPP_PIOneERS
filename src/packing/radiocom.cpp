@@ -29,6 +29,17 @@ namespace rfcom {
 		return 0;
 	}
 
+	int Transceiver::popPacket(Packet& p) {
+		if (_pdu_recv_queue.empty())
+			return -1;
+
+		memcpy(&p, _pdu_recv_queue.front());
+		delete _pdu_recv_queue.front();
+		_pdu_recv_queue.pop();
+
+		return 0;
+	}
+
 	int Transceiver::pack(byte1_t id, byte2_t index, byte1_t* p_data) {
 		size_t actual_len;
 		//id invalid
@@ -50,6 +61,10 @@ namespace rfcom {
 		_pdu_send_queue.push(p_p);
 
 		return 0;
+	}
+
+	void Transceiver::pushPacket(Packet p) {
+		_pdu_send_queue.push(p);
 	}
 
 	int Transceiver::sendNext() {
