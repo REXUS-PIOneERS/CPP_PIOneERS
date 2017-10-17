@@ -71,6 +71,7 @@ void signal_handler(int s) {
 	if (&ImP_stream != NULL)
 		ImP_stream.close_pipes();
 	fprintf(stdout, "Child processes closed, exiting program\n");
+	system("sudo shutdown now");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
@@ -197,11 +198,33 @@ int main() {
 	fprintf(stdout, "Waiting for LO signal...\n");
 
 	// Check for LO signal.
+	std::string msg;
 	bool signal_received = false;
 	while (!signal_received) {
 		delay(10);
 		signal_received = poll_input(LO);
-		// TODO Implement communications with RXSM
+		// TODO Implement communications with Pi 1
+		msg = ethernet_stream.strread();
+		switch (msg[0]) {
+			case 'M': // For message
+				switch (msg) {
+					case "Mt": // For test
+						// TODO create function for tests
+						//std::string result = run_tests();
+						break;
+					case "Mr": // For reset
+						system("sudo reboot");
+						break;
+					case "Me": // For exit
+						signal_handler();
+						break;
+				}
+				break;
+			case 'D': // For data
+				break;
+			default:
+				fprintf(stdout, "Received Unidentified Message");
+		}
 	}
 	return LO_SIGNAL();
 }

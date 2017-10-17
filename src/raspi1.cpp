@@ -87,6 +87,7 @@ int ALIVE = 3;
 void signal_handler(int s) {
 	fprintf(stdout, "Caught signal %d\n"
 			"Ending child processes...\n", s);
+	ethernet_stream.strwrite("Me\0");
 	Cam.stopVideo();
 	if (&ethernet_stream != NULL)
 		ethernet_stream.close_pipes();
@@ -97,6 +98,7 @@ void signal_handler(int s) {
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	digitalWrite(LAUNCH_MODE_OUT, 0);
+	system("sudo shutdown now");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 

@@ -23,10 +23,8 @@
 void UART::setupUART() {
 	//Open the UART in non-blocking read/write mode
 	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY);
-	if (uart_filestream == -1) {
-		//ERROR: Failed to open serial port!
-		fprintf(stderr, "Error: unable to open serial port. Ensure it is correctly set up\n");
-	}
+	if (uart_filestream == -1)
+		throw UARTException("ERROR opening serial port");
 	//Configure the UART
 	struct termios options;
 	tcgetattr(uart_filestream, &options);
@@ -41,7 +39,7 @@ void UART::setupUART() {
 int UART::sendBytes(const void *buf, int n) {
 	int sent = write(uart_filestream, (void*) buf, n);
 	if (sent < 0) {
-		fprintf(stderr, "Failed to send bytes");
+		throw UARTException("ERROR sending bytes");
 		return -1;
 	}
 	return 0;
@@ -53,7 +51,7 @@ int UART::getBytes(void* buf, int n) {
 	 */
 	int buf_length = read(uart_filestream, buf, n);
 	if (buf_length < 0) {
-		fprintf(stderr, "Error: Unable to read bytes");
+		throw UARTException("ERROR reading bytes");
 		return -1;
 	} else if (buf_length == 0) {
 		//There was no data to read
@@ -102,6 +100,11 @@ Pipe UART::startDataCollection(const std::string filename) {
 		m_pipes.close_pipes();
 		close(uart_filestream);
 		exit(0);
+	} catch (UARTException e) {
+		fprintf(stdout, "%s\n", e.what());
+		m_pipes.close_pipes();
+		close(uart_filestream);
+		exit(1);
 	} catch (...) {
 		perror("ERROR with ImP");
 		sendBytes("S", 1);
