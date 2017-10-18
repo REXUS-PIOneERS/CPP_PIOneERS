@@ -3,85 +3,50 @@
 
 namespace rfcom {
 
-	int Transceiver::unpack(byte1_t& id, byte2_t& index, byte1_t* p_data) {
-		//PDU queue empty
-		if (_pdu_recv_queue.empty())
-			return -1;
-
-		Packet p;
-		memcpy(&p, _pdu_recv_queue.front(), sizeof (p));
-
+	int Transceiver::unpack(Packet *p, byte1_t& id, byte2_t& index, byte1_t* p_data) {
 		//COBS decode failure
 		if (!Protocol::cobsDecode(&(p.ohb), 23, p.sync))
-			return -2;
+			return -1;
 
 		//CRC mismatch
 		if (Protocol::crc16Gen(&(p.ID), 19, CRC16_GEN_BUYPASS) != p.checksum)
-			return -3;
+			return -2;
 
 		id = p.ID;
 		index = p.index;
 		memcpy(p_data, p.data, sizeof (p.data));
 
-		delete _pdu_recv_queue.front();
-		_pdu_recv_queue.pop();
-
 		return 0;
 	}
 
-	int Transceiver::popPacket(Packet& p) {
-		if (_pdu_recv_queue.empty())
-			return -1;
-
-		memcpy(&p, _pdu_recv_queue.front());
-		delete _pdu_recv_queue.front();
-		_pdu_recv_queue.pop();
-
-		return 0;
+	int Transceiver::recvPacket(Packet *p) {
+		int n = read(_fd_recv, (void*) p, sizeof (p));
+		return n;
 	}
 
-	int Transceiver::pack(byte1_t id, byte2_t index, byte1_t* p_data) {
+	int Transceiver::pack(Packet *p, byte1_t id, byte2_t index, byte1_t* p_data) {
 		size_t actual_len;
 		//id invalid
 		if (!(actual_len = lengthByID(id)))
 			return -1;
+		p->sync = 0x00;
+		p->ID = id;
+		p->index = index;
 
-		Packet* p_p = new Packet;
-		p_p->sync = 0x00;
-		p_p->ID = id;
-		p_p->index = index;
-
-		memcpy(p_p->data, p_data, actual_len);
-		memset(p_p->data + actual_len, '\0', sizeof (p_p->data) - actual_len);
+		memcpy(p->data, p_data, actual_len);
+		memset(p->data + actual_len, '\0', sizeof (p->data) - actual_len);
 
 		//CRC
-		p_p->checksum = Protocol::crc16Gen(&(p_p->ID), 19, CRC16_GEN_BUYPASS);
+		p->checksum = Protocol::crc16Gen(&(p->ID), 19, CRC16_GEN_BUYPASS);
 		//COBS
-		Protocol::cobsEncode(&(p_p->ohb), 23, p_p->sync);
-		_pdu_send_queue.push(p_p);
+		Protocol::cobsEncode(&(p->ohb), 23, p->sync);
+
 
 		return 0;
 	}
 
-	void Transceiver::pushPacket(Packet p) {
-		_pdu_send_queue.push(p);
-	}
-
-	int Transceiver::sendNext() {
-		if (_pdu_send_queue.empty())
-			return -1;
-
-		Packet p;
-		memcpy(&p, _pdu_send_queue.front(), sizeof (p));
+	int Transceiver::sendPacket(Packet *p) {
 		int n = write(_fd_send, *p, sizeof (p));
-
 		return n;
 	}
-
-	int Transceiver::recvNext() {
-		Packet* p = new Packet;
-		int n = read(_fd_recv, p, sizeof (p));
-		return n;
-	}
-
 }
