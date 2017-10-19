@@ -9,12 +9,14 @@
 
 #include <stdlib.h>
 #include <string>
+#include <error.h>
 #include "pipes/pipes.h"
+#include "packing/radiocom.h"
 
 #ifndef UART_H
 #define UART_H
 
-class UART {
+class UART : public {
 	Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;
@@ -64,6 +66,20 @@ public:
 	int stopDataCollection();
 };
 
+class UARTException {
+public:
+
+	UARTException(std::string error) {
+		m_error = error + " :" + std::strerror(errno);
+	}
+
+	const char * what() {
+		return m_error.c_str();
+	}
+
+private:
+	std::string m_error;
+};
 
 #endif /* UART_H */
 

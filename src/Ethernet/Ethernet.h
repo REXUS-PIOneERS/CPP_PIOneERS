@@ -126,7 +126,7 @@ class EthernetException {
 public:
 
 	EthernetException(const std::string error) {
-		m_error = error + std::strerror(errno);
+		m_error = error + " :" + std::strerror(errno);
 	}
 
 	const char * what() {

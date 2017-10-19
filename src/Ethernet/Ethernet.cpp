@@ -21,6 +21,7 @@
 
 #include "Ethernet.h"
 #include "pipes/pipes.h"
+#include "packing/radiocom.h"
 
 // Functions for setting up as a server
 
@@ -178,30 +179,19 @@ Pipe Client::run(std::string filename) {
 		open_connection();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
+			rfcom::Transceiver pipe_comms(0x45, m_pipes);
+			rfcom::Transceiver eth_comms(0x45, m_sockfd);
+
 			std::ofstream outf;
 			outf.open(filename);
-			// Loop for sending and receiving data
 			while (1) {
-				char buf[256];
-				bzero(buf, 256);
-				// Send any data we have
-				int n = m_pipes.binread(buf, 255);
-				if (n == 0)
-					continue;
-				buf[n] = '\0';
-				std::string packet_send(buf);
-				fprintf(stdout, "sending packet...%s\n", buf);
-				if ((n = send_packet(packet_send)) < 0) {
-					fprintf(stdout, "FAILED (%d): %s\n", n, buf);
-					throw EthernetException("Failed to send data"); // TODO handle the error
-				}
-				// Loop for receiving packets
-				fprintf(stdout, "packet sent, receiving packet...\n");
-				std::string packet_recv = receive_packet();
-				if (!packet_recv.empty()) {
-					outf << packet_recv << std::endl;
-					fprintf(stdout, "%s\n", packet_recv.c_str());
-					//pipes.strwrite(packet_recv);
+				// Exchange packets (no analysis of contents)
+				rfcom::Packet p;
+				if (pipe_comms.recvPacket(&p) > 0)
+					eth_comms.sendPacket(&p);
+				if (eth_comms.recvPacket(&p) > 0) {
+					outf << p << std::endl;
+					pipe_comms.sendPacket(&p);
 				}
 			}
 			outf.close();
@@ -237,37 +227,29 @@ Pipe Server::run(std::string filename) {
 		printf("Connection established with client...\n"
 				"Beginning data sharing...\n");
 		if ((m_pid = m_pipes.Fork()) == 0) {
+			rfcom::Transceiver pipe_comms(0x45, m_pipes);
+			rfcom::Transceiver eth_comms(0x45, m_newsockfd);
 			// This is the child process that handles all the requests
 			std::ofstream outf;
 			outf.open(filename);
-			// Loop for receiving data
-			char buf[256];
+			rfcom::Packet p;
 			while (1) {
-				// Try to get data from the Client
-				std::string packet_recv = receive_packet();
-				if (!packet_recv.empty()) {
-					outf << packet_recv << std::endl;
-					//pipes.strwrite(packet);
+				if (eth_comms.recvPacket(&p) > 0) {
+					outf << p << std::endl;
+					pipe_comms.sendPacket(&p);
 				}
-				// Try to send data to the Client
-				int n = m_pipes.binread(buf, 255);
-				if (n == 0)
-					continue;
-				buf[n] = '\0';
-				std::string packet_send(buf);
-				if (send_packet(packet_send) < 0)
-					throw EthernetException("Failed to send data"); // TODO Handling this error
+				if (pipe_comms.recvPacket(&p) > 0)
+					eth_comms.sendPacket(&p);
 			}
 			outf.close();
+			close(m_newsockfd);
+			close(m_sockfd);
+			m_pipes.close_pipes();
+			exit(0);
 		} else {
 			// This is the main parent process
 			return m_pipes;
 		}
-		close(m_newsockfd);
-		close(m_sockfd);
-		m_pipes.close_pipes();
-		exit(0);
-
 	} catch (PipeException e) {
 		// Ignore it and exit gracefully
 		fprintf(stdout, "Ethernet %s\n", e.what());
