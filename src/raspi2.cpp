@@ -44,7 +44,7 @@ Pipe ImP_stream;
 int port_no = 31415; // Random unused port for communication
 Pipe ethernet_stream;
 Server ethernet_comms = Server(port_no);
-int ALIVE = 2;
+int ALIVE = 3;
 
 /**
  * Checks whether input is activated
