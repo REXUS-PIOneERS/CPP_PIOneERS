@@ -83,9 +83,6 @@ int SODS_SIGNAL() {
 	 */
 	fprintf(stdout, "Signal Received: SODS\n");
 	Cam.stopVideo();
-	//ImP.stopDataCollection();
-	ethernet_stream.strwrite("EXIT");
-	delay(100);
 	ethernet_stream.close_pipes();
 	ImP_stream.close_pipes();
 	return 0;
@@ -203,5 +200,7 @@ int main() {
 		signal_received = poll_input(LO);
 		// TODO Implement communications with RXSM
 	}
-	return LO_SIGNAL();
+	LO_SIGNAL();
+	system("sudo reboot");
+	return 0;
 }

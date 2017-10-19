@@ -19,6 +19,7 @@
 #include <fstream>
 #include <string>
 #include "pipes/pipes.h"
+#include <wiringPi.h>
 
 void UART::setupUART() {
 	//Open the UART in non-blocking read/write mode
@@ -72,14 +73,15 @@ Pipe UART::startDataCollection(const std::string filename) {
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process
 			// Infinite loop for data collection
+			sendBytes("C", 1);
 			for (int j = 0;; j++) {
 				std::ofstream outf;
 				char unique_file[50];
 				sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
 				outf.open(unique_file);
-				sendBytes("C", 1);
 				// Take five measurements then change the file
 				for (int i = 0; i < 5; i++) {
+					uint64_t start = millis();
 					char buf[256];
 					// Wait for data to come through
 					while (1) {
@@ -89,8 +91,11 @@ Pipe UART::startDataCollection(const std::string filename) {
 							m_pipes.binwrite(buf, n);
 							outf << buf << std::endl;
 							sendBytes("N", 1);
+							break;
 						}
 					}
+					while ((millis() - start) < 200)
+						delay(10);
 				}
 			}
 		} else {

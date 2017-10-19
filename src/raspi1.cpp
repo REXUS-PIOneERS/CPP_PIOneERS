@@ -260,6 +260,6 @@ int main(int argc, char* argv[]) {
 		// TODO Implement communications with RXSM
 	}
 	LO_SIGNAL();
-	system("sudo shutdown now");
+	system("sudo reboot");
 	return 0;
 }
