@@ -191,11 +191,8 @@ Pipe Client::run(std::string filename) {
 				buf[n] = '\0';
 				std::string packet_send(buf);
 				fprintf(stdout, "sending packet...\n");
-				if (send_packet(packet_send) != 0)
-					continue; // TODO handle the error
-				// Check for exit message
-				if (packet_send[0] == 'E')
-					break;
+				if (send_packet(packet_send) < 0)
+					throw EthernetException("Failed to send data"); // TODO handle the error
 				// Loop for receiving packets
 				fprintf(stdout, "packet sent, receiving packet...");
 				std::string packet_recv = receive_packet();
@@ -245,8 +242,6 @@ Pipe Server::run(std::string filename) {
 				if (!packet_recv.empty()) {
 					outf << packet_recv << std::endl;
 					//pipes.strwrite(packet);
-					if (packet_recv[0] == 'E')
-						break;
 				}
 				// Try to send data to the Client
 				int n = m_pipes.binread(buf, 255);
@@ -254,8 +249,8 @@ Pipe Server::run(std::string filename) {
 					continue;
 				buf[n] = '\0';
 				std::string packet_send(buf);
-				if (send_packet(packet_send) != 0)
-					continue; // TODO Handling this error
+				if (send_packet(packet_send) < 0)
+					throw EthernetException("Failed to send data"); // TODO Handling this error
 			}
 			outf.close();
 		} else {

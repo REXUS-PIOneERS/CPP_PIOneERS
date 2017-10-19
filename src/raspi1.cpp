@@ -159,7 +159,7 @@ int SOE_SIGNAL() {
 		int n = IMU_stream.binread(buf, 255);
 		if (n > 0) {
 			buf[n] = '\0';
-			fprintf(stdout, "DATA (%d): %s\n", n, buf); // TODO change to send to RXSM
+			//fprintf(stdout, "DATA (%d): %s\n", n, buf); // TODO change to send to RXSM
 			ethernet_stream.binwrite(buf, n);
 		}
 		delay(100);
