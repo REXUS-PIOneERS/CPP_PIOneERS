@@ -90,11 +90,11 @@ int Client::setup() {
 	// Open the socket
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0)
-		throw EthernetException("ERROR: Client failed to open socket");
+		throw EthernetException("Client failed to open socket");
 	// Look for server host by given name
 	m_server = gethostbyname(m_host_name.c_str());
 	if (m_server == NULL)
-		throw EthernetException("ERROR: No such host");
+		throw EthernetException("No such host");
 	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	m_serv_addr.sin_family = AF_INET;
 	bcopy((char *) m_server->h_addr,
@@ -121,7 +121,7 @@ int Client::send_packet(const std::string packet) {
 	bzero(buf, 256);
 	int n = write(m_sockfd, packet.c_str(), packet.length());
 	// Check receipt has been acknowledged
-	return (n > 0) ? n : -1;
+	return n;
 }
 
 std::string Client::receive_packet() {
@@ -190,11 +190,13 @@ Pipe Client::run(std::string filename) {
 					continue;
 				buf[n] = '\0';
 				std::string packet_send(buf);
-				fprintf(stdout, "sending packet...\n");
-				if (send_packet(packet_send) < 0)
+				fprintf(stdout, "sending packet...%s\n", buf);
+				if ((n = send_packet(packet_send)) < 0) {
+					fprintf(stdout, "FAILED (%d): %s\n", n, buf);
 					throw EthernetException("Failed to send data"); // TODO handle the error
+				}
 				// Loop for receiving packets
-				fprintf(stdout, "packet sent, receiving packet...");
+				fprintf(stdout, "packet sent, receiving packet...\n");
 				std::string packet_recv = receive_packet();
 				if (!packet_recv.empty()) {
 					outf << packet_recv << std::endl;
@@ -210,9 +212,13 @@ Pipe Client::run(std::string filename) {
 			return m_pipes;
 		}
 	} catch (PipeException e) {
-		fprintf(stdout, "Ethernet %s\n", e.what());
+		fprintf(stdout, "Ethernet- %s\n", e.what());
 		m_pipes.close_pipes();
 		exit(0);
+	} catch (EthernetException e) {
+		fprintf(stdout, "Ethernet- %s\n", e.what());
+		m_pipes.close_pipes();
+		exit(1);
 	} catch (...) {
 		perror("Error with client");
 		m_pipes.close_pipes();
