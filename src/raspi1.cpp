@@ -259,5 +259,7 @@ int main(int argc, char* argv[]) {
 		signal_received = poll_input(LO);
 		// TODO Implement communications with RXSM
 	}
-	return LO_SIGNAL();
+	LO_SIGNAL();
+	system("sudo shutdown now");
+	return 0;
 }

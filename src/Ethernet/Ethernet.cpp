@@ -70,7 +70,7 @@ int Server::send_packet(const std::string packet) {
 	char buf[256];
 	int n = write(m_newsockfd, packet.c_str(), packet.length());
 	// Check we managed to send the data
-	return (n > 0) ? 0 : -1;
+	return (n > 0) ? n : -1;
 }
 
 Server::~Server() {
@@ -121,7 +121,7 @@ int Client::send_packet(const std::string packet) {
 	bzero(buf, 256);
 	int n = write(m_sockfd, packet.c_str(), packet.length());
 	// Check receipt has been acknowledged
-	return (n > 0) ? 0 : -1;
+	return (n > 0) ? n : -1;
 }
 
 std::string Client::receive_packet() {
@@ -190,15 +190,18 @@ Pipe Client::run(std::string filename) {
 					continue;
 				buf[n] = '\0';
 				std::string packet_send(buf);
+				fprintf(stdout, "sending packet...\n");
 				if (send_packet(packet_send) != 0)
 					continue; // TODO handle the error
 				// Check for exit message
 				if (packet_send[0] == 'E')
 					break;
 				// Loop for receiving packets
+				fprintf(stdout, "packet sent, receiving packet...");
 				std::string packet_recv = receive_packet();
 				if (!packet_recv.empty()) {
 					outf << packet_recv << std::endl;
+					fprintf(stdout, "%s\n", packet_recv.c_str());
 					//pipes.strwrite(packet_recv);
 				}
 			}
