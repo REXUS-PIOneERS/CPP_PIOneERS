@@ -97,7 +97,7 @@ Pipe UART::startDataCollection(const std::string filename) {
 			return m_pipes;
 		}
 	} catch (PipeException e) {
-		fprintf(stdout, "%s\n", e.what());
+		fprintf(stdout, "UART %s\n", e.what());
 		sendBytes("S", 1);
 		m_pipes.close_pipes();
 		close(uart_filestream);

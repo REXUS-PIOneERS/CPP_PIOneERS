@@ -291,7 +291,7 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 		// Ignore a broken pipe and exit silently
 		resetRegisters();
 		m_pipes.close_pipes();
-		fprintf(stdout, "%s\n", e.what());
+		fprintf(stdout, "IMU %s\n", e.what());
 		exit(0); // Happily end the process
 		// TODO handle different types of exception!
 	} catch (...) {

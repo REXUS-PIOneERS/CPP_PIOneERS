@@ -175,6 +175,7 @@ Pipe Client::run(std::string filename) {
 	 */
 	try {
 		m_pipes = Pipe();
+		open_connection();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
 			std::ofstream outf;
@@ -209,7 +210,7 @@ Pipe Client::run(std::string filename) {
 			return m_pipes;
 		}
 	} catch (PipeException e) {
-		fprintf(stdout, "%s\n", e.what());
+		fprintf(stdout, "Ethernet %s\n", e.what());
 		m_pipes.close_pipes();
 		exit(0);
 	} catch (...) {
@@ -265,7 +266,7 @@ Pipe Server::run(std::string filename) {
 
 	} catch (PipeException e) {
 		// Ignore it and exit gracefully
-		fprintf(stdout, "%s\n", e.what());
+		fprintf(stdout, "Ethernet %s\n", e.what());
 		close(m_newsockfd);
 		close(m_sockfd);
 		m_pipes.close_pipes();

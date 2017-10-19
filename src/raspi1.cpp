@@ -74,7 +74,7 @@ Pipe UART_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-std::string server_name = "255.0.0.1";
+std::string server_name = "raspi2.local";
 Pipe ethernet_stream; // 0 = read, 1 = write
 Client raspi1 = Client(port_no, server_name);
 int ALIVE = 3;
