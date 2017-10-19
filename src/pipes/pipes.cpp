@@ -101,25 +101,22 @@ int Pipe::getWritefd() {
 
 int Pipe::binwrite(const void* data, int n) {
 	// Write n bytes of data to the pipe.
-	int write_fd = (m_pid) ? m_par_write : m_ch_write;
-	int poll_val = poll_write(write_fd);
-	if (poll_write(write_fd) != 0)
-		throw PipeException("ERROR writing to pipe");
-	if (n == write(write_fd, data, n))
+	//int write_fd = (m_pid) ? m_par_write : m_ch_write;
+	int fd = getWritefd();
+	if (n == write(fd, data, n))
 		return n;
-	else
+	else if (n == -1)
 		throw PipeException("ERROR writing to pipe");
+	else
+		return 0;
 }
 
 int Pipe::strwrite(const std::string str) {
 	// Write a string of characters to the pipe
-	int write_fd = (m_pid) ? m_par_write : m_ch_write;
-
-	if (poll_write(write_fd) < 0)
-		throw PipeException("ERROR writing to pipe");
-
+	//int write_fd = (m_pid) ? m_par_write : m_ch_write;
+	int fd = getWritefd();
 	int n = str.length();
-	if (n == write(write_fd, str.c_str(), n))
+	if (n == write(fd, str.c_str(), n))
 		return n;
 	else
 		throw PipeException("ERROR writing to pipe");
@@ -127,11 +124,11 @@ int Pipe::strwrite(const std::string str) {
 
 int Pipe::binread(void* data, int n) {
 	// Reads upto n bytes into the character array, returns bytes read
-	int read_fd = (m_pid) ? m_par_read : m_ch_read;
+	int fd = (m_pid) ? m_par_read : m_ch_read;
 	// Check if there is any data to read
-	if (!poll_read(read_fd))
+	if (!poll_read(fd))
 		return 0;
-	int bytes_read = read(read_fd, data, n);
+	int bytes_read = read(fd, data, n);
 	if (bytes_read == -1)
 		throw PipeException("ERROR: Pipe is broken");
 	else
@@ -139,12 +136,12 @@ int Pipe::binread(void* data, int n) {
 }
 
 std::string Pipe::strread() {
-	int read_fd = (m_pid) ? m_par_read : m_ch_read;
+	int fd = getReadfd();
 	// Check if there is anything to read
-	if (!poll_read(read_fd))
+	if (!poll_read(fd))
 		return std::string();
 	char buf[256];
-	int n = read(read_fd, buf, 255);
+	int n = read(fd, buf, 255);
 	if (n == -1)
 		throw PipeException("ERROR: Pipe is broken");
 	else {
