@@ -87,7 +87,7 @@ Pipe UART::startDataCollection(const std::string filename) {
 						if (n > 0) {
 							buf[n] = '\0';
 							m_pipes.binwrite(buf, n);
-							outf << buf << std::endl;
+							outf << std::string(buf) << std::endl;
 							sendBytes("N", 1);
 							break;
 						}

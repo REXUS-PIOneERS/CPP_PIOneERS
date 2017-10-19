@@ -190,7 +190,7 @@ Pipe Client::run(std::string filename) {
 				if (pipe_comms.recvPacket(&p) > 0)
 					eth_comms.sendPacket(&p);
 				if (eth_comms.recvPacket(&p) > 0) {
-					outf << p.data << std::endl;
+					outf << p.id << std::endl;
 					pipe_comms.sendPacket(&p);
 				}
 			}
@@ -235,11 +235,15 @@ Pipe Server::run(std::string filename) {
 			rfcom::Packet p;
 			while (1) {
 				if (eth_comms.recvPacket(&p) > 0) {
-					outf << p.data << std::endl;
+					outf << p.id << std::endl;
 					pipe_comms.sendPacket(&p);
 				}
+				else
+					fprintf(stdout, "No data received!\n");
 				if (pipe_comms.recvPacket(&p) > 0)
 					eth_comms.sendPacket(&p);
+				else
+					fprintf(stdout, "No data in pipe to send\n");
 			}
 			outf.close();
 			close(m_newsockfd);
