@@ -6,7 +6,7 @@ PI1OBJS = ./build/raspi1.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./
 PI2OBJS = ./build/raspi2.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
 LFLAGS = -Wall
 CFLAGS = -Wall -c -std=c++11
-INCLUDES = -lwiringPi -I/home/pi/Pi_1/src
+INCLUDES = -lwiringPi -I/home/pi/CPP_PIOneERS/src
 
 RASPI1SRC = ./src/raspi1.cpp
 RASPI2SRC = ./src/raspi2.cpp
@@ -20,7 +20,7 @@ TESTOUT = ./bin/test
 TESTOBJS = ./build/test.o ./build/IMU_Tests.o ./build/RPi_IMU.o
 TESTSRC = ./tests/test.cpp
 IMUTESTSRC = ./tests/IMU_Tests.cpp
-TESTINC = -I/home/pi/Pi_1/tests -I/home/pi/Pi_1/src
+TESTINC = -I/home/pi/CPP_PIOneERS/tests -I/home/pi/CPP_PIOneERS/src
 
 all: $(TARGET1) $(TARGET2) $(TESTOUT)
 	@echo "Making Everything..."

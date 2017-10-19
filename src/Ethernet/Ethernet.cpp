@@ -71,7 +71,7 @@ int Server::send_packet(const std::string packet) {
 	char buf[256];
 	int n = write(m_newsockfd, packet.c_str(), packet.length());
 	// Check we managed to send the data
-	return (n > 0) ? 0 : -1;
+	return (n > 0) ? n : -1;
 }
 
 Server::~Server() {
@@ -91,11 +91,11 @@ int Client::setup() {
 	// Open the socket
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0)
-		throw EthernetException("ERROR: Client failed to open socket");
+		throw EthernetException("Client failed to open socket");
 	// Look for server host by given name
 	m_server = gethostbyname(m_host_name.c_str());
 	if (m_server == NULL)
-		throw EthernetException("ERROR: No such host");
+		throw EthernetException("No such host");
 	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
 	m_serv_addr.sin_family = AF_INET;
 	bcopy((char *) m_server->h_addr,
@@ -122,7 +122,7 @@ int Client::send_packet(const std::string packet) {
 	bzero(buf, 256);
 	int n = write(m_sockfd, packet.c_str(), packet.length());
 	// Check receipt has been acknowledged
-	return (n > 0) ? 0 : -1;
+	return n;
 }
 
 std::string Client::receive_packet() {
@@ -176,6 +176,7 @@ Pipe Client::run(std::string filename) {
 	 */
 	try {
 		m_pipes = Pipe();
+		open_connection();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
 			rfcom::Transceiver pipe_comms(0x45, m_pipes);
@@ -201,9 +202,13 @@ Pipe Client::run(std::string filename) {
 			return m_pipes;
 		}
 	} catch (PipeException e) {
-		fprintf(stdout, "%s\n", e.what());
+		fprintf(stdout, "Ethernet- %s\n", e.what());
 		m_pipes.close_pipes();
 		exit(0);
+	} catch (EthernetException e) {
+		fprintf(stdout, "Ethernet- %s\n", e.what());
+		m_pipes.close_pipes();
+		exit(1);
 	} catch (...) {
 		perror("Error with client");
 		m_pipes.close_pipes();
@@ -247,7 +252,7 @@ Pipe Server::run(std::string filename) {
 		}
 	} catch (PipeException e) {
 		// Ignore it and exit gracefully
-		fprintf(stdout, "%s\n", e.what());
+		fprintf(stdout, "Ethernet %s\n", e.what());
 		close(m_newsockfd);
 		close(m_sockfd);
 		m_pipes.close_pipes();

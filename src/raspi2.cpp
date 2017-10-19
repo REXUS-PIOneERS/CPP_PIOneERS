@@ -44,7 +44,7 @@ Pipe ImP_stream;
 int port_no = 31415; // Random unused port for communication
 Pipe ethernet_stream;
 Server ethernet_comms = Server(port_no);
-int ALIVE = 2;
+int ALIVE = 3;
 
 /**
  * Checks whether input is activated
@@ -84,9 +84,6 @@ int SODS_SIGNAL() {
 	 */
 	fprintf(stdout, "Signal Received: SODS\n");
 	Cam.stopVideo();
-	//ImP.stopDataCollection();
-	ethernet_stream.strwrite("EXIT");
-	delay(100);
 	ethernet_stream.close_pipes();
 	ImP_stream.close_pipes();
 	return 0;
@@ -226,5 +223,7 @@ int main() {
 				fprintf(stdout, "Received Unidentified Message");
 		}
 	}
-	return LO_SIGNAL();
+	LO_SIGNAL();
+	system("sudo reboot");
+	return 0;
 }
