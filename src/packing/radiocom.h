@@ -47,13 +47,12 @@ namespace rfcom {
 	class Transceiver : public ComModule {
 	public:
 
-		Transceiver(byte2_t gen = CRC16_GEN_BUYPASS, int fd) {
+		Transceiver(byte2_t gen, int fd) : ComModule(gen) {
 			_fd_send = fd;
 			_fd_recv = fd;
-			_crc_gen = gen;
 		}
 
-		Transeiver(byte2_t gen = CRC16_GEN_BUYPASS, Pipe pipes) : ComModule(gen) {
+		Transceiver(byte2_t gen, Pipe pipes) : ComModule(gen) {
 			_fd_send = pipes.getWritefd();
 			_fd_recv = pipes.getReadfd();
 		}
@@ -80,7 +79,7 @@ namespace rfcom {
 		   -1: COBS decode failure.
 		   -2: CRC mismatch.
 		 */
-		int unpack(Packet *p, byte1_t& id, byte2_t& index, byte1_t* p_data);
+		int unpack(Packet &p, byte1_t& id, byte2_t& index, byte1_t* p_data);
 
 		/**
 		   Try to pop the next packet from the receive queue.
@@ -102,14 +101,14 @@ namespace rfcom {
 		   0: Success.
 		   -1: invalid id.
 		 */
-		int pack(Packet *p, byte1_t id, byte2_t index, byte1_t* p_pata);
+		int pack(Packet &p, byte1_t id, byte2_t index, byte1_t* p_pata);
 
 		/**
 		   Push a packet to the send queue
 		   @params
 		   p: Packet to be sent
 		 */
-		void sendPacket(Packet *p);
+		int sendPacket(Packet *p);
 
 	protected:
 		byte2_t _crc_gen;

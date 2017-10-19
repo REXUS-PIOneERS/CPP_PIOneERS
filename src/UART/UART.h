@@ -16,7 +16,7 @@
 #ifndef UART_H
 #define UART_H
 
-class UART : public {
+class UART {
 	Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;

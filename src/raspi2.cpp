@@ -202,18 +202,20 @@ int main() {
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
 		msg = ethernet_stream.strread();
+		if (msg.empty())
+			continue;
 		switch (msg[0]) {
 			case 'M': // For message
-				switch (msg) {
-					case "Mt": // For test
+				switch (msg[1]) {
+					case 't': // For test
 						// TODO create function for tests
 						//std::string result = run_tests();
 						break;
-					case "Mr": // For reset
+					case 'r': // For reset
 						system("sudo reboot");
 						break;
-					case "Me": // For exit
-						signal_handler();
+					case 'e': // For exit
+						signal_handler(-5);
 						break;
 				}
 				break;

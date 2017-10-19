@@ -190,7 +190,7 @@ Pipe Client::run(std::string filename) {
 				if (pipe_comms.recvPacket(&p) > 0)
 					eth_comms.sendPacket(&p);
 				if (eth_comms.recvPacket(&p) > 0) {
-					outf << p << std::endl;
+					outf << p.data << std::endl;
 					pipe_comms.sendPacket(&p);
 				}
 			}
@@ -235,7 +235,7 @@ Pipe Server::run(std::string filename) {
 			rfcom::Packet p;
 			while (1) {
 				if (eth_comms.recvPacket(&p) > 0) {
-					outf << p << std::endl;
+					outf << p.data << std::endl;
 					pipe_comms.sendPacket(&p);
 				}
 				if (pipe_comms.recvPacket(&p) > 0)
