@@ -15,14 +15,14 @@
 #include <netdb.h>
 #include <error.h>  // For errno
 
-#include "pipes/pipes.h"
+#include "comms/pipes.h"
 
 #ifndef ETHERNET_H
 #define ETHERNET_H
 
 class Server {
 public:
-	Pipe m_pipes;
+	comms::Pipe m_pipes;
 	/**
 	 * Constructor for the Server class
 	 *
@@ -35,7 +35,7 @@ public:
 	 * connections from a client.
 	 * @return Pipe class for communication charing data with child process.
 	 */
-	Pipe run(std::string filename);
+	comms::Pipe run(std::string filename);
 
 	~Server();
 private:
@@ -50,25 +50,11 @@ private:
 	 */
 	int setup();
 
-	/**
-	 * Gets any data waiting to be read from the client
-	 *
-	 * @return std::string of data received from the client
-	 */
-	std::string receive_packet();
-
-	/**
-	 * Sends data to the client
-	 * @param packet: String of data to be sent
-	 * @return Number of bytes written
-	 */
-	int send_packet(const std::string packet);
-
 };
 
 class Client {
 public:
-	Pipe m_pipes;
+	comms::Pipe m_pipes;
 	/**
 	 * Constructor for the Client class
 	 * @param port: Port for connecting to the server
@@ -80,7 +66,7 @@ public:
 	 * Opens a connection with the server as a separate process
 	 * @return Pipe for communication with the process.
 	 */
-	Pipe run(std::string filename);
+	comms::Pipe run(std::string filename);
 
 	/**
 	 * Opens a new connection with the server
@@ -101,19 +87,6 @@ private:
 	int m_sockfd;
 	struct sockaddr_in m_serv_addr;
 	struct hostent *m_server;
-
-	/**
-	 * Sends a packet of data to the server using the write command
-	 * @param packet: String of data to be sent
-	 * @return The number of bytes written to the Server.
-	 */
-	int send_packet(const std::string packet);
-
-	/**
-	 * Get any data from the server waiting to be read.
-	 * @return std::string of the data read from the server
-	 */
-	std::string receive_packet();
 
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client

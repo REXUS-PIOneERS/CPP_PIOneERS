@@ -9,7 +9,7 @@
 #define CRC16_GEN_DECTX (0x0589)
 #define CRC16_GEN_T10DIFF (0x8BB7)
 
-namespace rfcom {
+namespace comms {
 
 	//_Tc --- data type of the CRC generator.
 	//CRC generator must not contain leading zeros.

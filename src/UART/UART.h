@@ -10,8 +10,7 @@
 #include <stdlib.h>
 #include <string>
 #include <error.h>
-#include "pipes/pipes.h"
-#include "packing/radiocom.h"
+#include "comms/pipes.h"
 
 #ifndef UART_H
 #define UART_H
@@ -33,31 +32,13 @@ public:
 	void setupUART();
 
 	/**
-	 * Send bytes over UART connection.
-	 *
-	 * @param buf: Buffer containing the bytes to be sent
-	 * @param n: Number of bytes to send
-	 * @return The number of bytes read
-	 */
-	int sendBytes(const void *buf, int n);
-
-	/**
-	 * Get bytes over the UART connection
-	 *
-	 * @param buf: Buffer for receiving the bytes
-	 * @param n: Maximum number of bytes to read
-	 * @return The number of bytes read
-	 */
-	int getBytes(void *buf, int n);
-
-	/**
 	 * Collect and save data from the ImP. Returned pipe receives all data from
 	 * the ImP as well.
 	 *
 	 * @param filename: Place to save data
 	 * @return Pipe for sending and receiving data.
 	 */
-	Pipe startDataCollection(const std::string filename);
+	comms::Pipe startDataCollection(const std::string filename);
 
 	/**
 	 * Stop the process collecting data.

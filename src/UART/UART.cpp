@@ -18,7 +18,10 @@
 #include "UART.h"
 #include <fstream>
 #include <string>
-#include "pipes/pipes.h"
+#include "comms/packet.h"
+#include "comms/pipes.h"
+#include "comms/transceiver.h"
+#include "timing/timer.h"
 #include <wiringPi.h>
 
 void UART::setupUART() {
@@ -37,41 +40,19 @@ void UART::setupUART() {
 	tcsetattr(uart_filestream, TCSANOW, &options);
 }
 
-int UART::sendBytes(const void *buf, int n) {
-	int sent = write(uart_filestream, (void*) buf, n);
-	if (sent < 0) {
-		throw UARTException("ERROR sending bytes");
-		return -1;
-	}
-	return 0;
-}
-
-int UART::getBytes(void* buf, int n) {
-	/*
-	 * Gets bytes that are waiting in the UART stream (max 255 bytes)
-	 */
-	int buf_length = read(uart_filestream, buf, n);
-	if (buf_length < 0) {
-		throw UARTException("ERROR reading bytes");
-		return -1;
-	} else if (buf_length == 0) {
-		//There was no data to read
-		return 0;
-	} else
-		return buf_length;
-}
-
-Pipe UART::startDataCollection(const std::string filename) {
+comms::Pipe UART::startDataCollection(const std::string filename) {
 	/*
 	 * Sends request to the ImP to begin sending data. Returns the file stream
 	 * to the main program and continually writes the data to this stream.
 	 */
 	try {
-		m_pipes = Pipe();
+		m_pipes = comms::Pipe();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process
 			// Infinite loop for data collection
-			sendBytes("C", 1);
+			comms::Transceiver = ImP_comms(uart_filestream);
+			// Send initial start command
+			ImP_comms.sendBytes("C", 1);
 			for (int j = 0;; j++) {
 				std::ofstream outf;
 				char unique_file[50];
@@ -80,15 +61,28 @@ Pipe UART::startDataCollection(const std::string filename) {
 				// Take five measurements then change the file
 				for (int i = 0; i < 5; i++) {
 					uint64_t start = millis();
-					char buf[256];
+					comms::byte1_t buf[256];
 					// Wait for data to come through
 					while (1) {
-						int n = getBytes(buf, 255);
+						int n = ImP_comms.recvBytes(buf, 255);
+						/*
+						 * It is assumed that the data is received in the following format
+						 * Byte 1-6 Accelerometer (x, y, z)
+						 * Byte 7-12 Gyroscope (x, y, z)
+						 * Byte 13-18 Magnetometer (x, y, z)
+						 * Byte 19-22 time
+						 * Byte 23-24 ImP Measurement
+						 */
 						if (n > 0) {
+							comms::Packet p1;
+							comms::Packet p2;
+							comms::pack(&p1, 0b00100000, (5 * j) + i, buf);
+							comms::pack(&p2, 0b00100010, (5 * j) + i, buf + 12);
+							m_pipes.binwrite(p1, sizeof (p1));
+							m_pipes.binwrite(p2, sizeof (p2));
 							buf[n] = '\0';
-							m_pipes.binwrite(buf, n);
 							outf << std::string(buf) << std::endl;
-							sendBytes("N", 1);
+							ImP_comms.sendBytes("N", 1);
 							break;
 						}
 					}
@@ -105,11 +99,6 @@ Pipe UART::startDataCollection(const std::string filename) {
 		m_pipes.close_pipes();
 		close(uart_filestream);
 		exit(0);
-	} catch (UARTException e) {
-		fprintf(stdout, "%s\n", e.what());
-		m_pipes.close_pipes();
-		close(uart_filestream);
-		exit(1);
 	} catch (...) {
 		perror("ERROR with ImP");
 		sendBytes("S", 1);

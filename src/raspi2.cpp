@@ -16,7 +16,8 @@
 #include "camera/camera.h"
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
-#include "pipes/pipes.h"
+#include "comms/pipes.h"
+#include "comms/packet.h"
 
 #include <wiringPi.h>
 
@@ -38,11 +39,11 @@ PiCamera Cam = PiCamera();
 // Setup for the UART communications
 int baud = 230400;
 UART ImP = UART();
-Pipe ImP_stream;
+comms::Pipe ImP_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-Pipe ethernet_stream;
+comms::Pipe ethernet_stream;
 Server ethernet_comms = Server(port_no);
 int ALIVE = 3;
 
@@ -61,8 +62,7 @@ bool poll_input(int pin) {
 }
 
 void signal_handler(int s) {
-	fprintf(stdout, "Caught signal %d\n"
-			"Ending child processes...", s);
+	std::cout << "Exiting program early..." << std::endl;
 	Cam.stopVideo();
 	if (&ethernet_stream != NULL) {
 		delay(100);
@@ -70,8 +70,7 @@ void signal_handler(int s) {
 	}
 	if (&ImP_stream != NULL)
 		ImP_stream.close_pipes();
-	fprintf(stdout, "Child processes closed, exiting program\n");
-	system("sudo shutdown now");
+	//system("sudo shutdown now");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
@@ -82,10 +81,11 @@ int SODS_SIGNAL() {
 	 * shorting due to melting on re-entry. All data is copied into a backup
 	 * directory.
 	 */
-	fprintf(stdout, "Signal Received: SODS\n");
+	std::cout << "SIGNAL: SODS" << std::endl;
 	Cam.stopVideo();
 	ethernet_stream.close_pipes();
 	ImP_stream.close_pipes();
+	std::cout << "Exiting Program" << std::endl;
 	return 0;
 }
 
@@ -98,44 +98,48 @@ int SOE_SIGNAL() {
 	 * boom has reached it's full length or something has gone wrong and the
 	 * count of the encoder is sent to ground.
 	 */
-	fprintf(stdout, "Signal Received: SOE\n");
+	std::cout << "SIGNAL: SOE" << std::endl;
 	// Setup the ImP and start requesting data
 	ImP_stream = ImP.startDataCollection("Docs/Data/Pi2/test");
-	char buf[256]; // Buffer for reading data from the IMU stream
+	comms::Packet p; // Buffer for reading data from the IMU stream
 	// Trigger the burn wire!
 	digitalWrite(BURNWIRE, 1);
 	unsigned int start = millis();
-	fprintf(stdout, "Triggering burn wire...");
-	fflush(stdout);
+	std::cout << "INFO: Burn wire triggered" << std::endl;
 	while (1) {
 		unsigned int time = millis() - start;
-		fprintf(stdout, "%d ms ", time);
-		fflush(stdout);
 		if (time > 6000) break;
 		// Get ImP data
-		int n = ImP_stream.binread(buf, 255);
+		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			buf[n] = '\0';
-			fprintf(stdout, "DATA: %s\n", buf);
-			ethernet_stream.binwrite(buf, n);
+			std::cout << "DATA: " << p << std::endl;
+			ethernet_stream.binwrite(&p, sizeof (p));
 		}
-		delay(100);
+
+		n = ethernet_stream.binread(&p, sizeof (p));
+		if (n > 0)
+			std::cout << "PI1: " << p << std::endl;
+		delay(10);
 	}
 	digitalWrite(BURNWIRE, 0);
+	std::cout << "INFO: Burn wire off" << std::endl << "Waiting for SIDS" <<
+			std::endl;
 
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
 	while (!signal_received) {
-		delay(10);
 		signal_received = poll_input(SODS);
 		// Read data from IMU_data_stream and echo it to Ethernet
-		char buf[256];
-		int n = ImP_stream.binread(buf, 255);
+		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			buf[n] = '\0';
-			fprintf(stdout, "DATA: %s\n", buf);
-			ethernet_stream.binwrite(buf, n);
+			std::cout << "DATA: " << p << std::endl;
+			ethernet_stream.binwrite(&p, sizeof (p));
 		}
+
+		n = ethernet_stream.binread(&p, sizeof (p));
+		if (n > 0)
+			std::cout << "PI1: " << p << std::endl;
+		delay(10);
 	}
 	return SODS_SIGNAL();
 }
@@ -146,10 +150,10 @@ int LO_SIGNAL() {
 	 * are set to start recording video and we then wait to receive the 'Start
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
-	fprintf(stdout, "Signal Received: LO\n");
+	std::cout << "SIGNAL: LO" << std::endl;
 	Cam.startVideo("Docs/Video/rexus_video");
 	// Poll the SOE pin until signal is received
-	fprintf(stdout, "Waiting for SOE signal...\n");
+	std::cout << "Waiting for SOE" << std::endl;
 	bool signal_received = false;
 	while (!signal_received) {
 		delay(10);
@@ -167,7 +171,7 @@ int main() {
 	 * received.
 	 */
 	// Create necessary directories for saving files
-	fprintf(stdout, "Pi 2 is alive and running.\n");
+	std::cout << "Pi 2 is alive..." << std::endl;
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	wiringPiSetup();
 	// Setup main signal pins
@@ -192,40 +196,36 @@ int main() {
 	// Setup server and wait for client
 	digitalWrite(ALIVE, 1);
 	ethernet_stream = ethernet_comms.run("Docs/Data/Pi1/backup.txt");
-	fprintf(stdout, "Waiting for LO signal...\n");
+	std::cout << "Connected to Pi 1" << std::endl << "Waiting for LO..." <<
+			std::endl;
 
 	// Check for LO signal.
 	std::string msg;
 	bool signal_received = false;
+	comms::Packet p;
+	comms::byte1_t id;
+	comms::byte2_t index;
+	comms::byte1_t data[16];
 	while (!signal_received) {
 		delay(10);
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
-		msg = ethernet_stream.strread();
-		if (msg.empty())
-			continue;
-		switch (msg[0]) {
-			case 'M': // For message
-				switch (msg[1]) {
-					case 't': // For test
-						// TODO create function for tests
-						//std::string result = run_tests();
-						break;
-					case 'r': // For reset
-						system("sudo reboot");
-						break;
-					case 'e': // For exit
-						signal_handler(-5);
-						break;
-				}
-				break;
-			case 'D': // For data
-				break;
-			default:
-				fprintf(stdout, "Received Unidentified Message");
+		int n = ethernet_stream.binread(&p, sizeof (p));
+		if (n > 0) {
+			comms::unpack(&p, &id, &index, data);
+			if (id == comms::ID_MSG1) {
+				std::string msg(data);
+				std::cout << "MSG: " << msg << std::endl;
+				if (msg.compare("RESTART") == 0)
+					system("sudo reboot");
+				else if (msg.compare("TEST"))
+					std::cout << "INFO: Tests not yet implemented" << std::endl;
+				else
+					std::cout << "ERROR: Message not recognised" << std::endl;
+			}
 		}
 	}
 	LO_SIGNAL();
-	system("sudo reboot");
+	//system("sudo reboot");
 	return 0;
 }

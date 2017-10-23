@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <thread>
+#include <stdint.h>
 
 class Timer {
 public:
@@ -14,14 +15,18 @@ public:
 		beg_ = clock_::now();
 	}
 
-	double elapsed() const {
-		return std::chrono::duration_cast<second_>
+	int64_t elapsed() const {
+		return std::chrono::duration_cast<nanosecs_>
 				(clock_::now() - beg_).count();
+	}
+
+	void sleep_ms(int ms) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(ms))
 	}
 
 private:
 	typedef std::chrono::high_resolution_clock clock_;
-	typedef std::chrono::duration<double, std::ratio<1> > second_;
+	typedef std::chrono::duration<std::chrono::nanoseconds> nanosecs_;
 	std::chrono::time_point<clock_> beg_;
 };
 

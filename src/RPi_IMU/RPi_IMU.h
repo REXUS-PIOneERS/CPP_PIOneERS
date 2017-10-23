@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "LSM9DS0.h"   //Stores addresses for the BerryIMU
-#include "pipes/pipes.h"
+#include "comms/pipes.h"
 
 #include <sys/types.h>
 
@@ -116,7 +116,7 @@ public:
 	 */
 	void readRegisters(uint16_t *data);
 
-	Pipe startDataCollection(char* filename);
+	comms::Pipe startDataCollection(char* filename);
 	int stopDataCollection();
 
 	~RPi_IMU() {

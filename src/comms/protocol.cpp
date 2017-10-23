@@ -1,7 +1,7 @@
 #include "protocol.h"
 #include <iostream>
 
-namespace rfcom {
+namespace comms {
 
 	byte2_t Protocol::crc16Gen(const byte1_t* pos, size_t len, byte2_t generator) {
 		if (pos == NULL)

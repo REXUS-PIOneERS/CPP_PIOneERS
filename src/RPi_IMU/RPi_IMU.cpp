@@ -16,11 +16,15 @@
 //Includes for multiprocessing
 #include <signal.h>
 #include <unistd.h>
-#include "pipes/pipes.h"
 #include <sys/wait.h>  // For waitpid
 
+// For communication and data packing
+#include "pipes/pipes.h"
+#include "packing/transceiver.h"
+#include "packing/packet.h"
+
 #include <string>
-#include "timer.h"
+#include "timing/timer.h"
 #include <fstream>  //For writing to files
 
 // Includes for I2c
@@ -218,15 +222,12 @@ void RPi_IMU::readMag(uint16_t *data) {
 	return;
 }
 
-void RPi_IMU::readRegisters(uint16_t *data) {
-	// Read all data for accelerometer, magnetometer and gyroscope
+void RPi_IMU::readRegisters(comms::byte1_t *data) {
+	// Read all registers for accelerometer, magnetometer and gyroscope
 	int n = 0;
-	for (int i = 0; i < 3; i++, n++)
-		data[n] = readAccAxis(i);
-	for (int i = 0; i < 3; i++, n++)
-		data[n] = readGyrAxis(i);
-	for (int i = 0; i < 3; i++, n++)
-		data[n] = readMagAxis(i);
+	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_A, 6, data);
+	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_G, 6, (data + 6));
+	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_M, 6, (data + 12));
 }
 
 void RPi_IMU::resetRegisters() {
@@ -240,20 +241,15 @@ void RPi_IMU::resetRegisters() {
 	writeReg(MAG_ADDRESS, CTRL_REG7_XM, 0);
 }
 
-void signalHandler(int signum) {
-	printf("Received Signal: SIGTERM\n");
-	exit(signum);
-}
-
-Pipe RPi_IMU::startDataCollection(char* filename) {
+comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 	try {
-		m_pipes = Pipe();
+		m_pipes = comms::Pipe();
 		if ((pid = m_pipes.Fork()) == 0) {
 			// This is the child process and controls data collection
-			signal(SIGTERM, signalHandler);
-			// Collect data
-			uint16_t data[9];
-			double intv = 0.2;
+			comms::Packet p1;
+			comms::Packet p2;
+			comms::byte1_t data[22];
+			int intv = 200;
 			Timer measurement_time;
 			// Infinite loop for taking measurements
 			for (int j = 0;; j++) {
@@ -266,7 +262,11 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 				for (int i = 0; i < 5; i++) {
 					Timer tmr;
 					readRegisters(data);
-					int time = measurement_time.elapsed();
+					int64_t time = measurement_time.elapsed();
+					data[18] = (time & 0x00000011);
+					data[19] = (time & 0x00001100) >> 8;
+					data[20] = (time & 0x00110000) >> 16;
+					data[21] = (time & 0x11000000) >> 24;
 					// Output data to the file (all one line)
 					outf << time << "," << "Acc," << data[0] << "," <<
 							data[1] << "," << data[2] << "Gyr," <<
@@ -274,11 +274,12 @@ Pipe RPi_IMU::startDataCollection(char* filename) {
 							data[2] << "Mag," << data[0] << "," <<
 							data[1] << "," << data[2] << std::endl;
 					//write(dataPipe[1], 0x00, 1);
-					m_pipes.binwrite((void*) time, sizeof (time));
-					m_pipes.binwrite(data, sizeof (data));
-					while (tmr.elapsed() < intv) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(10));
-					}
+					comms::pack(&p1, 0b00010000, (5 * j) + 1, data);
+					comms::pack(&p2, 0b00010001, (5 * j) + i, data + 12);
+					m_pipes.binwrite(&p1, sizeof (p1));
+					m_pipes.binwrite(&p2, sizeof (p2));
+					while (tmr.elapsed() < intv)
+						tmr.sleep_ms(10);
 				}
 				// Close the current file, ready to start a new one
 				outf.close();

@@ -20,8 +20,9 @@
 #include <fcntl.h>
 
 #include "Ethernet.h"
-#include "pipes/pipes.h"
-#include "packing/radiocom.h"
+#include "comms/pipes.h"
+#include "comms/transceiver.h"
+#include "comms/packet.h"
 
 // Functions for setting up as a server
 
@@ -48,30 +49,6 @@ int Server::setup() {
 	listen(m_sockfd, 5);
 	m_clilen = sizeof (m_cli_addr);
 	return 0;
-}
-
-std::string Server::receive_packet() {
-	// Receive a packet of data from the client and ackowledge receipt
-	char buf[256];
-	int n;
-	n = read(m_newsockfd, buf, 255);
-	if (n <= 0)
-		return "";
-	buf[n] = '\0';
-	std::string packet(buf);
-	return packet;
-}
-
-int Server::send_packet(const std::string packet) {
-	/*
-	 * Sends a data packet to the server. General format is:
-	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
-	 * Data uses consistent overhead byte stuffing
-	 */
-	char buf[256];
-	int n = write(m_newsockfd, packet.c_str(), packet.length());
-	// Check we managed to send the data
-	return (n > 0) ? n : -1;
 }
 
 Server::~Server() {
@@ -112,33 +89,8 @@ int Client::open_connection() {
 	return 0;
 }
 
-int Client::send_packet(const std::string packet) {
-	/*
-	 * Sends a data packet to the server. General format is:
-	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
-	 * Data uses consistent overhead byte stuffing
-	 */
-	char buf[256];
-	bzero(buf, 256);
-	int n = write(m_sockfd, packet.c_str(), packet.length());
-	// Check receipt has been acknowledged
-	return n;
-}
-
-std::string Client::receive_packet() {
-	// Receives a data packet from the server
-	char buf[256];
-	int n = read(m_sockfd, buf, 255);
-	if (n <= 0)
-		return "";
-	buf[n] = '\0';
-	std::string packet(buf);
-	return packet;
-}
-
 int Client::close_connection() {
 	if (m_sockfd) {
-		send_packet("E");
 		close(m_sockfd);
 		m_pipes.close_pipes();
 	}
@@ -166,7 +118,7 @@ Client::~Client() {
  *		the connection
  */
 
-Pipe Client::run(std::string filename) {
+comms::Pipe Client::run(std::string filename) {
 	/*
 	 * Generate a pipe for transferring the data, fork the process and send
 	 * back the required pipes.
@@ -175,23 +127,23 @@ Pipe Client::run(std::string filename) {
 	 * in return.
 	 */
 	try {
-		m_pipes = Pipe();
+		m_pipes = comms::Pipe();
 		open_connection();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
-			rfcom::Transceiver pipe_comms(0x45, m_pipes);
-			rfcom::Transceiver eth_comms(0x45, m_sockfd);
+			comms::Transceiver eth_comms(m_sockfd);
 
 			std::ofstream outf;
 			outf.open(filename);
+			comms::Packet p;
 			while (1) {
 				// Exchange packets (no analysis of contents)
-				rfcom::Packet p;
-				if (pipe_comms.recvPacket(&p) > 0)
+				if (m_pipes.binread(&p, sizeof (p)) > 0)
 					eth_comms.sendPacket(&p);
+
 				if (eth_comms.recvPacket(&p) > 0) {
-					outf << p.ID << std::endl;
-					pipe_comms.sendPacket(&p);
+					m_pipes.binwrite(&p, sizeof (p));
+					outf << p << std::endl;
 				}
 			}
 			outf.close();
@@ -216,10 +168,10 @@ Pipe Client::run(std::string filename) {
 	}
 }
 
-Pipe Server::run(std::string filename) {
+comms::Pipe Server::run(std::string filename) {
 	// Fork a process to handle server stuff
 	try {
-		m_pipes = Pipe();
+		m_pipes = comms::Pipe();
 		printf("Waiting for client connection...\n");
 		m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
 		if (m_newsockfd < 0)
@@ -227,23 +179,18 @@ Pipe Server::run(std::string filename) {
 		printf("Connection established with client...\n"
 				"Beginning data sharing...\n");
 		if ((m_pid = m_pipes.Fork()) == 0) {
-			rfcom::Transceiver pipe_comms(0x45, m_pipes);
-			rfcom::Transceiver eth_comms(0x45, m_newsockfd);
+			comms::Transceiver eth_comms(m_newsockfd);
 			// This is the child process that handles all the requests
 			std::ofstream outf;
 			outf.open(filename);
-			rfcom::Packet p;
+			comms::Packet p;
 			while (1) {
 				if (eth_comms.recvPacket(&p) > 0) {
-					outf << p.ID << std::endl;
-					pipe_comms.sendPacket(&p);
+					outf << p << std::endl;
+					m_pipes.binwrite(&p, sizeof (comms::Packet));
 				}
-				else
-					fprintf(stdout, "No data received!\n");
-				if (pipe_comms.recvPacket(&p) > 0)
+				if (m_pipes.binread(&p, sizeof (comms::Packet)) > 0)
 					eth_comms.sendPacket(&p);
-				else
-					fprintf(stdout, "No data in pipe to send\n");
 			}
 			outf.close();
 			close(m_newsockfd);
