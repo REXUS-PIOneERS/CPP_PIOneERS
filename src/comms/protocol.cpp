@@ -58,7 +58,7 @@ namespace comms {
 		return true;
 	}
 
-	int pack(Packet &p, byte1_t id, byte2_t index, byte1_t* p_data) {
+	int pack(Packet &p, byte1_t id, byte2_t index, void* p_data) {
 		size_t actual_len;
 		//id invalid
 		if (!(actual_len = lengthByID(id)))
@@ -79,7 +79,7 @@ namespace comms {
 		return 0;
 	}
 
-	int unpack(Packet &p, byte1_t& id, byte2_t& index, byte1_t* p_data) {
+	int unpack(Packet &p, byte1_t& id, byte2_t& index, void* p_data) {
 		//COBS decode failure
 		if (!Protocol::cobsDecode(&(p.ohb), 23, p.sync))
 			return -1;
