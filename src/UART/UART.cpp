@@ -50,7 +50,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process
 			// Infinite loop for data collection
-			comms::Transceiver = ImP_comms(uart_filestream);
+			comms::Transceiver ImP_comms(uart_filestream);
 			// Send initial start command
 			ImP_comms.sendBytes("C", 1);
 			for (int j = 0;; j++) {
@@ -93,15 +93,13 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 		} else {
 			return m_pipes;
 		}
-	} catch (PipeException e) {
+	} catch (comms::PipeException e) {
 		fprintf(stdout, "UART %s\n", e.what());
-		sendBytes("S", 1);
 		m_pipes.close_pipes();
 		close(uart_filestream);
 		exit(0);
 	} catch (...) {
 		perror("ERROR with ImP");
-		sendBytes("S", 1);
 		m_pipes.close_pipes();
 		close(uart_filestream);
 		exit(1);

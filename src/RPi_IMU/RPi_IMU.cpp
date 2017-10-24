@@ -288,7 +288,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			// This is the parent process
 			return m_pipes; // Return the read portion of the pipe
 		}
-	} catch (PipeException e) {
+	} catch (comms::PipeException e) {
 		// Ignore a broken pipe and exit silently
 		resetRegisters();
 		m_pipes.close_pipes();

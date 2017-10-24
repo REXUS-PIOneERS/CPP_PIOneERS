@@ -16,8 +16,7 @@ public:
 	}
 
 	int64_t elapsed() const {
-		return std::chrono::duration_cast<nanosecs_>
-				(clock_::now() - beg_).count();
+		return std::chrono::duration_cast<nanosecs_>(clock_::now() - beg_).count();
 	}
 
 	void sleep_ms(int ms) {

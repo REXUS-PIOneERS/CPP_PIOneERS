@@ -153,7 +153,7 @@ comms::Pipe Client::run(std::string filename) {
 			// Assign the pipes for the main process and close the un-needed ones
 			return m_pipes;
 		}
-	} catch (PipeException e) {
+	} catch (comms::PipeException e) {
 		fprintf(stdout, "Ethernet- %s\n", e.what());
 		m_pipes.close_pipes();
 		exit(0);
@@ -201,7 +201,7 @@ comms::Pipe Server::run(std::string filename) {
 			// This is the main parent process
 			return m_pipes;
 		}
-	} catch (PipeException e) {
+	} catch (comms::PipeException e) {
 		// Ignore it and exit gracefully
 		fprintf(stdout, "Ethernet %s\n", e.what());
 		close(m_newsockfd);
