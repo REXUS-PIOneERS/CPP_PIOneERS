@@ -61,7 +61,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 				// Take five measurements then change the file
 				for (int i = 0; i < 5; i++) {
 					uint64_t start = millis();
-					comms::byte1_t buf[256];
+					int8_t buf[256];
 					// Wait for data to come through
 					while (1) {
 						int n = ImP_comms.recvBytes(buf, 255);
