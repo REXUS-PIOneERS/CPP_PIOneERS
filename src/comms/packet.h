@@ -53,7 +53,7 @@ namespace comms {
 	   @return
 	   Length of actual data in bytes. Return 0 if id invalid.
 	 */
-	static size_t lengthByID(byte1_t id);
+	size_t lengthByID(byte1_t id);
 }
 
 #endif
