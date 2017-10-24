@@ -57,4 +57,41 @@ namespace comms {
 
 		return true;
 	}
+
+	int pack(Packet &p, byte1_t id, byte2_t index, byte1_t* p_data) {
+		size_t actual_len;
+		//id invalid
+		if (!(actual_len = lengthByID(id)))
+			return -1;
+		p.sync = 0x00;
+		p.ID = id;
+		p.index = index;
+
+		memcpy(p.data, p_data, actual_len);
+		memset(p.data + actual_len, '\0', sizeof (p.data) - actual_len);
+
+		//CRC
+		p.checksum = Protocol::crc16Gen(&(p.ID), 19, crc_poly);
+		//COBS
+		Protocol::cobsEncode(&(p.ohb), 23, p.sync);
+
+
+		return 0;
+	}
+
+	int unpack(Packet &p, byte1_t& id, byte2_t& index, byte1_t* p_data) {
+		//COBS decode failure
+		if (!Protocol::cobsDecode(&(p.ohb), 23, p.sync))
+			return -1;
+
+		//CRC mismatch
+		if (Protocol::crc16Gen(&(p.ID), 19, crc_poly) != p.checksum)
+			return -2;
+
+		id = p.ID;
+		index = p.index;
+		memcpy(p_data, p.data, sizeof (p.data));
+
+		return 0;
+	}
 }

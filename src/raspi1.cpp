@@ -20,6 +20,7 @@
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
 #include "comms/pipes.h"
+#include "comms/protocol.h"
 #include "comms/packet.h"
 
 #include <wiringPi.h>
@@ -115,7 +116,7 @@ int SODS_SIGNAL() {
 		ethernet_stream.close_pipes();
 	if (&IMU_stream != NULL)
 		IMU_stream.close_pipes();
-	std::out << "Ending program!" << std::endl;
+	std::cout << "Ending program!" << std::endl;
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
@@ -141,7 +142,7 @@ int SOE_SIGNAL() {
 	IMU.setupMag();
 	// Start data collection and store the stream where data is coming through
 	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
-	comms::byte1_t buf[20]; // Buffer for storing data
+	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
 	// Extend the boom!
 	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);

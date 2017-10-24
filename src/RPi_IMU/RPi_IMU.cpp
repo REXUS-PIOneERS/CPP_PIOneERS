@@ -1,4 +1,4 @@
-/**
+pa/**
  * REXUS PIOneERS - Pi_1
  * RPi_IMU.cpp
  * Purpose: Implementation of functions for controlling the BerryIMU as defined
@@ -274,8 +274,8 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 							data[2] << "Mag," << data[0] << "," <<
 							data[1] << "," << data[2] << std::endl;
 					//write(dataPipe[1], 0x00, 1);
-					comms::pack(&p1, 0b00010000, (5 * j) + 1, data);
-					comms::pack(&p2, 0b00010001, (5 * j) + i, data + 12);
+					comms::Protocol::pack(&p1, 0b00010000, (5 * j) + 1, data);
+					comms::Protocol::pack(&p2, 0b00010001, (5 * j) + i, data + 12);
 					m_pipes.binwrite(&p1, sizeof (p1));
 					m_pipes.binwrite(&p2, sizeof (p2));
 					while (tmr.elapsed() < intv)

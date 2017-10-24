@@ -17,6 +17,7 @@
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
 #include "comms/pipes.h"
+#include "comms/protocol.h"
 #include "comms/packet.h"
 
 #include <wiringPi.h>
@@ -212,7 +213,7 @@ int main() {
 		// TODO Implement communications with Pi 1
 		int n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			comms::unpack(&p, &id, &index, data);
+			comms::Protocol::unpack(&p, &id, &index, data);
 			if (id == comms::ID_MSG1) {
 				std::string msg(data);
 				std::cout << "MSG: " << msg << std::endl;
