@@ -2,6 +2,7 @@
 #define _PACKET
 
 #include <cstdint>
+#include <iostream>
 
 namespace comms {
 	typedef uint8_t byte1_t;

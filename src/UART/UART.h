@@ -16,7 +16,7 @@
 #define UART_H
 
 class UART {
-	Pipe m_pipes;
+	comms::Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;
 

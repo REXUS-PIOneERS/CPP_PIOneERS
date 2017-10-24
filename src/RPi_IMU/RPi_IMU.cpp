@@ -1,4 +1,4 @@
-pa/**
+/**
  * REXUS PIOneERS - Pi_1
  * RPi_IMU.cpp
  * Purpose: Implementation of functions for controlling the BerryIMU as defined
@@ -19,9 +19,9 @@ pa/**
 #include <sys/wait.h>  // For waitpid
 
 // For communication and data packing
-#include "pipes/pipes.h"
-#include "packing/transceiver.h"
-#include "packing/packet.h"
+#include "comms/pipes.h"
+#include "comms/transceiver.h"
+#include "comms/packet.h"
 
 #include <string>
 #include "timing/timer.h"

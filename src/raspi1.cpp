@@ -249,7 +249,7 @@ int main(int argc, char* argv[]) {
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		delay(10);
-	std::cout << "Pi 2 is on, trying to establish Ethernet connection..."
+	std::cout << "Pi 2 is on, trying to establish Ethernet connection..." << std::endl;
 			// Try to connect to Pi 2
 			ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
 	// TODO handle error where we can't connect to the server
