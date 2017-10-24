@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include "LSM9DS0.h"   //Stores addresses for the BerryIMU
 #include "comms/pipes.h"
+#include "comms/packet.h"
 
 #include <sys/types.h>
 
@@ -114,7 +115,7 @@ public:
 	 * Read data from all axes of acc, gyro and mag.
 	 * @param data: Array of size 9 to store data
 	 */
-	void readRegisters(uint16_t *data);
+	void readRegisters(comms::byte1_t *data);
 
 	comms::Pipe startDataCollection(char* filename);
 	int stopDataCollection();
