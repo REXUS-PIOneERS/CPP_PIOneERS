@@ -40,7 +40,7 @@ namespace comms {
 
 		int recvBytes(void* data, int n);
 
-		int sendBytes(void* data, int n);
+		int sendBytes(const void* data, int n);
 
 	protected:
 		int _fd_send;

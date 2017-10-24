@@ -68,7 +68,7 @@ namespace comms {
 		return 0;
 	}
 
-	int Transceiver::sendBytes(void* data, int len) {
+	int Transceiver::sendBytes(const void* data, int len) {
 		if (poll_write(_fd_send)) {
 			int n = write(_fd_send, data, len);
 			return n;

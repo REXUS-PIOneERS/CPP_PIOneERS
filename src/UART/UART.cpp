@@ -78,8 +78,8 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 							comms::Packet p2;
 							comms::Protocol::pack(p1, 0b00100000, (5 * j) + i, buf);
 							comms::Protocol::pack(p2, 0b00100010, (5 * j) + i, buf + 12);
-							m_pipes.binwrite(p1, sizeof (p1));
-							m_pipes.binwrite(p2, sizeof (p2));
+							m_pipes.binwrite(&p1, sizeof (p1));
+							m_pipes.binwrite(&p2, sizeof (p2));
 							buf[n] = '\0';
 							outf << std::string(buf) << std::endl;
 							ImP_comms.sendBytes("N", 1);
