@@ -2,8 +2,8 @@ TARGET1 = ./bin/raspi1
 TARGET2 = ./bin/raspi2
 
 CC = g++
-PI1OBJS = ./build/raspi1.o ./build/protocol.o ./build/transciever.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
-PI2OBJS = ./build/raspi2.o ./build/protocol.o ./build/transciever.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
+PI1OBJS = ./build/raspi1.o ./build/packet.o ./build/protocol.o ./build/transciever.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
+PI2OBJS = ./build/raspi2.o ./build/packet.o ./build/protocol.o ./build/transciever.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
 LFLAGS = -Wall
 CFLAGS = -Wall -c -std=c++11
 INCLUDES = -lwiringPi -I/home/pi/CPP_PIOneERS/src
@@ -17,6 +17,7 @@ ETHSRC = ./src/Ethernet/Ethernet.cpp
 PIPESRC = ./src/comms/pipes.cpp
 TRANSRC = ./src/comms/transceiver.cpp
 PROTOSRC = ./src/comms/protocol.cpp
+PACKSRC = ./src/comms/packet.cpp
 
 TESTOUT = ./bin/test
 TESTOBJS = ./build/test.o ./build/IMU_Tests.o ./build/RPi_IMU.o
@@ -38,6 +39,9 @@ $(TARGET2): $(PI2OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
 
 ./build/raspi2.o: $(RASPI2SRC)
+	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
+
+./build/packet.o : $(PACKSRC)
 	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
 
 ./build/protocol.o : $(PROTOSRC)
