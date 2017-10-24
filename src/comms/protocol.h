@@ -3,6 +3,8 @@
 
 #include <cstdio>
 #include "packet.h"
+#include <iostream>
+#include <cstring>
 
 #define CRC16_GEN_BUYPASS (0x8005)
 #define CRC16_GEN_XMODEM (0x1021)
