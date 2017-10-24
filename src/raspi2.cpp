@@ -214,7 +214,7 @@ int main() {
 		int n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
 			comms::Protocol::unpack(&p, &id, &index, data);
-			if (id == comms::ID_MSG1) {
+			if (id == ID_MSG1) {
 				std::string msg(data);
 				std::cout << "MSG: " << msg << std::endl;
 				if (msg.compare("RESTART") == 0)

@@ -4,16 +4,16 @@
 #include <cstdint>
 #include <iostream>
 
-#define crc_poly 0x724E;  // Polynomail for calculating checksim
+#define crc_poly 0x724E  // Polynomail for calculating checksim
 
-#define ID_MSG1  0b10010000; // Message from Pi 1
-#define ID_MSG2  0b10100000; // Message from Pi 2
-#define ID_STATUS1 0b01010000; // Status from Pi 1
-#define ID_STATUS2 0b01100000; // Status from Pi 2
-#define ID_DATA1 0b00010000; // Acc/Gyr from Pi 1
-#define ID_DATA2 0b00010001; // Mag/Time from Pi 1
-#define ID_DATA3 0b00100000; // Acc/Gyr from Pi 2
-#define ID_DATA4 0b00100010; //Mag/Time from Pi 2
+#define ID_MSG1  0b10010000 // Message from Pi 1
+#define ID_MSG2  0b10100000 // Message from Pi 2
+#define ID_STATUS1 0b01010000 // Status from Pi 1
+#define ID_STATUS2 0b01100000 // Status from Pi 2
+#define ID_DATA1 0b00010000 // Acc/Gyr from Pi 1
+#define ID_DATA2 0b00010001 // Mag/Time from Pi 1
+#define ID_DATA3 0b00100000 // Acc/Gyr from Pi 2
+#define ID_DATA4 0b00100010 //Mag/Time from Pi 2
 
 namespace comms {
 	typedef uint8_t byte1_t;
