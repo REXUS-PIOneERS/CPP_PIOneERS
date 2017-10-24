@@ -16,7 +16,7 @@ public:
 	}
 
 	int64_t elapsed() const {
-		return std::chrono::duration_cast<nanosecs_>(clock_::now() - beg_).count();
+		return (int64_t) std::chrono::duration_cast<nanosecs_>(clock_::now() - beg_).count();
 	}
 
 	void sleep_ms(int ms) {
@@ -25,7 +25,7 @@ public:
 
 private:
 	typedef std::chrono::high_resolution_clock clock_;
-	typedef std::chrono::duration<std::chrono::nanoseconds> nanosecs_;
+	typedef std::chrono::duration<uint64_t, std::nano> nanosecs_;
 	std::chrono::time_point<clock_> beg_;
 };
 
