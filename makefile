@@ -14,9 +14,9 @@ IMUSRC = ./src/RPi_IMU/RPi_IMU.cpp
 UARTSRC = ./src/UART/UART.cpp
 CAMSRC = ./src/camera/camera.cpp
 ETHSRC = ./src/Ethernet/Ethernet.cpp
-PIPESRC = ./src/pipes/pipes.cpp
-TRANSRC = ./src/packing/radiocom.cpp
-PROTOSRC = ./src/packing/protocol.cpp
+PIPESRC = ./src/comms/pipes.cpp
+TRANSRC = ./src/comms/transceiver.cpp
+PROTOSRC = ./src/comms/protocol.cpp
 
 TESTOUT = ./bin/test
 TESTOBJS = ./build/test.o ./build/IMU_Tests.o ./build/RPi_IMU.o
