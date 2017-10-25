@@ -213,7 +213,7 @@ int main() {
 		// TODO Implement communications with Pi 1
 		int n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			comms::Protocol::unpack(p, &id, &index, data);
+			comms::Protocol::unpack(p, id, index, data);
 			if (id == ID_MSG1) {
 				std::string msg(data);
 				std::cout << "MSG: " << msg << std::endl;
