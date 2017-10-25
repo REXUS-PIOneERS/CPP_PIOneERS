@@ -268,16 +268,23 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					data[19] = (time & 0x00001100) >> 8;
 					data[20] = (time & 0x00110000) >> 16;
 					data[21] = (time & 0x11000000) >> 24;
-					// Output data to the file (all one line)
-					outf << time << "," << "Acc," << data[0] << "," <<
-							data[1] << "," << data[2] << "Gyr," <<
-							data[0] << "," << data[1] << "," <<
-							data[2] << "Mag," << data[0] << "," <<
-							data[1] << "," << data[2] << std::endl;
+					/* Output data to the file (all one line) in format:
+					 * Time,acc_x,acc_y,acc_z,gyr_x,gyr_y,gyr_z,mag_x,mag_y,mag_z,imp
+					 */
+					outf << time <<
+							"," << data[0] | (data[1] << 8) <<
+							"," << data[2] | (data[3] << 8) <<
+							"," << data[4] | (data[5] << 8) <<
+							"," << data[6] | (data[7] << 8) <<
+							"," << data[8] | (data[9] << 8) <<
+							"," << data[10] | (data[11] << 8) <<
+							"," << data[12] | (data[13] << 8) <<
+							"," << data[14] | (data[15] << 8) <<
+							"," << data[16] | (data[17] << 8) << std::endl;
 					//write(dataPipe[1], 0x00, 1);
 					comms::byte1_t id1 = 0b00010000;
 					comms::byte1_t id2 = 0b00010001;
-					comms::byte2_t index = (5 * j) + 1;
+					comms::byte2_t index = (5 * j) + i;
 					comms::Protocol::pack(p1, id1, index, data);
 					comms::Protocol::pack(p2, id2, index, data + 12);
 					m_pipes.binwrite(&p1, sizeof (p1));

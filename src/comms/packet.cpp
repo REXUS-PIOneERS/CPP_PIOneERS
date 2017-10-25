@@ -5,7 +5,7 @@
 namespace comms {
 
 	std::ostream& operator<<(std::ostream &o, Packet &p) {
-		o << "ID: " << p.ID << " Index: " << p.index << " Data: ";
+		o << "ID: " << (int) p.ID << " Index: " << p.index << " Data: ";
 		if (p.ID == 0xc0) {
 			for (int i = 0; i < 16; i++)
 				o << (char) p.data[i];

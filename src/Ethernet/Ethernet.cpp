@@ -61,7 +61,6 @@ Server::~Server() {
 Client::Client(const int port, const std::string host_name) {
 	m_host_name = host_name;
 	m_port = port;
-	setup();
 }
 
 int Client::setup() {
@@ -128,6 +127,7 @@ comms::Pipe Client::run(std::string filename) {
 	 */
 	try {
 		m_pipes = comms::Pipe();
+		setup();
 		open_connection();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.

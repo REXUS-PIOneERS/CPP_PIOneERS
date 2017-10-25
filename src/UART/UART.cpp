@@ -79,7 +79,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 							comms::Packet p2;
 							comms::byte1_t id1 = 0b00100000;
 							comms::byte1_t id2 = 0b00100010;
-							comms::byte2_t index = (5 * j) + 1;
+							comms::byte2_t index = (5 * j) + i;
 							comms::Protocol::pack(p1, id1, index, buf);
 							comms::Protocol::pack(p2, id2, index, buf + 12);
 							m_pipes.binwrite(&p1, sizeof (p1));
