@@ -206,14 +206,14 @@ int main() {
 	comms::Packet p;
 	comms::byte1_t id;
 	comms::byte2_t index;
-	comms::byte1_t data[16];
+	char data[16];
 	while (!signal_received) {
 		delay(10);
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
 		int n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			comms::Protocol::unpack(&p, &id, &index, data);
+			comms::Protocol::unpack(p, &id, &index, data);
 			if (id == ID_MSG1) {
 				std::string msg(data);
 				std::cout << "MSG: " << msg << std::endl;
