@@ -62,7 +62,7 @@ namespace comms {
 			0: Success.
 			-1: invalid id.
 		 */
-		int pack(Packet &p, byte1_t id, byte2_t index, void* p_data);
+		static int pack(Packet &p, byte1_t id, byte2_t index, void* p_data);
 
 		/**
 		   Try to unpack a packet.
@@ -77,7 +77,7 @@ namespace comms {
 		   -1: COBS decode failure.
 		   -2: CRC mismatch.
 		 */
-		int unpack(Packet &p, byte1_t& id, byte2_t& index, void* p_data);
+		static int unpack(Packet &p, byte1_t& id, byte2_t& index, void* p_data);
 	};
 }
 
