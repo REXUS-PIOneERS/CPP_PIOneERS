@@ -21,6 +21,7 @@
 #include "comms/packet.h"
 #include "comms/pipes.h"
 #include "comms/transceiver.h"
+#include "comms/protocol.h"
 #include "timing/timer.h"
 #include <wiringPi.h>
 

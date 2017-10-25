@@ -22,6 +22,7 @@
 #include "comms/pipes.h"
 #include "comms/transceiver.h"
 #include "comms/packet.h"
+#include "comms/protocol.h"
 
 #include <string>
 #include "timing/timer.h"
