@@ -24,6 +24,8 @@
 #include "comms/transceiver.h"
 #include "comms/packet.h"
 
+#include "timing/timer.h"
+
 // Functions for setting up as a server
 
 Server::Server(const int port) {
@@ -145,6 +147,7 @@ comms::Pipe Client::run(std::string filename) {
 					m_pipes.binwrite(&p, sizeof (p));
 					outf << p << std::endl;
 				}
+				Timer::sleep_ms(10);
 			}
 			outf.close();
 			m_pipes.close_pipes();
@@ -191,6 +194,8 @@ comms::Pipe Server::run(std::string filename) {
 				}
 				if (m_pipes.binread(&p, sizeof (comms::Packet)) > 0)
 					eth_comms.sendPacket(&p);
+				Timer::sleep_ms(10);
+
 			}
 			outf.close();
 			close(m_newsockfd);

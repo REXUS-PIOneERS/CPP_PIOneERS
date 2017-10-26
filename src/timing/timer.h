@@ -19,7 +19,7 @@ public:
 		return (int64_t) std::chrono::duration_cast<nanosecs_>(clock_::now() - beg_).count();
 	}
 
-	void sleep_ms(int ms) {
+	static void sleep_ms(int ms) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}
 
