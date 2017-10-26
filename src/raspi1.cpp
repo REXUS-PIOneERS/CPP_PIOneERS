@@ -35,8 +35,8 @@ int LAUNCH_MODE_IN = 11;
 bool flight_mode = false;
 
 // Motor Setup
-int MOTOR_CW = 4;
-int MOTOR_ACW = 5;
+int MOTOR_CW = 25;
+int MOTOR_ACW = 24;
 int MOTOR_IN = 0;
 int encoder_count = 0;
 
