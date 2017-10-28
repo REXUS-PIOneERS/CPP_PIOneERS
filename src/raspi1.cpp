@@ -247,23 +247,23 @@ int main(int argc, char* argv[]) {
 	std::cout << "Pi 1 is running..." << std::endl;
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
-	while (!digitalRead(ALIVE))
+	while (!digitalRead(ALIVE)) {
 		delay(10);
-	std::cout << "Pi 2 is on, trying to establish Ethernet connection..." << std::endl;
-			// Try to connect to Pi 2
-			ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
-	// TODO handle error where we can't connect to the server
-	std::cout << "Connection successful" << std::endl << "Waiting for LO..." <<
-			std::endl;
-	// Wait for LO signal
-	bool signal_received = false;
-	while (!signal_received) {
-		delay(10);
-		// Implements a loop to ensure LO signal has actually been received
-		signal_received = poll_input(LO);
-		// TODO Implement communications with RXSM
+		std::cout << "Pi 2 is on, trying to establish Ethernet connection..." << std::endl;
+		// Try to connect to Pi 2
+		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
+		// TODO handle error where we can't connect to the server
+		std::cout << "Connection successful" << std::endl << "Waiting for LO..." <<
+				std::endl;
+		// Wait for LO signal
+		bool signal_received = false;
+		while (!signal_received) {
+			delay(10);
+			// Implements a loop to ensure LO signal has actually been received
+			signal_received = poll_input(LO);
+			// TODO Implement communications with RXSM
+		}
+		LO_SIGNAL();
+		//system("sudo reboot");
+		return 0;
 	}
-	LO_SIGNAL();
-	//system("sudo reboot");
-	return 0;
-}

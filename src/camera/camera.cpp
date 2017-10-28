@@ -57,5 +57,16 @@ void PiCamera::stopVideo() {
 			fprintf(stdout, "USR1 signal failed, sending SIGKILL\n");
 			kill(camera_pid, SIGKILL);
 		}
+		camera_pid = 0;
 	}
+}
+
+bool PiCamera::is_running() {
+	if (camera_pid) {
+		if (kill(camera_pid, 0) == 0)
+			return true;
+		else
+			return false;
+	}
+	return false;
 }

@@ -5,7 +5,7 @@
  *		in RPi_IMU class
  *
  * @author David Amison
- * @version 2.5 10/10/2017
+ * @version 3.1 10/10/2017
  */
 
 #include "RPi_IMU.h"

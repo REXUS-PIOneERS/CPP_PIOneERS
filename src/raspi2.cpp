@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <iostream>
 
+#include "pins.h"
 #include "RPi_IMU/RPi_IMU.h"
 #include "camera/camera.h"
 #include "UART/UART.h"
@@ -22,17 +23,7 @@
 
 #include <wiringPi.h>
 
-// Main inputs for experiment control
-int LO = 29;
-int SOE = 28;
-int SODS = 27;
-
-int LAUNCH_MODE_OUT = 10;
-int LAUNCH_MODE_IN = 11;
 bool flight_mode = false;
-
-// Burn Wire Setup
-int BURNWIRE = 4;
 
 // Global variable for the Camera and IMU
 PiCamera Cam = PiCamera();
@@ -46,7 +37,6 @@ comms::Pipe ImP_stream;
 int port_no = 31415; // Random unused port for communication
 comms::Pipe ethernet_stream;
 Server ethernet_comms = Server(port_no);
-int ALIVE = 3;
 
 /**
  * Checks whether input is activated

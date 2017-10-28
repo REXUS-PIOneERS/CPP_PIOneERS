@@ -4,7 +4,7 @@
  * Purpose: Function implementations for the UART class
  *
  * @author David Amison
- * @version 2.2 12/10/2017
+ * @version 3.2 12/10/2017
  */
 
 #include <stdio.h>

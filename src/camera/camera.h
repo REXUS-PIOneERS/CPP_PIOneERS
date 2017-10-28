@@ -35,6 +35,12 @@ public:
 	 * Stop the video recording by sending a USR1 signal
 	 */
 	void stopVideo();
+
+	/**
+	 * Check whether the camera is running.
+	 * @return ture or false
+	 */
+	bool is_running();
 };
 
 
