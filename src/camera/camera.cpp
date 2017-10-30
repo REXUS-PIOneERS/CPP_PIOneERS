@@ -14,11 +14,12 @@
 #include "camera.h"
 #include <sys/wait.h>
 #include <string>
+#include <error.h>
 
 void PiCamera::startVideo(std::string filename) {
 	if ((camera_pid = fork()) == 0) {
 		//Create the command structure
-		fprintf(stderr, "Camera Starting...\n");
+		log << "INFO: Starting camera recording video";
 		// raspivid -n -t 10 -s -o rexus_video%04d.h264 -sg 5000 -g 25 -w 1920 -h 1080 -fps 25
 		char unique_file[50];
 		sprintf(unique_file, "%s%%04d.h264", filename.c_str());
@@ -36,15 +37,17 @@ void PiCamera::startVideo(std::string filename) {
 			NULL
 		};
 		execv("/usr/bin/raspivid", cmd);
-		perror("PiCamera: ");
+		log << "ERROR: Failed to start camera\n\t\"" << std::strerror(errno)
+				<< "\"";
+		exit(-1);
 	}
 }
 
 void PiCamera::stopVideo() {
 	if (camera_pid) {
+		log << "INFO: Stopping camera process (ID:" << camera_pid << ")";
 		//TODO May need to send signal multiple times?
 		bool died = false;
-		fprintf(stdout, "Stopping Camera... ID:%d\n", camera_pid);
 		for (int i = 0; !died && i < 5; i++) {
 			int status;
 			kill(camera_pid, SIGUSR1);
@@ -52,9 +55,9 @@ void PiCamera::stopVideo() {
 			if (waitpid(camera_pid, &status, WNOHANG) == camera_pid) died = true;
 		}
 		if (died) {
-			fprintf(stdout, "Camera stopped via USR1\n");
+			log << "INFO: Camera process terminated by sending USR1 signal";
 		} else {
-			fprintf(stdout, "USR1 signal failed, sending SIGKILL\n");
+			log << "ERROR: USR1 signal failed, sending SIGKILL";
 			kill(camera_pid, SIGKILL);
 		}
 		camera_pid = 0;
@@ -62,11 +65,17 @@ void PiCamera::stopVideo() {
 }
 
 bool PiCamera::is_running() {
+	log << "INFO: Camera process being polled...";
 	if (camera_pid) {
-		if (kill(camera_pid, 0) == 0)
+		if (kill(camera_pid, 0) == 0) {
+			log << "INFO: Camera process running";
 			return true;
-		else
+		} else {
+			log << "INFO: Camera process dead";
+			camera_pid = 0;
 			return false;
+		}
 	}
+	log << "INFO: Process has not been started";
 	return false;
 }

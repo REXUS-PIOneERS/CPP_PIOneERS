@@ -16,6 +16,8 @@
 #include "comms/pipes.h"
 #include "comms/packet.h"
 
+#include "logger/logger.h"
+
 #include <sys/types.h>
 
 class RPi_IMU {
@@ -23,6 +25,7 @@ class RPi_IMU {
 	int i2c_file = 0;
 	int pid; //Id of the background process
 	comms::Pipe m_pipes;
+	log::Logger log("/Docs/Logs/imu");
 
 public:
 	/**
@@ -121,6 +124,8 @@ public:
 	int stopDataCollection();
 
 	~RPi_IMU() {
+		log << "INFO: Destroying IMU object";
+		log.stop_log();
 	}
 
 private:

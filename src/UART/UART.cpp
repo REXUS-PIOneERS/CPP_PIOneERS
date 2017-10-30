@@ -6,6 +6,7 @@
  * @author David Amison
  * @version 3.2 12/10/2017
  */
+#include "UART.h"
 
 #include <stdio.h>
 #include <unistd.h>  //Used for UART
@@ -15,21 +16,28 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-#include "UART.h"
+
 #include <fstream>
 #include <string>
+#include "UART.h"
 #include "comms/packet.h"
 #include "comms/pipes.h"
 #include "comms/transceiver.h"
 #include "comms/protocol.h"
+
 #include "timing/timer.h"
-#include <wiringPi.h>
+
+#include "logger/logger.h";
+#include <error.h>
 
 void UART::setupUART() {
+	log << "INFO: Setting up UART";
 	//Open the UART in non-blocking read/write mode
 	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY);
-	if (uart_filestream == -1)
+	if (uart_filestream == -1) {
+		log << "FATAL: Unable to open serial port";
 		throw UARTException("ERROR opening serial port");
+	}
 	//Configure the UART
 	struct termios options;
 	tcgetattr(uart_filestream, &options);
@@ -46,6 +54,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 	 * Sends request to the ImP to begin sending data. Returns the file stream
 	 * to the main program and continually writes the data to this stream.
 	 */
+	log << "INFO: Starting ImP and IMU data collection";
 	try {
 		m_pipes = comms::Pipe();
 		if ((m_pid = m_pipes.Fork()) == 0) {
@@ -54,14 +63,17 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 			comms::Transceiver ImP_comms(uart_filestream);
 			// Send initial start command
 			ImP_comms.sendBytes("C", 1);
+			log << "DATA (SENT): C";
 			for (int j = 0;; j++) {
 				std::ofstream outf;
 				char unique_file[50];
 				sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
+				log << "INFO: Starting new data file \"" << unique_file << "\"";
 				outf.open(unique_file);
 				// Take five measurements then change the file
+				int intv = 200;
 				for (int i = 0; i < 5; i++) {
-					uint64_t start = millis();
+					Timer tmr;
 					char buf[256];
 					// Wait for data to come through
 					while (1) {
@@ -85,32 +97,38 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 							m_pipes.binwrite(&p1, sizeof (p1));
 							m_pipes.binwrite(&p2, sizeof (p2));
 							buf[n] = '\0';
-							outf << std::string(buf) << std::endl;
+							for (int i = 0; i < n; i++)
+								outf << (int) buf[n] << ",";
+							outf << std::endl;
+							log << "DATA (ImP): " << p1;
+							log << "DATA (ImP): " << p2;
 							ImP_comms.sendBytes("N", 1);
+							log << "DATA (SENT): N";
 							break;
 						}
 					}
-					while ((millis() - start) < 200)
-						delay(10);
+					while (tmr.elapsed() < intv)
+						tmr.sleep_ms(10);
 				}
 			}
 		} else {
 			return m_pipes;
 		}
 	} catch (comms::PipeException e) {
-		fprintf(stdout, "UART %s\n", e.what());
+		log << "FATAL: Unable to read/write to pipes\n\t\"" << e.what() << "\"";
 		m_pipes.close_pipes();
 		close(uart_filestream);
-		exit(0);
+		exit(-1);
 	} catch (...) {
-		perror("ERROR with ImP");
+		log << "FATAL: Unexpected error with ImP\n\t\"" << std::strerror(errno);
 		m_pipes.close_pipes();
 		close(uart_filestream);
-		exit(1);
+		exit(-2);
 	}
 }
 
 int UART::stopDataCollection() {
+	log << "INFO: Ending data collection by closing pipes";
 	if (m_pid)
 		m_pipes.close_pipes();
 	return 0;

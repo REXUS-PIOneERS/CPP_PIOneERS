@@ -24,20 +24,16 @@
 #include "comms/packet.h"
 
 #include <wiringPi.h>
+#include "pins.h"
+#include "timing/timer.h"
+#include "logger/logger.h"
+
+log::Logger log("/Docs/Logs/raspi1");
 
 // Main inputs for experiment control
-int LO = 29;
-int SOE = 28;
-int SODS = 27;
-
-int LAUNCH_MODE_OUT = 10;
-int LAUNCH_MODE_IN = 11;
 bool flight_mode = false;
 
 // Motor Setup
-int MOTOR_CW = 25;
-int MOTOR_ACW = 24;
-int MOTOR_IN = 0;
 int encoder_count = 0;
 
 /**
@@ -79,7 +75,6 @@ int port_no = 31415; // Random unused port for communication
 std::string server_name = "raspi2.local";
 comms::Pipe ethernet_stream; // 0 = read, 1 = write
 Client raspi1 = Client(port_no, server_name);
-int ALIVE = 3;
 
 /**
  * Handles any SIGINT signals received by the program (i.e. ctrl^c), making sure
@@ -87,18 +82,32 @@ int ALIVE = 3;
  * @param s: Signal received
  */
 void signal_handler(int s) {
-	std::cout << "Exiting program..." << std::endl;
+	log << "FATAL: Exiting program after signal " << s;
 	// TODO send exit signal to Pi 2!
-	Cam.stopVideo();
-	if (&ethernet_stream != NULL)
-		ethernet_stream.close_pipes();
-	if (&IMU_stream != NULL)
-		IMU_stream.close_pipes();
+	if (Cam.is_running()) {
+		Cam.stopVideo();
+		log << "INFO: Stopping camera process";
+	} else {
+		log << "ERROR: Camera process died prematurely or did not start";
+	}
 
+	if (&ethernet_stream != NULL) {
+		ethernet_stream.close_pipes();
+		log << "INFO: Closed Ethernet communication";
+	} else {
+		log << "ERROR: Ethernet process died prematurely or did not start";
+	}
+	if (&IMU_stream != NULL) {
+		IMU_stream.close_pipes();
+		log << "INFO: Closed IMU communication";
+	} else {
+		log << "ERROR: IMU process died prematurely or did not start";
+	}
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
-	digitalWrite(LAUNCH_MODE_OUT, 0);
-	//system("sudo shutdown now");
+	// TODO copy data to a further backup directory
+	log << "INFO: Ending program, Pi rebooting";
+	system("sudo reboot");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
@@ -110,16 +119,31 @@ void signal_handler(int s) {
  * @return 0 for success, otherwise for failure
  */
 int SODS_SIGNAL() {
-	std::cout << "SIGNAL: SODS" << std::endl;
-	Cam.stopVideo();
-	if (&ethernet_stream != NULL)
+	log << "INFO: SODS signal received";
+	if (Cam.is_running()) {
+		Cam.stopVideo();
+		log << "INFO: Stopping camera process";
+	} else {
+		log << "ERROR: Camera process died prematurely or did not start";
+	}
+
+	if (&ethernet_stream != NULL) {
 		ethernet_stream.close_pipes();
-	if (&IMU_stream != NULL)
+		log << "INFO: Closed Ethernet communication";
+	} else {
+		log << "ERROR: Ethernet process died prematurely or did not start";
+	}
+	if (&IMU_stream != NULL) {
 		IMU_stream.close_pipes();
-	std::cout << "Ending program!" << std::endl;
+		log << "INFO: Closed IMU communication";
+	} else {
+		log << "ERROR: IMU process died prematurely or did not start";
+	}
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
+	log << "INFO: Ending program, Pi rebooting";
+	system("sudo reboot");
 	return 0;
 }
 
@@ -133,44 +157,52 @@ int SODS_SIGNAL() {
  * @return 0 for success, otherwise  for failure
  */
 int SOE_SIGNAL() {
-	std::cout << "SIGNAL: SOE" << std::endl;
+	log << "\nINFO: SOE signal received";
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
 	IMU = RPi_IMU();
 	IMU.setupAcc();
 	IMU.setupGyr();
 	IMU.setupMag();
+	log << "INFO: IMU setup";
 	// Start data collection and store the stream where data is coming through
 	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
+	log << "INFO: IMU collecting data";
 	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
-	// Extend the boom!
-	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
-	digitalWrite(MOTOR_CW, 1);
-	digitalWrite(MOTOR_ACW, 0);
-	// Keep checking the encoder count till it reaches the required amount.
-	std::cout << "INFO: Boom deploying..." << std::endl;
-	while (1) {
-		// Lock is used to keep everything thread safe
-		piLock(1);
-		if (encoder_count >= 10000) // TODO what should the count be?
-			break;
-		std::cout << " " << encoder_count << "..." << std::endl;
-		piUnlock(1);
-		// Read data from IMU_data_stream and echo it to Ethernet
-		int n = IMU_stream.binread(&p, sizeof (p));
-		if (n > 0) {
-			std::cout << "IMU1: " << p << std::endl; // TODO change to send to RXSM
-			ethernet_stream.binwrite(&p, sizeof (p));
+	if (flight_mode) {
+		// Extend the boom!
+		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
+		digitalWrite(MOTOR_CW, 1);
+		digitalWrite(MOTOR_ACW, 0);
+		log << "INFO: Motor triggered, boom deploying";
+		// Keep checking the encoder count till it reaches the required amount.
+		int count = 0;
+		while (count < 10000) {
+			// Lock is used to keep everything thread safe
+			piLock(1);
+			count = encoder_count;
+			piUnlock(1);
+			log << "INFO: Encoder count-" << encoder_count;
+			// Read data from IMU_data_stream and echo it to Ethernet
+			int n = IMU_stream.binread(&p, sizeof (p));
+			if (n > 0) {
+				log << "DATA (IMU1): " << p;
+				// TODO send to RXSM
+				ethernet_stream.binwrite(&p, sizeof (p));
+				log << "INFO: Data sent to Ethernet Communications";
+			}
+			n = ethernet_stream.binread(&p, sizeof (p));
+			if (n > 0) {
+				log << "DATA (PI2): " << p;
+				// TODO send data to RXSM
+			}
+			delay(100);
 		}
-		n = ethernet_stream.binread(&p, sizeof (p));
-		if (n > 0)
-			std::cout << "PI2: " << p << std::endl;
-		delay(100);
+		digitalWrite(MOTOR_CW, 0); // Stops the motor.
+		log << "INFO: Boom deployed to maximum";
 	}
-	digitalWrite(MOTOR_CW, 0); // Stops the motor.
-	std::cout << "INFO: Boon deployed" << std::endl;
-
+	log << "INFO: Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
 	while (!signal_received) {
@@ -179,12 +211,16 @@ int SOE_SIGNAL() {
 		// Read data from IMU_data_stream and echo it to Ethernet
 		int n = IMU_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			std::cout << "IMU1: " << p << std::endl; // TODO change to send to RXSM
+			log << "DATA (IMU1): " << p;
+			//TODO send to RXSM
 			ethernet_stream.binwrite(&p, sizeof (p));
+			log << "INFO: Data sent to Ethernet Communications";
 		}
 		n = ethernet_stream.binread(&p, sizeof (p));
-		if (n > 0)
-			std::cout << "PI2: " << p << std::endl;
+		if (n > 0) {
+			log << "DATA (PI2): " << p;
+			// TODO send data to RXSM
+		}
 		delay(10);
 	}
 	return SODS_SIGNAL();
@@ -196,11 +232,12 @@ int SOE_SIGNAL() {
  * of Experiment' signal (when the nose-cone is ejected)
  */
 int LO_SIGNAL() {
-	std::cout << "SIGNAL: LO" << std::endl;
+	log << "\nINFO: LO signal received";
 	Cam.startVideo("Docs/Video/rexus_video");
+	log << "INFO: Camera recording";
 	// Poll the SOE pin until signal is received
 	// TODO implement check to make sure no false signals!
-	std::cout << "Waiting for SOE.." << std::endl;
+	log << "INFO: Waiting for SOE";
 	bool signal_received = false;
 	while (!signal_received) {
 		delay(10);
@@ -218,7 +255,11 @@ int LO_SIGNAL() {
  * received.
  */
 int main(int argc, char* argv[]) {
+	// Create necessary directories for saving files
 	signal(SIGINT, signal_handler);
+	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video Docs/Logs");
+	log.start_log();
+	log << "INFO: Pi 1 is running";
 	// Setup wiringpi
 	wiringPiSetup();
 	// Setup main signal pins
@@ -230,40 +271,43 @@ int main(int argc, char* argv[]) {
 	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
+	log << "INFO: Main signal pins setup";
 
 	// Setup pins and check whether we are in flight mode
-	pinMode(LAUNCH_MODE_OUT, OUTPUT);
-	pinMode(LAUNCH_MODE_IN, INPUT);
-	pullUpDnControl(LAUNCH_MODE_IN, PUD_DOWN);
-	digitalWrite(LAUNCH_MODE_OUT, 1);
-	flight_mode = digitalRead(LAUNCH_MODE_IN);
+	pinMode(LAUNCH_MODE, INPUT);
+	pullUpDnControl(LAUNCH_MODE, PUD_UP);
+	flight_mode = digitalRead(LAUNCH_MODE);
+	log << "INFO: " << (flight_mode ? "flight mode enabled" : "test mode enabled");
 
 	// Setup Motor Pins
 	pinMode(MOTOR_CW, OUTPUT);
 	pinMode(MOTOR_ACW, OUTPUT);
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
-	// Create necessary directories for saving files
-	std::cout << "Pi 1 is running..." << std::endl;
-	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
+	log << "INFO: Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
-	while (!digitalRead(ALIVE)) {
-		delay(10);
-		std::cout << "Pi 2 is on, trying to establish Ethernet connection..." << std::endl;
-		// Try to connect to Pi 2
+	while (!digitalRead(ALIVE))
+		Timer::sleep_ms(10);
+	log << "INFO: Trying to establish Ethernet connection with " << server_name;
+	// Try to connect to Pi 2
+	try {
 		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
-		// TODO handle error where we can't connect to the server
-		std::cout << "Connection successful" << std::endl << "Waiting for LO..." <<
-				std::endl;
-		// Wait for LO signal
-		bool signal_received = false;
-		while (!signal_received) {
-			delay(10);
-			// Implements a loop to ensure LO signal has actually been received
-			signal_received = poll_input(LO);
-			// TODO Implement communications with RXSM
-		}
-		LO_SIGNAL();
-		//system("sudo reboot");
-		return 0;
+	} catch (EthernetException e) {
+		log << "FATAL: Ethernet connection failed with error\n\t\"" << e.what()
+				<< "\"";
+		signal_handler(-5);
 	}
+	// TODO handle error where we can't connect to the server
+	log << "INFO: Ethernet connection successful";
+	log << "INFO: Waiting for LO";
+	// Wait for LO signal
+	bool signal_received = false;
+	while (!signal_received) {
+		Timer::sleep_ms(10);
+		// Implements a loop to ensure LO signal has actually been received
+		signal_received = poll_input(LO);
+		// TODO Implement communications with RXSM
+	}
+	LO_SIGNAL();
+	return 0;
+}

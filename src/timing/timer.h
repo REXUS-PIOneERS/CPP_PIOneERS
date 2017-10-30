@@ -15,8 +15,12 @@ public:
 		beg_ = clock_::now();
 	}
 
+	int64_t time() const {
+		return (int64_t) std::duration_cast<millisecs_>clock_::now().count();
+	}
+
 	int64_t elapsed() const {
-		return (int64_t) std::chrono::duration_cast<nanosecs_>(clock_::now() - beg_).count();
+		return (int64_t) std::chrono::duration_cast<millisecs_>(clock_::now() - beg_).count();
 	}
 
 	static void sleep_ms(int ms) {
@@ -25,9 +29,8 @@ public:
 
 private:
 	typedef std::chrono::high_resolution_clock clock_;
-	typedef std::chrono::duration<uint64_t, std::nano> nanosecs_;
+	typedef std::chrono::duration<uint64_t, std::milli> millisecs_;
 	std::chrono::time_point<clock_> beg_;
 };
 
 #endif /* TIMER_H */
-

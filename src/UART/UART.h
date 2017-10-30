@@ -12,6 +12,8 @@
 #include <error.h>
 #include "comms/pipes.h"
 
+#include "logger/logger.h"
+
 #ifndef UART_H
 #define UART_H
 
@@ -19,6 +21,7 @@ class UART {
 	comms::Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;
+	log::Logger log("/Docs/Logs/uart");
 
 public:
 

@@ -13,8 +13,11 @@
 #include <unistd.h>
 #include <string>
 
+#include "logger/logger.h"
+
 class PiCamera {
 	pid_t camera_pid = 0;
+	log::Logger log("/Docs/Logs/camera");
 
 public:
 
@@ -22,6 +25,8 @@ public:
 	 * Default constructor for the PiCamera class
 	 */
 	PiCamera() {
+		log.start_log();
+		log << "INFO: Camera created";
 	}
 
 	/**

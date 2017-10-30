@@ -11,17 +11,21 @@
 #include <unistd.h> //For sleep
 #include <stdlib.h>
 #include <iostream>
+#include <signal.h>
 
 #include "pins.h"
-#include "RPi_IMU/RPi_IMU.h"
 #include "camera/camera.h"
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
 #include "comms/pipes.h"
 #include "comms/protocol.h"
 #include "comms/packet.h"
+#include "timing/timer.h"
+#include "logger/logger.h"
 
 #include <wiringPi.h>
+
+log::Logger log("/Docs/Logs/raspi2");
 
 bool flight_mode = false;
 
@@ -53,15 +57,30 @@ bool poll_input(int pin) {
 }
 
 void signal_handler(int s) {
-	std::cout << "Exiting program early..." << std::endl;
-	Cam.stopVideo();
-	if (&ethernet_stream != NULL) {
-		delay(100);
-		ethernet_stream.close_pipes();
+	log << "FATAL: Exiting program after signal " << s;
+	if (Cam.is_running()) {
+		Cam.stopVideo();
+		log << "INFO: Stopping camera process";
+	} else {
+		log << "ERROR: Camera process died prematurely or did not start";
 	}
-	if (&ImP_stream != NULL)
+
+	if (&ethernet_stream != NULL) {
+		ethernet_stream.close_pipes();
+		log << "INFO: Closed Ethernet communication";
+	} else {
+		log << "ERROR: Ethernet process died prematurely or did not start";
+	}
+	if (&ImP_stream != NULL) {
 		ImP_stream.close_pipes();
-	//system("sudo shutdown now");
+		log << "INFO: Closed ImP communication";
+	} else {
+		log << "ERROR: ImP process died prematurely or did not start";
+	}
+	digitalWrite(BURNWIRE, 0);
+	// TODO copy data to a further backup directory
+	log << "INFO: Ending program, Pi rebooting";
+	system("sudo reboot");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
@@ -72,11 +91,30 @@ int SODS_SIGNAL() {
 	 * shorting due to melting on re-entry. All data is copied into a backup
 	 * directory.
 	 */
-	std::cout << "SIGNAL: SODS" << std::endl;
-	Cam.stopVideo();
-	ethernet_stream.close_pipes();
-	ImP_stream.close_pipes();
-	std::cout << "Exiting Program" << std::endl;
+	log << "INFO: SODS signal received";
+	if (Cam.is_running()) {
+		Cam.stopVideo();
+		log << "INFO: Stopping camera process";
+	} else {
+		log << "ERROR: Camera process died prematurely or did not start";
+	}
+
+	if (&ethernet_stream != NULL) {
+		ethernet_stream.close_pipes();
+		log << "INFO: Closed Ethernet communication";
+	} else {
+		log << "ERROR: Ethernet process died prematurely or did not start";
+	}
+	if (&ImP_stream != NULL) {
+		ImP_stream.close_pipes();
+		log << "INFO: Closed ImP communication";
+	} else {
+		log << "ERROR: ImP process died prematurely or did not start";
+	}
+	digitalWrite(BURNWIRE, 0);
+	// TODO copy data to a further backup directory
+	log << "INFO: Ending program, Pi rebooting";
+	system("sudo reboot");
 	return 0;
 }
 
@@ -89,33 +127,32 @@ int SOE_SIGNAL() {
 	 * boom has reached it's full length or something has gone wrong and the
 	 * count of the encoder is sent to ground.
 	 */
-	std::cout << "SIGNAL: SOE" << std::endl;
+	log << "INFO: SOE signal received";
 	// Setup the ImP and start requesting data
 	ImP_stream = ImP.startDataCollection("Docs/Data/Pi2/test");
+	log << "INFO: Started data collection from ImP";
 	comms::Packet p; // Buffer for reading data from the IMU stream
 	// Trigger the burn wire!
+	log << "INFO: Triggering burnwire";
 	digitalWrite(BURNWIRE, 1);
-	unsigned int start = millis();
+	Timer tmr;
 	std::cout << "INFO: Burn wire triggered" << std::endl;
-	while (1) {
-		unsigned int time = millis() - start;
-		if (time > 6000) break;
+	while (tmr < 6000) {
 		// Get ImP data
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			std::cout << "DATA: " << p << std::endl;
+			log << "DATA (ImP): " << p;
 			ethernet_stream.binwrite(&p, sizeof (p));
 		}
 
 		n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0)
-			std::cout << "PI1: " << p << std::endl;
-		delay(10);
+			log << "DATA (PI1): " << p;
+		Timer::sleep_ms(10);
 	}
 	digitalWrite(BURNWIRE, 0);
-	std::cout << "INFO: Burn wire off" << std::endl << "Waiting for SIDS" <<
-			std::endl;
-
+	log << "INFO: Burn wire off after " << tmr.elapsed() << " ms";
+	log << "INFO: Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
 	while (!signal_received) {
@@ -123,14 +160,14 @@ int SOE_SIGNAL() {
 		// Read data from IMU_data_stream and echo it to Ethernet
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			std::cout << "DATA: " << p << std::endl;
+			log << "DATA (ImP): " << p;
 			ethernet_stream.binwrite(&p, sizeof (p));
 		}
 
 		n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0)
-			std::cout << "PI1: " << p << std::endl;
-		delay(10);
+			log << "DATA (PI1): " << p;
+		Timer::sleep_ms(10);
 	}
 	return SODS_SIGNAL();
 }
@@ -141,13 +178,14 @@ int LO_SIGNAL() {
 	 * are set to start recording video and we then wait to receive the 'Start
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
-	std::cout << "SIGNAL: LO" << std::endl;
+	log << "INFO: LO signal received";
 	Cam.startVideo("Docs/Video/rexus_video");
+	log << "INFO: Camera started recording video";
 	// Poll the SOE pin until signal is received
-	std::cout << "Waiting for SOE" << std::endl;
+	log << "INFO: Waiting for SOE";
 	bool signal_received = false;
 	while (!signal_received) {
-		delay(10);
+		Timer::sleep_ms(10);
 		signal_received = poll_input(SOE);
 		// TODO Implement communications with RXSM
 	}
@@ -161,9 +199,11 @@ int main() {
 	 * required tests, regularly reporting status until the LO Signal is
 	 * received.
 	 */
+	signal(SIGINT, signal_handler);
 	// Create necessary directories for saving files
-	std::cout << "Pi 2 is alive..." << std::endl;
-	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
+	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video Docs/Logs");
+	log.start_log();
+	log << "INFO: Pi2 is alive";
 	wiringPiSetup();
 	// Setup main signal pins
 	pinMode(LO, INPUT);
@@ -173,50 +213,47 @@ int main() {
 	pinMode(SODS, INPUT);
 	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, OUTPUT);
-
+	log << "INFO: Main signal pins setup";
 	// Setup pins and check whether we are in flight mode
-	pinMode(LAUNCH_MODE_OUT, OUTPUT);
-	pinMode(LAUNCH_MODE_IN, INPUT);
-	pullUpDnControl(LAUNCH_MODE_IN, PUD_DOWN);
-	digitalWrite(LAUNCH_MODE_OUT, 1);
-	flight_mode = digitalRead(LAUNCH_MODE_IN);
+	pinMode(LAUNCH_MODE, INPUT);
+	pullUpDnControl(LAUNCH_MODE, PUD_UP);
+	flight_mode = digitalRead(LAUNCH_MODE);
+	log << "INFO: " << (flight_mode ? "flight mode enabled" : "test mode enabled");
 
 	// Setup Burn Wire
 	pinMode(BURNWIRE, OUTPUT);
 
 	// Setup server and wait for client
 	digitalWrite(ALIVE, 1);
-	ethernet_stream = ethernet_comms.run("Docs/Data/Pi1/backup.txt");
-	std::cout << "Connected to Pi 1" << std::endl << "Waiting for LO..." <<
-			std::endl;
-
-	// Check for LO signal.
-	std::string msg;
+	log << "INFO: Waiting for connection from client on port " << port_no;
+	try {
+		ethernet_stream = ethernet_comms.run("Docs/Data/Pi1/backup.txt");
+	} catch (EthernetException e) {
+		log << "FATAL: Unable to connect to pi 1";
+		signal_handler(-5);
+	}
+	log << "INFO: Connection to Pi1 successfil";
+	log << "INFO: Waiting for LO signal"
+			// Check for LO signal.
+			std::string msg;
 	bool signal_received = false;
 	comms::Packet p;
 	comms::byte1_t id;
 	comms::byte2_t index;
 	char data[16];
 	while (!signal_received) {
-		delay(10);
+		Timer::sleep_ms(10);
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
 		int n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
+			log << "DATA (PI1): " << p;
 			comms::Protocol::unpack(p, id, index, data);
-			if (id == ID_MSG1) {
-				std::string msg(data);
-				std::cout << "MSG: " << msg << std::endl;
-				if (msg.compare("RESTART") == 0)
-					system("sudo reboot");
-				else if (msg.compare("TEST"))
-					std::cout << "INFO: Tests not yet implemented" << std::endl;
-				else
-					std::cout << "ERROR: Message not recognised" << std::endl;
-			}
+			log << "DATA (PI1): Unpacked\n\t\"" << std::string(data) << "\"";
+			//TODO handle incoming commands!
 		}
 	}
 	LO_SIGNAL();
-	//system("sudo reboot");
+	system("sudo reboot");
 	return 0;
 }

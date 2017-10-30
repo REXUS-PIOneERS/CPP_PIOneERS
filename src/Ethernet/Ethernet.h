@@ -16,6 +16,7 @@
 #include <error.h>  // For errno
 
 #include "comms/pipes.h"
+#include "logger/logger.h"
 
 #ifndef ETHERNET_H
 #define ETHERNET_H
@@ -43,6 +44,7 @@ private:
 	socklen_t m_clilen;
 	struct sockaddr_in m_serv_addr, m_cli_addr;
 	char m_buf[256];
+	log::Logger log("/Docs/Logs/server");
 
 	/**
 	 * Sets up basic variables for creating a server
@@ -87,6 +89,7 @@ private:
 	int m_sockfd;
 	struct sockaddr_in m_serv_addr;
 	struct hostent *m_server;
+	log::Logger log("/Docs/Logs/client");
 
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client
