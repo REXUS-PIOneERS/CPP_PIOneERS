@@ -44,7 +44,7 @@ private:
 	socklen_t m_clilen;
 	struct sockaddr_in m_serv_addr, m_cli_addr;
 	char m_buf[256];
-	Logger log = Logger("/Docs/Logs/server");
+	Logger log("/Docs/Logs/server");
 
 	/**
 	 * Sets up basic variables for creating a server
@@ -89,7 +89,7 @@ private:
 	int m_sockfd;
 	struct sockaddr_in m_serv_addr;
 	struct hostent *m_server;
-	Logger log = Logger("/Docs/Logs/client");
+	Logger log("/Docs/Logs/client");
 
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client

@@ -17,7 +17,7 @@
 
 class PiCamera {
 	pid_t camera_pid = 0;
-	Logger log = Logger("/Docs/Logs/camera");
+	Logger log("/Docs/Logs/camera");
 
 public:
 

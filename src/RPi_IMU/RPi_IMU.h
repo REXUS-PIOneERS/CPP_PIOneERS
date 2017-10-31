@@ -25,7 +25,7 @@ class RPi_IMU {
 	int i2c_file = 0;
 	int pid; //Id of the background process
 	comms::Pipe m_pipes;
-	Logger log = Logger("/Docs/Logs/imu");
+	Logger log("/Docs/Logs/imu");
 
 public:
 	/**

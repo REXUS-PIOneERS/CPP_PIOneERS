@@ -25,7 +25,7 @@
 
 #include <wiringPi.h>
 
-Logger log = Logger("/Docs/Logs/raspi2");
+Logger log("/Docs/Logs/raspi2");
 
 bool flight_mode = false;
 

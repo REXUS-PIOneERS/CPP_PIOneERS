@@ -21,7 +21,7 @@ class UART {
 	comms::Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;
-	Logger log = Logger("/Docs/Logs/uart");
+	Logger log("/Docs/Logs/uart");
 
 public:
 
