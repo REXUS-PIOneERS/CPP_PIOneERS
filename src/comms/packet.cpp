@@ -11,7 +11,7 @@ namespace comms {
 				o << (char) p.data[i];
 		} else {
 			for (int i = 0; i < 16; i++)
-				o << (int) p.data[i];
+				o << (int) p.data[i] << ',';
 		}
 		o << p.checksum;
 
