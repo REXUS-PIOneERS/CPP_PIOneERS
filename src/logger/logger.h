@@ -16,27 +16,24 @@
 #include "timing/timer.h"
 #include <fstream>
 
-namespace log {
+class Logger {
+private:
+	std::string _filename;
+	std::ofstream _outf;
+	Timer _tmr;
 
-	class Logger {
-	private:
-		std::string _filename;
-		std::ofstream _outf;
-		Timer _tmr;
+public:
+	Logger(std::string filename);
 
-	public:
-		Logger(std::string filename);
+	void start_log();
 
-		void start_log();
+	std::ofstream& operator()(std::string str);
 
-		std::ofstream& operator()(std::string str);
+	void stop_log();
 
-		void stop_log();
-
-		~Logger() {
-			stop_log();
-		}
-	};
-}
+	~Logger() {
+		stop_log();
+	}
+};
 
 #endif /* LOGGER_H */

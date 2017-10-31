@@ -26,26 +26,22 @@ std::string time(Timer tmr) {
 	return ss.str();
 }
 
-namespace log {
+Logger::Logger(std::string filename) {
+	_filename = filename;
+}
 
-	Logger::Logger(std::string filename) {
-		_filename = filename;
-	}
+void Logger::start_log() {
+	_tmr.reset();
+	std::ostringstream ss;
+	ss << _filename << ".txt";
+	std::string _this_filename = ss.str();
+	_outf.open(_this_filename);
+}
 
-	void Logger::start_log() {
-		_tmr.reset();
-		std::ostringstream ss;
-		ss << _filename << ".txt";
-		std::string _this_filename = ss.str();
-		_outf.open(_this_filename);
-	}
+std::ofstream& Logger::operator()(std::string str) {
+	return _outf << std::endl << str << "(" << time(_tmr) << "): ";
+}
 
-	std::ofstream& Logger::operator()(std::string str) {
-		return _outf << std::endl << str << "(" << time(_tmr) << "): ";
-	}
-
-	void Logger::stop_log() {
-		_outf.close();
-	}
-
+void Logger::stop_log() {
+	_outf.close();
 }
