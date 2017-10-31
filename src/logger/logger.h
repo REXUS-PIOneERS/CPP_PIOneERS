@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <iostream>
 #include <string>
+#include "timing/timer.h"
+#include <fstream>
 
 namespace log {
 

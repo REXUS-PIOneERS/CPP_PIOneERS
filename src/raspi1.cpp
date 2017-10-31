@@ -28,7 +28,7 @@
 #include "timing/timer.h"
 #include "logger/logger.h"
 
-log::Logger log("/Docs/Logs/raspi1");
+log::Logger log = log::Logger("/Docs/Logs/raspi1");
 
 // Main inputs for experiment control
 bool flight_mode = false;

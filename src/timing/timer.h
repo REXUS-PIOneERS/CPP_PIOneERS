@@ -15,9 +15,9 @@ public:
 		beg_ = clock_::now();
 	}
 
-	int64_t time() const {
-		return (int64_t) std::duration_cast<millisecs_>clock_::now().count();
-	}
+	//int64_t time() const {
+	//	return (int64_t) std::chrono::duration_cast<millisecs_>(clock_::now());
+	//}
 
 	int64_t elapsed() const {
 		return (int64_t) std::chrono::duration_cast<millisecs_>(clock_::now() - beg_).count();
