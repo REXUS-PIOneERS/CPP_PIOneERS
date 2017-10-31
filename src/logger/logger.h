@@ -22,12 +22,7 @@ namespace log {
 
 		void start_log();
 
-		template <typename T>
-		friend std::ostream& operator<<(Logger &l, T output);
-
-		void log_msg(std::string msg);
-
-		void log_error(std::string err);
+		friend std::ostream& operator<<(Logger &l, std::string output);
 
 		void stop_log();
 
