@@ -160,7 +160,6 @@ int SOE_SIGNAL() {
 	log("INFO") << "SOE signal received";
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
-	IMU = RPi_IMU();
 	IMU.setupAcc();
 	IMU.setupGyr();
 	IMU.setupMag();

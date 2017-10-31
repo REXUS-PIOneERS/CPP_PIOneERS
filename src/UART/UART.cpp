@@ -27,7 +27,7 @@
 
 #include "timing/timer.h"
 
-#include "logger/logger.h";
+#include "logger/logger.h"
 #include <error.h>
 
 void UART::setupUART() {
@@ -105,7 +105,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 							for (int i = 0; i < n; i++)
 								outf << (int) buf[n] << ",";
 							outf << std::endl;
-							log"DATA (IMP)" << p1;
+							log("DATA (IMP)") << p1;
 							log("DATA (ImP)") << p2;
 							ImP_comms.sendBytes("N", 1);
 							log("DATA (SENT)") << "N";

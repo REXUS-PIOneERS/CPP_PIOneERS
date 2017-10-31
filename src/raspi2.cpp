@@ -138,7 +138,7 @@ int SOE_SIGNAL() {
 	digitalWrite(BURNWIRE, 1);
 	Timer tmr;
 	log("INFO") << "Burn wire triggered" << std::endl;
-	while (tmr < 6000) {
+	while (tmr.elapsed() < 6000) {
 		// Get ImP data
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {

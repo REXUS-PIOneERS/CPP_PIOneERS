@@ -8,6 +8,7 @@
  */
 
 #include <string>
+#include <sstream>
 #include <stdint.h>
 #include <fstream>
 #include "logger.h"
@@ -38,7 +39,7 @@ void Logger::start_log() {
 	_outf.open(_this_filename);
 }
 
-std::ofstream& Logger::operator()(std::string str) {
+std::ostream& Logger::operator()(std::string str) {
 	return _outf << std::endl << str << "(" << time(_tmr) << "): ";
 }
 

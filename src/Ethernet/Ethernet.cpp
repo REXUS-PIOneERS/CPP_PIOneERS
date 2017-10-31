@@ -35,7 +35,7 @@ int Server::setup() {
 	// Open the socket for Ethernet connection
 	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_sockfd < 0) {
-		log << "ERROR: Server failed to open socket";
+		log("ERROE") << "Server failed to open socket";
 		throw EthernetException("ERROR: Server Failed to Open Socket");
 	}
 	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));

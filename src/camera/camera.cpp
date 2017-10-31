@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "camera.h"
+#include <cstring>
 #include <sys/wait.h>
 #include <string>
 #include <error.h>
@@ -65,17 +66,17 @@ void PiCamera::stopVideo() {
 }
 
 bool PiCamera::is_running() {
-	log << "INFO: Camera process being polled...";
+	log("INFO") << "Camera process being polled...";
 	if (camera_pid) {
 		if (kill(camera_pid, 0) == 0) {
-			log << "INFO: Camera process running";
+			log("INFO") << "Camera process running";
 			return true;
 		} else {
-			log << "INFO: Camera process dead";
+			log("INFO") << "Camera process dead";
 			camera_pid = 0;
 			return false;
 		}
 	}
-	log << "INFO: Process has not been started";
+	log("INFO") << "Process has not been started";
 	return false;
 }

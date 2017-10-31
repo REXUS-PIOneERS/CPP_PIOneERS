@@ -309,8 +309,8 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 							data[14] << "," << data[15] << "," <<
 							data[16] << "," << data[17] << "," <<
 							data[18] << "," << data[19] << "," <<
-							data[20] << "," << data[21] << "," <<
-							comms::byte1_t id1 = 0b00010000;
+							data[20] << "," << data[21] << std::endl;
+					comms::byte1_t id1 = 0b00010000;
 					comms::byte1_t id2 = 0b00010001;
 					comms::byte2_t index = (5 * j) + i;
 					comms::Protocol::pack(p1, id1, index, data);

@@ -27,7 +27,7 @@ public:
 
 	void start_log();
 
-	std::ofstream& operator()(std::string str);
+	std::ostream& operator()(std::string str);
 
 	void stop_log();
 
