@@ -13,20 +13,20 @@
 #include "logger.h"
 #include "timing/timer.h"
 
-namespace log {
+std::string time(Timer tmr) {
+	std::stringstream ss;
+	uint64_t time = tmr.elapsed();
+	int hr = time / 3600000;
+	time -= hr * 3600000;
+	int min = time / 60000;
+	time -= min * 60000;
+	int sec = time / 1000;
+	time -= sec * 1000;
+	ss << hr << ":" << min << ":" << sec << ":" << time;
+	return ss.str();
+}
 
-	std::string time(Timer tmr) {
-		std::stringstream ss;
-		uint64_t time = tmr.elapsed();
-		int hr = time / 3600000;
-		time -= hr * 3600000;
-		int min = time / 60000;
-		time -= min * 60000;
-		int sec = time / 1000;
-		time -= sec * 1000;
-		ss << hr << ":" << min << ":" << sec << ":" << time;
-		return ss.str();
-	}
+namespace log {
 
 	Logger::Logger(std::string filename) {
 		_filename = filename;
@@ -40,7 +40,8 @@ namespace log {
 		_outf.open(_this_filename);
 	}
 
-	std::ostream& operator<<(Logger &l, std::string output) {
+	template<typename T>
+	std::ostream& operator<<(Logger &l, T output) {
 		std::string tm = time(l._tmr);
 		l._outf << std::endl << tm << " " << output;
 		return l._outf;
@@ -49,4 +50,5 @@ namespace log {
 	void Logger::stop_log() {
 		_outf.close();
 	}
+
 }

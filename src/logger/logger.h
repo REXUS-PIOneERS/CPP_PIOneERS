@@ -24,7 +24,8 @@ namespace log {
 
 		void start_log();
 
-		friend std::ostream& operator<<(Logger &l, std::string output);
+		template<typename T>
+		friend std::ostream& operator<<(Logger &l, T output);
 
 		void stop_log();
 
