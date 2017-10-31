@@ -46,7 +46,7 @@ public:
 		}
 	}
 
-	RPi_IMU(RPi_IMU &in) {
+	RPi_IMU& operator=(RPi_IMU &in) {
 		log = in.log;
 		filename = in.filename;
 		i2c_file = in.i2c_file;
