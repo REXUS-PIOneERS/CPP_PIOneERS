@@ -61,13 +61,13 @@ bool poll_input(int pin) {
 
 
 // Global variable for the Camera and IMU
-PiCamera Cam();
+PiCamera Cam;
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 comms::Pipe IMU_stream;
 
 // Setup for the UART communications
 int baud = 230400; // TODO find right value for RXSM
-UART RXSM();
+UART RXSM;
 comms::Pipe UART_stream;
 
 // Ethernet communication setup and variables (we are acting as client)

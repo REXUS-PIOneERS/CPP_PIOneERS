@@ -30,11 +30,11 @@ Logger log("/Docs/Logs/raspi2");
 bool flight_mode = false;
 
 // Global variable for the Camera and IMU
-PiCamera Cam();
+PiCamera Cam;
 
 // Setup for the UART communications
 int baud = 230400;
-UART ImP();
+UART ImP;
 comms::Pipe ImP_stream;
 
 // Ethernet communication setup and variables (we are acting as client)

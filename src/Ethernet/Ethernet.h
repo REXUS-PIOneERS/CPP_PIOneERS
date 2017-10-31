@@ -36,7 +36,7 @@ public:
 	 *
 	 * @param port: Port for communication with clients
 	 */
-	Server(const int port) : log("/Docs/Logs/server"), m_port(port) {
+	Server(const int port) : m_port(port), log("/Docs/Logs/server") {
 		log.start_log();
 		setup();
 	}
@@ -75,7 +75,7 @@ public:
 	 * @param host_name: Name or IP address of the server
 	 */
 	Client(const int port, const std::string host_name)
-	: log("/Docs/Logs/client"), m_port(port), m_host_name(host_name) {
+	: m_port(port), m_host_name(host_name), log("/Docs/Logs/client") {
 		log.start_log();
 	}
 
