@@ -40,18 +40,7 @@ namespace log {
 		_outf.open(_this_filename);
 	}
 
-	void Logger::log_msg(std::string msg) {
-		std::string tm = time(_tmr);
-		_outf << _tmr << " " << msg << std::endl;
-	}
-
-	void Logger::log_error(std::string err) {
-		std::string tm = time(_tmr);
-		_outf << _tmr << " " << err << std::endl;
-	}
-
-	template <typename T>
-	std::ostream& operator<<(Logger &l, T output) {
+	std::ostream& operator<<(Logger &l, std::string output) {
 		std::string tm = time(l._tmr);
 		l._outf << std::endl << tm << " " << output;
 		return l._outf;
