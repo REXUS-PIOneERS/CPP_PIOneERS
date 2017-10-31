@@ -21,7 +21,7 @@ class UART {
 	comms::Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;
-	log::Logger log("/Docs/Logs/uart");
+	Logger log = Logger("/Docs/Logs/uart");
 
 public:
 
@@ -48,6 +48,8 @@ public:
 	 * @return 0 = success, otherwise = failure
 	 */
 	int stopDataCollection();
+
+	~UART();
 };
 
 class UARTException {

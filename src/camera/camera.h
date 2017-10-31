@@ -17,7 +17,7 @@
 
 class PiCamera {
 	pid_t camera_pid = 0;
-	log::Logger log("/Docs/Logs/camera");
+	Logger log = Logger("/Docs/Logs/camera");
 
 public:
 
@@ -26,7 +26,7 @@ public:
 	 */
 	PiCamera() {
 		log.start_log();
-		log << "INFO: Camera created";
+		log("INFO") << "Camera created";
 	}
 
 	/**

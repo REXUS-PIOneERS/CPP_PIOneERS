@@ -40,77 +40,77 @@
 RPi_IMU::RPi_IMU() {
 	log.start_log();
 	//Open the I2C bus
-	log << "INFO: Attempting to open i2c bus";
+	log("INFO") << "Attempting to open i2c bus";
 	if ((i2c_file = open(filename, O_RDWR)) < 0) {
-		log << "ERROR: Failed to open i2c bus";
+		log("ERROR") << "Failed to open i2c bus";
 	}
 }
 
 bool RPi_IMU::activateSensor(int addr) {
 	if (ioctl(i2c_file, I2C_SLAVE, addr) < 0) {
-		log << "ERROR: Failed to aquire bus and/or talk to slave";
+		log("ERROR") << "Failed to aquire bus and/or talk to slave";
 		return false;
 	}
-	log << "INFO: Selected sensor (" << addr << ")";
+	log("INFO") << "Selected sensor (" << addr << ")";
 	return true;
 }
 
 //Functions for setting up the various sensors
 
 bool RPi_IMU::setupAcc(int reg1_value, int reg2_value) {
-	log << "INFO: Setting up Accelerometer registers.\n\tCTRL_REG1_XM-"
+	log("INFO") << "Setting up Accelerometer registers.\n\tCTRL_REG1_XM-"
 			<< reg1_value << "\n\tCTRL_REG2_XM-" << reg2_value;
 	//Write the values to the control registers
 	bool a = writeReg(ACC_ADDRESS, CTRL_REG1_XM, reg1_value);
 	bool b = writeReg(ACC_ADDRESS, CTRL_REG2_XM, reg2_value);
 	if (a && b) {
-		log << "INFO: Accelerometer setup successfully";
+		log("INFO") << "Accelerometer setup successfully";
 		return true;
 	} else {
-		log << "ERROR: Accelerometer setup failed";
+		log("ERROR") << "Accelerometer setup failed";
 		return false;
 	}
 }
 
 bool RPi_IMU::setupGyr(int reg1_value, int reg2_value) {
-	log << "INFO: Setting up Gyro registers.\n\tCTRL_REG1_G-"
+	log("INFO") << "Setting up Gyro registers.\n\tCTRL_REG1_G-"
 			<< reg1_value << "\n\tCTRL_REG2_G-" << reg2_value;
 	bool a = writeReg(GYR_ADDRESS, CTRL_REG1_G, reg1_value);
 	bool b = writeReg(GYR_ADDRESS, CTRL_REG2_G, reg2_value);
 	if (a && b) {
-		log << "INFO: Gyro setup successfully";
+		log("INFO") << "Gyro setup successfully";
 		return true;
 	} else {
-		log << "ERROR: Gyro setup failed";
+		log("ERROR") << "Gyro setup failed";
 		return false;
 	}
 }
 
 bool RPi_IMU::setupMag(int reg5_value, int reg6_value, int reg7_value) {
-	log << "INFO: Setting up Magnetometer registers.\n\tCTRL_REG5_XM-"
+	log("INFO") << "Setting up Magnetometer registers.\n\tCTRL_REG5_XM-"
 			<< reg5_value << "\n\tCTRL_REG6_XM-" << reg6_value
 			<< "\n\tCTRL_REG7_XM-" << reg7_value;
 	bool a = writeReg(MAG_ADDRESS, CTRL_REG5_XM, reg5_value);
 	bool b = writeReg(MAG_ADDRESS, CTRL_REG6_XM, reg6_value);
 	bool c = writeReg(MAG_ADDRESS, CTRL_REG7_XM, reg7_value);
 	if (a && b && c) {
-		log << "INFO: Gyro setup successfully";
+		log("INFO") << "Gyro setup successfully";
 		return true;
 	} else {
-		log << "ERROR: Gyro setup failed";
+		log("ERROR") << "Gyro setup failed";
 		return false;
 	}
 }
 
 bool RPi_IMU::writeReg(int addr, int reg, int value) {
 	if (!activateSensor(addr)) {
-		log << "ERROR: Writing " << value << " to register " << reg
+		log("INFO") << "Writing " << value << " to register " << reg
 				<< " on device " << addr;
 	}
 
 	int result = i2c_smbus_write_byte_data(i2c_file, reg, value);
 	if (result == -1) {
-		log << "ERROR: Failed to write byte to i2c register";
+		log("ERROR") << "Failed to write byte to i2c register";
 		return false;
 	}
 	return true;
@@ -119,7 +119,7 @@ bool RPi_IMU::writeReg(int addr, int reg, int value) {
 uint16_t RPi_IMU::readAccAxis(int axis) {
 	//Select the device
 	if (!activateSensor(ACC_ADDRESS)) {
-		log << "ERROR: Failed to activate accelerometer to read data";
+		log("ERROR") << "Failed to activate accelerometer to read data";
 		return 0;
 	}
 	//axis is either 1:x, 2:y, 3:z
@@ -151,7 +151,7 @@ uint16_t RPi_IMU::readAccAxis(int axis) {
 uint16_t RPi_IMU::readGyrAxis(int axis) {
 	//Select the device
 	if (!activateSensor(GYR_ADDRESS)) {
-		log << "ERROR: Failed to activate gyro to read data";
+		log("ERROR") << "Failed to activate gyro to read data";
 		return 0;
 	}
 	//axis is either 1:x, 2:y, 3:z
@@ -183,7 +183,7 @@ uint16_t RPi_IMU::readGyrAxis(int axis) {
 uint16_t RPi_IMU::readMagAxis(int axis) {
 	//Select the device
 	if (!activateSensor(MAG_ADDRESS)) {
-		log << "ERROR: Failed to activate magnetometer to read data";
+		log("ERROR") << "Failed to activate magnetometer to read data";
 		return 0;
 	}
 	activateSensor(MAG_ADDRESS);
@@ -280,10 +280,10 @@ void RPi_IMU::resetRegisters() {
 }
 
 comms::Pipe RPi_IMU::startDataCollection(char* filename) {
-	log << "INFO: Starting data collection";
+	log("INFO") << "Starting data collection";
 	try {
 		m_pipes = comms::Pipe();
-		log << "INFO: Forking processes...";
+		log("INFO") << "Forking processes...";
 		if ((pid = m_pipes.Fork()) == 0) {
 			// This is the child process and controls data collection
 			comms::Packet p1;
@@ -292,13 +292,13 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			int intv = 200;
 			Timer measurement_time;
 			// Infinite loop for taking measurements
-			log << "INFO: Starting loop for taking measurements";
+			log("INFO") << "Starting loop for taking measurements";
 			for (int j = 0;; j++) {
 				// Open the file for saving data
 				std::ofstream outf;
 				char unique_file[50];
 				sprintf(unique_file, "%s%04d.txt", filename, j);
-				log << "INFO: Opening new file for writing data \"" <<
+				log("INFO") << "Opening new file for writing data \"" <<
 						unique_file << "\"";
 				outf.open(unique_file);
 				// Take 5 measurements i.e. 1 seconds worth of data
@@ -326,11 +326,11 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					comms::byte2_t index = (5 * j) + i;
 					comms::Protocol::pack(p1, id1, index, data);
 					comms::Protocol::pack(p2, id2, index, data + 12);
-					log << "DATA (IMU): " << p1;
-					log << "DATA (IMU): " << p2;
+					log("DATA (IMU)") << p1;
+					log("DATA (IMU)") << p2;
 					m_pipes.binwrite(&p1, sizeof (p1));
 					m_pipes.binwrite(&p2, sizeof (p2));
-					log << "INFO: Packets sent to main process";
+					log("INFO") << "Packets sent to main process";
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);
 				}
@@ -343,16 +343,16 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 		}
 	} catch (comms::PipeException e) {
 		// Ignore a broken pipe and exit silently
-		log << "FATAL: Failed to read/write to pipe\n\t\"" << e.what() << "\"";
-		log << "INFO: Shutting down IMU process";
+		log("FATAL") << "Failed to read/write to pipe\n\t\"" << e.what() << "\"";
+		log("INFO") << "Shutting down IMU process";
 		resetRegisters();
 		m_pipes.close_pipes();
 		exit(-1); // Happily end the process
 		// TODO handle different types of exception!
 	} catch (...) {
-		log << "FATAL: Caught unknown exception\n\t\"" << std::strerror(errno) <<
+		log("FATAL") << "Caught unknown exception\n\t\"" << std::strerror(errno) <<
 				"\"";
-		log << "INFO: Shutting down IMU process";
+		log("INFO") << "Shutting down IMU process";
 		resetRegisters();
 		m_pipes.close_pipes();
 		exit(-2);
