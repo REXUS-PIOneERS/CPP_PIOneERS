@@ -16,7 +16,7 @@ public:
 	}
 
 	int64_t time() const {
-		return (int64_t) std::chrono::duration_cast<millisecs_>(clock_::now());
+		return (int64_t) std::chrono::duration_cast<millisecs_>(clock_::now().time_since_epoch()).count();
 	}
 
 	int64_t elapsed() const {

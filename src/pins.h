@@ -12,13 +12,13 @@
 
 // Signals for main logic control
 #define LO    29
-#define SOE    28
+#define SOE    23
 #define SODS   27
 #define LAUNCH_MODE  11
 
 // Pins for control of the motor
-#define MOTOR_CW  4
-#define MOTOR_ACW  5
+#define MOTOR_CW  24
+#define MOTOR_ACW  25
 #define MOTOR_IN  0
 
 // Connection between pi 1 and 2
