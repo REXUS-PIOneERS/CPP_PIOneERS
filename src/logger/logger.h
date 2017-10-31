@@ -25,7 +25,13 @@ namespace log {
 		void start_log();
 
 		template<typename T>
-		friend std::ostream& operator<<(Logger &l, T output);
+		friend Logger& operator<<(Logger &l, T output);
+
+		Logger& operator<<(endl_type endl) {
+			next_line = true;
+			_outf << endl;
+			return *this;
+		}
 
 		void stop_log();
 
@@ -37,6 +43,8 @@ namespace log {
 		std::string _filename;
 		std::ofstream _outf;
 		Timer _tmr;
+		using endl_type = decltype(std::endl);
+		bool next_line = true;
 	};
 }
 

@@ -42,9 +42,14 @@ namespace log {
 
 	template<typename T>
 	std::ostream& operator<<(Logger &l, T output) {
-		std::string tm = time(l._tmr);
-		l._outf << std::endl << tm << " " << output;
-		return l._outf;
+		if (l.next_line) {
+			l.next_line = false;
+			std::string tm = time(l._tmr);
+			l._outf << tm << " " << output;
+		} else {
+			l._outf << output;
+		}
+		return l;
 	}
 
 	void Logger::stop_log() {
