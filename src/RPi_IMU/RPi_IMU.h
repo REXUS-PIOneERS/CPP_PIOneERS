@@ -46,6 +46,13 @@ public:
 		}
 	}
 
+	RPi_IMU(RPi_IMU &in) {
+		log = in.log;
+		filename = in.filename;
+		i2c_file = in.i2c_file;
+		pid = in.pid;
+		m_pipes = in.m_pipes;
+	}
 	/**
 	 * Sets up the accelerometer registers. See BerryIMU documentation for
 	 * details on the effect of different values.
