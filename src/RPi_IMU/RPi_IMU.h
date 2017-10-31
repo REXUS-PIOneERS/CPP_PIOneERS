@@ -12,6 +12,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "LSM9DS0.h"   //Stores addresses for the BerryIMU
 #include "comms/pipes.h"
 #include "comms/packet.h"

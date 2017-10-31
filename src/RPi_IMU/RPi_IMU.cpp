@@ -29,8 +29,6 @@
 #include <fstream>  //For writing to files
 
 // Includes for I2c
-#include <fcntl.h>
-#include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include "LSM9DS0.h"
 

@@ -61,20 +61,20 @@ bool poll_input(int pin) {
 
 
 // Global variable for the Camera and IMU
-PiCamera Cam = PiCamera();
+PiCamera Cam();
 RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 comms::Pipe IMU_stream;
 
 // Setup for the UART communications
 int baud = 230400; // TODO find right value for RXSM
-UART RXSM = UART();
+UART RXSM();
 comms::Pipe UART_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
 std::string server_name = "raspi2.local";
 comms::Pipe ethernet_stream; // 0 = read, 1 = write
-Client raspi1 = Client(port_no, server_name);
+Client raspi1(port_no, server_name);
 
 /**
  * Handles any SIGINT signals received by the program (i.e. ctrl^c), making sure

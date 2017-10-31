@@ -22,6 +22,12 @@
 #define ETHERNET_H
 
 class Server {
+	int m_sockfd, m_newsockfd, m_port, m_pid;
+	socklen_t m_clilen;
+	struct sockaddr_in m_serv_addr, m_cli_addr;
+	char m_buf[256];
+	Logger log;
+
 public:
 	comms::Pipe m_pipes;
 
@@ -43,13 +49,8 @@ public:
 	comms::Pipe run(std::string filename);
 
 	~Server();
-private:
-	int m_sockfd, m_newsockfd, m_port, m_pid;
-	socklen_t m_clilen;
-	struct sockaddr_in m_serv_addr, m_cli_addr;
-	char m_buf[256];
-	Logger log;
 
+private:
 	/**
 	 * Sets up basic variables for creating a server
 	 * @return 0 = success, otherwise = failure
@@ -59,6 +60,12 @@ private:
 };
 
 class Client {
+	int m_port, m_pid;
+	std::string m_host_name;
+	int m_sockfd;
+	struct sockaddr_in m_serv_addr;
+	struct hostent *m_server;
+	Logger log;
 public:
 	comms::Pipe m_pipes;
 
@@ -92,13 +99,6 @@ public:
 
 	~Client();
 private:
-	int m_port, m_pid;
-	std::string m_host_name;
-	int m_sockfd;
-	struct sockaddr_in m_serv_addr;
-	struct hostent *m_server;
-	Logger log;
-
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client
 	 * @return 0 = success, otherwise = failure
