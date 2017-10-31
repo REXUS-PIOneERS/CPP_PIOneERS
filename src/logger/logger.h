@@ -19,32 +19,23 @@
 namespace log {
 
 	class Logger {
+	private:
+		std::string _filename;
+		std::ofstream _outf;
+		Timer _tmr;
+
 	public:
 		Logger(std::string filename);
 
 		void start_log();
 
-		template<typename T>
-		friend Logger& operator<<(Logger &l, T output);
-
-		Logger& operator<<(endl_type endl) {
-			next_line = true;
-			_outf << endl;
-			return *this;
-		}
+		std::ofstream& operator()(std::string str);
 
 		void stop_log();
 
 		~Logger() {
 			stop_log();
 		}
-
-	private:
-		std::string _filename;
-		std::ofstream _outf;
-		Timer _tmr;
-		using endl_type = decltype(std::endl);
-		bool next_line = true;
 	};
 }
 
