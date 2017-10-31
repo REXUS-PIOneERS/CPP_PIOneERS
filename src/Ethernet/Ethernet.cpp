@@ -30,12 +30,6 @@
 
 // Functions for setting up as a server
 
-Server::Server(const int port) {
-	log.start_log();
-	m_port = port;
-	setup();
-}
-
 int Server::setup() {
 	log("INFO") << "Setting up server to communicate on port no. " << m_port;
 	// Open the socket for Ethernet connection
@@ -69,12 +63,6 @@ Server::~Server() {
 }
 
 // Functions for setting up as a client
-
-Client::Client(const int port, const std::string host_name) {
-	log.start_log();
-	m_host_name = host_name;
-	m_port = port;
-}
 
 int Client::setup() {
 	log("INFO") << "Setting up client to communicate with " << m_host_name <<

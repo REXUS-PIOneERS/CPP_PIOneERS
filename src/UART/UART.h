@@ -21,11 +21,11 @@ class UART {
 	comms::Pipe m_pipes;
 	int uart_filestream;
 	int m_pid;
-	Logger log("/Docs/Logs/uart");
+	Logger log;
 
 public:
 
-	UART() {
+	UART() : log("/Docs/Logs/uart") {
 		setupUART();
 	}
 

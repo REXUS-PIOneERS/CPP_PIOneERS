@@ -24,12 +24,16 @@
 class Server {
 public:
 	comms::Pipe m_pipes;
+
 	/**
 	 * Constructor for the Server class
 	 *
 	 * @param port: Port for communication with clients
 	 */
-	Server(const int port);
+	Server(const int port) : log("/Docs/Logs/server"), m_port(port) {
+		log.start_log();
+		setup();
+	}
 
 	/**
 	 * Starts the server running as a child process ready for accepting
@@ -44,7 +48,7 @@ private:
 	socklen_t m_clilen;
 	struct sockaddr_in m_serv_addr, m_cli_addr;
 	char m_buf[256];
-	Logger log("/Docs/Logs/server");
+	Logger log;
 
 	/**
 	 * Sets up basic variables for creating a server
@@ -57,12 +61,16 @@ private:
 class Client {
 public:
 	comms::Pipe m_pipes;
+
 	/**
 	 * Constructor for the Client class
 	 * @param port: Port for connecting to the server
 	 * @param host_name: Name or IP address of the server
 	 */
-	Client(const int port, const std::string host_name);
+	Client(const int port, const std::string host_name)
+	: log("/Docs/Logs/client"), m_port(port), m_host_name(host_name) {
+		log.start_log();
+	}
 
 	/**
 	 * Opens a connection with the server as a separate process
@@ -89,7 +97,7 @@ private:
 	int m_sockfd;
 	struct sockaddr_in m_serv_addr;
 	struct hostent *m_server;
-	Logger log("/Docs/Logs/client");
+	Logger log;
 
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client

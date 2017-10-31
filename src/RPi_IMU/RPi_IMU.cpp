@@ -37,15 +37,6 @@
 #include "logger/logger.h"
 #include <error.h>
 
-RPi_IMU::RPi_IMU() {
-	log.start_log();
-	//Open the I2C bus
-	log("INFO") << "Attempting to open i2c bus";
-	if ((i2c_file = open(filename, O_RDWR)) < 0) {
-		log("ERROR") << "Failed to open i2c bus";
-	}
-}
-
 bool RPi_IMU::activateSensor(int addr) {
 	if (ioctl(i2c_file, I2C_SLAVE, addr) < 0) {
 		log("ERROR") << "Failed to aquire bus and/or talk to slave";
