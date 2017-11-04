@@ -62,7 +62,7 @@ void UART::setupUART() {
 	//Configure the UART
 	struct termios options;
 	tcgetattr(uart_filestream, &options);
-	options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
+	options.c_cflag = f_baud | CS8 | CLOCAL | CREAD;
 	options.c_iflag = IGNPAR;
 	options.c_oflag = 0;
 	options.c_lflag = 0;
