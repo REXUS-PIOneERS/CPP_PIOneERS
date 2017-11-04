@@ -66,9 +66,9 @@ RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 comms::Pipe IMU_stream;
 
 // Setup for the UART communications
-int baud = 230400; // TODO find right value for RXSM
-UART RXSM;
-comms::Pipe UART_stream;
+int baud = 30400; // TODO find right value for RXSM
+RXSM REXUS(baud);
+comms::Pipe rxsm_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
@@ -83,6 +83,7 @@ Client raspi1(port_no, server_name);
  */
 void signal_handler(int s) {
 	log("FATAL") << "Exiting program after signal " << s;
+	REXUS.sendMsg("Ending Program");
 	// TODO send exit signal to Pi 2!
 	if (Cam.is_running()) {
 		Cam.stopVideo();
@@ -120,6 +121,7 @@ void signal_handler(int s) {
  */
 int SODS_SIGNAL() {
 	log("INFO") << "SODS signal received";
+	REXUS.sendMsg("SODS received");
 	if (Cam.is_running()) {
 		Cam.stopVideo();
 		log("INFO") << "Stopping camera process";
@@ -187,14 +189,14 @@ int SOE_SIGNAL() {
 			int n = IMU_stream.binread(&p, sizeof (p));
 			if (n > 0) {
 				log("DATA (IMU1)") << p;
-				// TODO send to RXSM
+				REXUS.sendPacket(p);
 				ethernet_stream.binwrite(&p, sizeof (p));
 				log("INFO") << "Data sent to Ethernet Communications";
 			}
 			n = ethernet_stream.binread(&p, sizeof (p));
 			if (n > 0) {
 				log("DATA (PI2)") << p;
-				// TODO send data to RXSM
+				REXUS.sendPacket(p);
 			}
 			delay(100);
 		}
@@ -211,14 +213,14 @@ int SOE_SIGNAL() {
 		int n = IMU_stream.binread(&p, sizeof (p));
 		if (n > 0) {
 			log("DATA (IMU1)") << p;
-			//TODO send to RXSM
+			REXUS.sendPacket(p);
 			ethernet_stream.binwrite(&p, sizeof (p));
 			log("INFO") << "Data sent to Ethernet Communications";
 		}
 		n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
 			log("DATA (PI2)") << p;
-			// TODO send data to RXSM
+			REXUS.sendPacket(p);
 		}
 		delay(10);
 	}
@@ -232,6 +234,7 @@ int SOE_SIGNAL() {
  */
 int LO_SIGNAL() {
 	log("INFO") << "LO signal received";
+	REXUS.sendMsg("LO received");
 	Cam.startVideo("Docs/Video/rexus_video");
 	log("INFO") << "Camera recording";
 	// Poll the SOE pin until signal is received
@@ -259,6 +262,7 @@ int main(int argc, char* argv[]) {
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video Docs/Logs");
 	log.start_log();
 	log("INFO") << "Pi 1 is running";
+	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
 	// Setup main signal pins
@@ -277,6 +281,9 @@ int main(int argc, char* argv[]) {
 	pullUpDnControl(LAUNCH_MODE, PUD_UP);
 	flight_mode = digitalRead(LAUNCH_MODE);
 	log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
+	if (flight_mode) {
+		REXUS.sendMsg("WARNING: Flight mode enabled");
+	}
 
 	// Setup Motor Pins
 	pinMode(MOTOR_CW, OUTPUT);

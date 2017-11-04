@@ -35,8 +35,14 @@ void Logger::start_log() {
 	_tmr.reset();
 	std::ostringstream ss;
 	ss << _filename << "_" << _tmr.time() << ".txt";
-	std::string _this_filename = ss.str();
+	_this_filename = ss.str();
 	_outf.open(_this_filename);
+}
+
+void Logger::reopen_log() {
+	_outf.close();
+	_outf.clear();
+	_outf.open(_this_filename, std::fstream::out | std::fstream::app);
 }
 
 std::ostream& Logger::operator()(std::string str) {

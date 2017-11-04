@@ -31,12 +31,34 @@
 #include <error.h>
 
 void UART::setupUART() {
-	log("INFO") << "Setting up UART";
 	//Open the UART in non-blocking read/write mode
 	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY);
 	if (uart_filestream == -1) {
 		log("FATAL") << "Unable to open serial port";
 		throw UARTException("ERROR opening serial port");
+	}
+	speed_t f_baud;
+	switch (m_baudrate) {
+		case 9600:
+			f_baud = B9600;
+			break;
+		case 19200:
+			f_baud = B19200;
+			break;
+		case 38400:
+			f_baud = 38400;
+			break;
+		case 57600:
+			f_baud = 57600;
+			break;
+		case 115200:
+			f_baud = 115200;
+			break;
+		case 230400:
+			f_baud = 230400;
+			break;
+		default:
+			throw UARTException("ERROR baud rate not defined");
 	}
 	//Configure the UART
 	struct termios options;
@@ -50,11 +72,17 @@ void UART::setupUART() {
 }
 
 UART::~UART() {
-	log("INFO") << "Destroying UART object";
 	close(uart_filestream);
 }
 
-comms::Pipe UART::startDataCollection(const std::string filename) {
+int RXSM::sendMsg(std::string& msg) {
+	comms::Packet p;
+	int id = ID_MSG1;
+	comms::Protocol::pack(p, id, _index++, msg);
+	return sendPacket(p);
+}
+
+comms::Pipe ImP::startDataCollection(const std::string filename) {
 	/*
 	 * Sends request to the ImP to begin sending data. Returns the file stream
 	 * to the main program and continually writes the data to this stream.
@@ -64,6 +92,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 		m_pipes = comms::Pipe();
 		if ((m_pid = m_pipes.Fork()) == 0) {
 			// This is the child process
+			log.reopen_log();
 			// Infinite loop for data collection
 			comms::Transceiver ImP_comms(uart_filestream);
 			// Send initial start command
@@ -117,6 +146,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 				}
 			}
 		} else {
+			log.reopen_log();
 			return m_pipes;
 		}
 	} catch (comms::PipeException e) {
@@ -132,7 +162,7 @@ comms::Pipe UART::startDataCollection(const std::string filename) {
 	}
 }
 
-int UART::stopDataCollection() {
+int ImP::stopDataCollection() {
 	log("INFO") << "Ending data collection by closing pipes";
 	if (m_pid)
 		m_pipes.close_pipes();

@@ -19,6 +19,7 @@
 class Logger {
 private:
 	std::string _filename;
+	std::string _this_filename;
 	std::ofstream _outf;
 	Timer _tmr;
 
@@ -26,6 +27,8 @@ public:
 	Logger(std::string filename);
 
 	void start_log();
+
+	void reopen_log();
 
 	std::ostream& operator()(std::string str);
 
