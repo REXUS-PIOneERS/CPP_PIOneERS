@@ -52,7 +52,7 @@ public:
 		return;
 	}
 
-	int sendMsg(std::string &msg);
+	int sendMsg(std::string msg);
 
 	int sendPacket(comms::Packet &p) {
 		Log("SENT") << p;

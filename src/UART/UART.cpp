@@ -79,7 +79,7 @@ int RXSM::sendMsg(std::string& msg) {
 	comms::Packet p;
 	int id = ID_MSG1;
 	comms::Protocol::pack(p, id, _index++, msg);
-	return sendPacket(p);
+	return sendPacket(&p);
 }
 
 comms::Pipe ImP::startDataCollection(const std::string filename) {
