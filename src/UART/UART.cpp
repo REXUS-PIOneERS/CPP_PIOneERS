@@ -75,7 +75,7 @@ UART::~UART() {
 	close(uart_filestream);
 }
 
-int RXSM::sendMsg(std::string& msg) {
+int RXSM::sendMsg(std::string msg) {
 	comms::Packet p;
 	int id = ID_MSG1;
 	comms::Protocol::pack(p, id, _index++, msg);
