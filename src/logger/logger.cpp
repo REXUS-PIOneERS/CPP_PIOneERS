@@ -39,10 +39,11 @@ void Logger::start_log() {
 	_outf.open(_this_filename);
 }
 
-void Logger::reopen_log() {
-	_outf.close();
-	_outf.clear();
-	_outf.open(_this_filename, std::fstream::out | std::fstream::app);
+void Logger::child_log() {
+	std::stringstream ss;
+	ss << _filename << "_child_" << _tmr.time() << ".txt";
+	_this_filename = ss.str();
+	_outf.open(_this_filename, std::fstream::app);
 }
 
 std::ostream& Logger::operator()(std::string str) {

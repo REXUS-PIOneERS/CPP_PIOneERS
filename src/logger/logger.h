@@ -28,7 +28,7 @@ public:
 
 	void start_log();
 
-	void reopen_log();
+	void child_log();
 
 	std::ostream& operator()(std::string str);
 

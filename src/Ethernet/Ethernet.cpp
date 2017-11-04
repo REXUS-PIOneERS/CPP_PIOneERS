@@ -146,7 +146,7 @@ comms::Pipe Client::run(std::string filename) {
 		Log("INFO") << "Forking processes";
 		if ((_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
-			Log.reopen_log();
+			Log.child_log();
 			comms::Transceiver eth_comms(_sockfd);
 			std::ofstream outf;
 			outf.open(filename);
@@ -170,7 +170,6 @@ comms::Pipe Client::run(std::string filename) {
 			exit(0);
 		} else {
 			// Assign the pipes for the main process and close the un-needed ones
-			Log.reopen_log();
 			return m_pipes;
 		}
 	} catch (comms::PipeException e) {
@@ -205,7 +204,7 @@ comms::Pipe Server::run(std::string filename) {
 		Log("INFO") << "Forking processes";
 		if ((_pid = m_pipes.Fork()) == 0) {
 			// This is the child process that handles all the requests
-			Log.reopen_log();
+			Log.child_log();
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
 			outf.open(filename);
@@ -230,7 +229,6 @@ comms::Pipe Server::run(std::string filename) {
 			exit(0);
 		} else {
 			// This is the main parent process
-			Log.reopen_log();
 			return m_pipes;
 		}
 	} catch (comms::PipeException e) {

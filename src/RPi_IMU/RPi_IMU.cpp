@@ -275,7 +275,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 		Log("INFO") << "Forking processes...";
 		if ((_pid = _pipes.Fork()) == 0) {
 			// This is the child process and controls data collection
-			Log.reopen_log();
+			Log.child_log();
 			comms::Packet p1;
 			comms::Packet p2;
 			comms::byte1_t data[22];
@@ -329,7 +329,6 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			}
 		} else {
 			// This is the parent process
-			Log.reopen_log();
 			return _pipes; // Return the read portion of the pipe
 		}
 	} catch (comms::PipeException e) {

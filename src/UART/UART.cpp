@@ -92,7 +92,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 		_pipes = comms::Pipe();
 		if ((_pid = _pipes.Fork()) == 0) {
 			// This is the child process
-			Log.reopen_log();
+			Log.child_log();
 			// Infinite loop for data collection
 			comms::Transceiver ImP_comms(uart_filestream);
 			// Send initial start command
@@ -146,7 +146,6 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 				}
 			}
 		} else {
-			Log.reopen_log();
 			return _pipes;
 		}
 	} catch (comms::PipeException e) {
