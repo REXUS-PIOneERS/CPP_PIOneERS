@@ -34,7 +34,8 @@ void UART::setupUART() {
 	//Open the UART in non-blocking read/write mode
 	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY);
 	if (uart_filestream == -1) {
-		throw UARTException("ERROR opening serial port");
+		//throw UARTException("ERROR opening serial port");
+		return;
 	}
 	speed_t f_baud;
 	switch (_baudrate) {
