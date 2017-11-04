@@ -28,7 +28,7 @@
 #include "timing/timer.h"
 #include "logger/logger.h"
 
-Logger log("/Docs/Logs/raspi1");
+Logger Log("/Docs/Logs/raspi1");
 
 // Main inputs for experiment control
 bool flight_mode = false;
@@ -82,32 +82,32 @@ Client raspi1(port_no, server_name);
  * @param s: Signal received
  */
 void signal_handler(int s) {
-	log("FATAL") << "Exiting program after signal " << s;
+	Log("FATAL") << "Exiting program after signal " << s;
 	REXUS.sendMsg("Ending Program");
 	// TODO send exit signal to Pi 2!
 	if (Cam.is_running()) {
 		Cam.stopVideo();
-		log("INFO") << "Stopping camera process";
+		Log("INFO") << "Stopping camera process";
 	} else {
-		log("ERROR") << "Camera process died prematurely or did not start";
+		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
 	if (&ethernet_stream != NULL) {
 		ethernet_stream.close_pipes();
-		log("INFO") << "Closed Ethernet communication";
+		Log("INFO") << "Closed Ethernet communication";
 	} else {
-		log("ERROR") << "Ethernet process died prematurely or did not start";
+		Log("ERROR") << "Ethernet process died prematurely or did not start";
 	}
 	if (&IMU_stream != NULL) {
 		IMU_stream.close_pipes();
-		log("INFO") << "Closed IMU communication";
+		Log("INFO") << "Closed IMU communication";
 	} else {
-		log("ERROR") << "IMU process died prematurely or did not start";
+		Log("ERROR") << "IMU process died prematurely or did not start";
 	}
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
-	log("INFO") << "Ending program, Pi rebooting";
+	Log("INFO") << "Ending program, Pi rebooting";
 	system("sudo reboot");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
@@ -120,31 +120,31 @@ void signal_handler(int s) {
  * @return 0 for success, otherwise for failure
  */
 int SODS_SIGNAL() {
-	log("INFO") << "SODS signal received";
+	Log("INFO") << "SODS signal received";
 	REXUS.sendMsg("SODS received");
 	if (Cam.is_running()) {
 		Cam.stopVideo();
-		log("INFO") << "Stopping camera process";
+		Log("INFO") << "Stopping camera process";
 	} else {
-		log("ERROR") << "Camera process died prematurely or did not start";
+		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
 	if (&ethernet_stream != NULL) {
 		ethernet_stream.close_pipes();
-		log("INFO") << "Closed Ethernet communication";
+		Log("INFO") << "Closed Ethernet communication";
 	} else {
-		log("ERROR") << "Ethernet process died prematurely or did not start";
+		Log("ERROR") << "Ethernet process died prematurely or did not start";
 	}
 	if (&IMU_stream != NULL) {
 		IMU_stream.close_pipes();
-		log("INFO") << "Closed IMU communication";
+		Log("INFO") << "Closed IMU communication";
 	} else {
-		log("ERROR") << "IMU process died prematurely or did not start";
+		Log("ERROR") << "IMU process died prematurely or did not start";
 	}
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
-	log("INFO") << "Ending program, Pi rebooting";
+	Log("INFO") << "Ending program, Pi rebooting";
 	system("sudo reboot");
 	return 0;
 }
@@ -159,16 +159,16 @@ int SODS_SIGNAL() {
  * @return 0 for success, otherwise  for failure
  */
 int SOE_SIGNAL() {
-	log("INFO") << "SOE signal received";
+	Log("INFO") << "SOE signal received";
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
 	IMU.setupAcc();
 	IMU.setupGyr();
 	IMU.setupMag();
-	log("INFO") << "IMU setup";
+	Log("INFO") << "IMU setup";
 	// Start data collection and store the stream where data is coming through
 	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
-	log("INFO") << "IMU collecting data";
+	Log("INFO") << "IMU collecting data";
 	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
 	if (flight_mode) {
@@ -176,7 +176,7 @@ int SOE_SIGNAL() {
 		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
 		digitalWrite(MOTOR_CW, 1);
 		digitalWrite(MOTOR_ACW, 0);
-		log("INFO") << "Motor triggered, boom deploying";
+		Log("INFO") << "Motor triggered, boom deploying";
 		// Keep checking the encoder count till it reaches the required amount.
 		int count = 0;
 		while (count < 10000) {
@@ -184,26 +184,26 @@ int SOE_SIGNAL() {
 			piLock(1);
 			count = encoder_count;
 			piUnlock(1);
-			log("INFO") << "Encoder count-" << encoder_count;
+			Log("INFO") << "Encoder count-" << encoder_count;
 			// Read data from IMU_data_stream and echo it to Ethernet
 			int n = IMU_stream.binread(&p, sizeof (p));
 			if (n > 0) {
-				log("DATA (IMU1)") << p;
+				Log("DATA (IMU1)") << p;
 				REXUS.sendPacket(p);
 				ethernet_stream.binwrite(&p, sizeof (p));
-				log("INFO") << "Data sent to Ethernet Communications";
+				Log("INFO") << "Data sent to Ethernet Communications";
 			}
 			n = ethernet_stream.binread(&p, sizeof (p));
 			if (n > 0) {
-				log("DATA (PI2)") << p;
+				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
 			}
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
-		log("INFO") << "Boom deployed to maximum";
+		Log("INFO") << "Boom deployed to maximum";
 	}
-	log("INFO") << "Waiting for SODS";
+	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
 	while (!signal_received) {
@@ -212,14 +212,14 @@ int SOE_SIGNAL() {
 		// Read data from IMU_data_stream and echo it to Ethernet
 		int n = IMU_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			log("DATA (IMU1)") << p;
+			Log("DATA (IMU1)") << p;
 			REXUS.sendPacket(p);
 			ethernet_stream.binwrite(&p, sizeof (p));
-			log("INFO") << "Data sent to Ethernet Communications";
+			Log("INFO") << "Data sent to Ethernet Communications";
 		}
 		n = ethernet_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			log("DATA (PI2)") << p;
+			Log("DATA (PI2)") << p;
 			REXUS.sendPacket(p);
 		}
 		delay(10);
@@ -233,13 +233,13 @@ int SOE_SIGNAL() {
  * of Experiment' signal (when the nose-cone is ejected)
  */
 int LO_SIGNAL() {
-	log("INFO") << "LO signal received";
+	Log("INFO") << "LO signal received";
 	REXUS.sendMsg("LO received");
 	Cam.startVideo("Docs/Video/rexus_video");
-	log("INFO") << "Camera recording";
+	Log("INFO") << "Camera recording";
 	// Poll the SOE pin until signal is received
 	// TODO implement check to make sure no false signals!
-	log("INFO") << "Waiting for SOE";
+	Log("INFO") << "Waiting for SOE";
 	bool signal_received = false;
 	while (!signal_received) {
 		delay(10);
@@ -260,8 +260,8 @@ int main(int argc, char* argv[]) {
 	// Create necessary directories for saving files
 	signal(SIGINT, signal_handler);
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video Docs/Logs");
-	log.start_log();
-	log("INFO") << "Pi 1 is running";
+	Log.start_log();
+	Log("INFO") << "Pi 1 is running";
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
@@ -274,13 +274,13 @@ int main(int argc, char* argv[]) {
 	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
-	log("INFO") << "Main signal pins setup";
+	Log("INFO") << "Main signal pins setup";
 
 	// Setup pins and check whether we are in flight mode
 	pinMode(LAUNCH_MODE, INPUT);
 	pullUpDnControl(LAUNCH_MODE, PUD_UP);
 	flight_mode = digitalRead(LAUNCH_MODE);
-	log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
+	Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 	if (flight_mode) {
 		REXUS.sendMsg("WARNING: Flight mode enabled");
 	}
@@ -290,22 +290,22 @@ int main(int argc, char* argv[]) {
 	pinMode(MOTOR_ACW, OUTPUT);
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
-	log("INFO") << "Pins for motor control setup";
+	Log("INFO") << "Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		Timer::sleep_ms(10);
-	log("INFO") << "INFO: Trying to establish Ethernet connection with " << server_name;
+	Log("INFO") << "INFO: Trying to establish Ethernet connection with " << server_name;
 	// Try to connect to Pi 2
 	try {
 		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
 	} catch (EthernetException e) {
-		log("FATAL") << "FATAL: Ethernet connection failed with error\n\t\"" << e.what()
+		Log("FATAL") << "FATAL: Ethernet connection failed with error\n\t\"" << e.what()
 				<< "\"";
 		signal_handler(-5);
 	}
 	// TODO handle error where we can't connect to the server
-	log("INFO") << "Ethernet connection successful";
-	log("INFO") << "Waiting for LO";
+	Log("INFO") << "Ethernet connection successful";
+	Log("INFO") << "Waiting for LO";
 	// Wait for LO signal
 	bool signal_received = false;
 	while (!signal_received) {

@@ -23,12 +23,12 @@ protected:
 	int uart_filestream;
 
 private:
-	int m_baudrate;
+	int _baudrate;
 
 public:
 
 	UART(int baudrate) {
-		m_baudrate = baudrate;
+		_baudrate = baudrate;
 		setupUART();
 	}
 
@@ -41,47 +41,47 @@ public:
 };
 
 class RXSM : public UART, public comms::Transceiver {
-	Logger log;
+	Logger Log;
 	int _index = 0;
 
 public:
 
-	RXSM(int baudrate = 38400) : UART(baudrate), comms::Transceiver(uart_filestream), log("/Docs/Logs/RXSM") {
-		log.start_log();
-		log("INFO") << "Creating RXSM object";
+	RXSM(int baudrate = 38400) : UART(baudrate), comms::Transceiver(uart_filestream), Log("/Docs/Logs/RXSM") {
+		Log.start_log();
+		Log("INFO") << "Creating RXSM object";
 		return;
 	}
 
 	int sendMsg(std::string &msg);
 
 	int sendPacket(comms::Packet &p) {
-		log("SENT") << p;
+		Log("SENT") << p;
 		return comms::Transceiver::sendPacket(p);
 	}
 
 	int recvPacket(comms::Packet &p) {
 		int n = comms::Transceiver::recvPacket(p);
 		if (n > 0)
-			log("RECEIVED") << p;
+			Log("RECEIVED") << p;
 		return n;
 	}
 
 	~RXSM() {
-		log("INFO") << "Destroying RXSM object";
+		Log("INFO") << "Destroying RXSM object";
 	}
 
 
 };
 
 class ImP : public UART {
-	Logger log;
-	comms::Pipe m_pipes;
-	int m_pid;
+	Logger Log;
+	comms::Pipe _pipes;
+	int _pid;
 
 public:
 
-	ImP(int baudrate = 230400) : UART(baudrate), log("/Docs/Logs/ImP") {
-		log.start_log();
+	ImP(int baudrate = 230400) : UART(baudrate), Log("/Docs/Logs/ImP") {
+		Log.start_log();
 		return;
 	}
 
@@ -105,15 +105,15 @@ class UARTException {
 public:
 
 	UARTException(std::string error) {
-		m_error = error + " :" + std::strerror(errno);
+		_error = error + " :" + std::strerror(errno);
 	}
 
 	const char * what() {
-		return m_error.c_str();
+		return _error.c_str();
 	}
 
 private:
-	std::string m_error;
+	std::string _error;
 };
 
 #endif /* UART_H */

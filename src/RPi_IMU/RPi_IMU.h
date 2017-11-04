@@ -28,21 +28,21 @@
 class RPi_IMU {
 	char *filename = (char*) "/dev/i2c-1";
 	int i2c_file = 0;
-	int pid; //Id of the background process
-	comms::Pipe m_pipes;
-	Logger log;
+	int _pid; //Id of the background process
+	comms::Pipe _pipes;
+	Logger Log;
 
 public:
 
 	/**
 	 * Default constructor opens the i2c file ready for communication.
 	 */
-	RPi_IMU() : log("/Docs/Logs/imu") {
-		log.start_log();
+	RPi_IMU() : Log("/Docs/Logs/imu") {
+		Log.start_log();
 		//Open the I2C bus
-		log("INFO") << "Attempting to open i2c bus";
+		Log("INFO") << "Attempting to open i2c bus";
 		if ((i2c_file = open(filename, O_RDWR)) < 0) {
-			log("ERROR") << "Failed to open i2c bus";
+			Log("ERROR") << "Failed to open i2c bus";
 		}
 	}
 
@@ -137,8 +137,8 @@ public:
 	int stopDataCollection();
 
 	~RPi_IMU() {
-		log("INFO") << "Destroying IMU object";
-		log.stop_log();
+		Log("INFO") << "Destroying IMU object";
+		Log.stop_log();
 	}
 
 private:

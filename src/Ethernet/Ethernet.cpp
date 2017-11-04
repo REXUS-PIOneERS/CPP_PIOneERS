@@ -31,85 +31,85 @@
 // Functions for setting up as a server
 
 int Server::setup() {
-	log("INFO") << "Setting up server to communicate on port no. " << m_port;
+	Log("INFO") << "Setting up server to communicate on port no. " << _port;
 	// Open the socket for Ethernet connection
-	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sockfd < 0) {
-		log("ERROE") << "Server failed to open socket";
+	_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_sockfd < 0) {
+		Log("ERROE") << "Server failed to open socket";
 		throw EthernetException("ERROR: Server Failed to Open Socket");
 	}
-	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
+	bzero((char *) &_serv_addr, sizeof (_serv_addr));
 	// Setup details for the server address
-	m_serv_addr.sin_family = AF_INET;
-	m_serv_addr.sin_addr.s_addr = INADDR_ANY;
-	m_serv_addr.sin_port = m_port;
+	_serv_addr.sin_family = AF_INET;
+	_serv_addr.sin_addr.s_addr = INADDR_ANY;
+	_serv_addr.sin_port = _port;
 	// Bind the socket to given address and port number
-	if (bind(m_sockfd, (struct sockaddr *) &m_serv_addr, sizeof (m_serv_addr)) < 0) {
-		log("ERROR") << "Failed to bind server";
+	if (bind(_sockfd, (struct sockaddr *) &_serv_addr, sizeof (_serv_addr)) < 0) {
+		Log("ERROR") << "Failed to bind server";
 		throw EthernetException("ERROR: On binding server");
 	}
 	// Sets backlog queue to 5 connections and allows socket to listen
-	listen(m_sockfd, 5);
-	m_clilen = sizeof (m_cli_addr);
-	log("INFO") << "Server setup successful";
+	listen(_sockfd, 5);
+	m_clilen = sizeof (_cli_addr);
+	Log("INFO") << "Server setup successful";
 	return 0;
 }
 
 Server::~Server() {
-	log("INFO") << "Destroying Server";
-	log.stop_log();
-	close(m_newsockfd);
-	close(m_sockfd);
+	Log("INFO") << "Destroying Server";
+	Log.stop_log();
+	close(_newsockfd);
+	close(_sockfd);
 }
 
 // Functions for setting up as a client
 
 int Client::setup() {
-	log("INFO") << "Setting up client to communicate with " << m_host_name <<
-			" on port no. " << m_port;
+	Log("INFO") << "Setting up client to communicate with " << _host_name <<
+			" on port no. " << _port;
 	// Open the socket
-	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sockfd < 0) {
-		log("ERROR") << "Client failed to open socket";
+	_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_sockfd < 0) {
+		Log("ERROR") << "Client failed to open socket";
 		throw EthernetException("Client failed to open socket");
 	}
 	// Look for server host by given name
-	m_server = gethostbyname(m_host_name.c_str());
-	if (m_server == NULL) {
-		log("ERROR") << "Cannot find host \"" << m_host_name << "\"";
+	_server = gethostbyname(_host_name.c_str());
+	if (_server == NULL) {
+		Log("ERROR") << "Cannot find host \"" << _host_name << "\"";
 		throw EthernetException("No such host");
 	}
-	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
-	m_serv_addr.sin_family = AF_INET;
-	bcopy((char *) m_server->h_addr,
-			(char *) &m_serv_addr.sin_addr.s_addr,
-			m_server->h_length);
-	m_serv_addr.sin_port = m_port;
-	log("INFO") << "Client setup successful";
+	bzero((char *) &_serv_addr, sizeof (_serv_addr));
+	_serv_addr.sin_family = AF_INET;
+	bcopy((char *) _server->h_addr,
+			(char *) &_serv_addr.sin_addr.s_addr,
+			_server->h_length);
+	_serv_addr.sin_port = _port;
+	Log("INFO") << "Client setup successful";
 	return 0;
 }
 
 int Client::open_connection() {
-	log("INFO") << "Opening connection to server";
-	if (connect(m_sockfd, (struct sockaddr *) &m_serv_addr, sizeof (m_serv_addr)) < 0) {
-		log("ERROR") << "Request to connect to server failed";
+	Log("INFO") << "Opening connection to server";
+	if (connect(_sockfd, (struct sockaddr *) &_serv_addr, sizeof (_serv_addr)) < 0) {
+		Log("ERROR") << "Request to connect to server failed";
 		throw EthernetException("Failed to connect to server"); // Failed to connect!
 	}
 	return 0;
 }
 
 int Client::close_connection() {
-	log("INFO") << "Ending connection with server and closing process";
-	if (m_sockfd) {
-		close(m_sockfd);
+	Log("INFO") << "Ending connection with server and closing process";
+	if (_sockfd) {
+		close(_sockfd);
 		m_pipes.close_pipes();
 	}
 }
 
 Client::~Client() {
-	log("INFO") << "Destroying Client";
+	Log("INFO") << "Destroying Client";
 	close_connection();
-	log.stop_log();
+	Log.stop_log();
 }
 
 /*
@@ -138,28 +138,28 @@ comms::Pipe Client::run(std::string filename) {
 	 * packets and sending these to the server as well as receiving packets
 	 * in return.
 	 */
-	log("INFO") << "Starting data sharing with server";
+	Log("INFO") << "Starting data sharing with server";
 	try {
 		m_pipes = comms::Pipe();
 		setup();
 		open_connection();
-		log("INFO") << "Forking processes";
-		if ((m_pid = m_pipes.Fork()) == 0) {
+		Log("INFO") << "Forking processes";
+		if ((_pid = m_pipes.Fork()) == 0) {
 			// This is the child process.
-			log.reopen_log();
-			comms::Transceiver eth_comms(m_sockfd);
+			Log.reopen_log();
+			comms::Transceiver eth_comms(_sockfd);
 			std::ofstream outf;
 			outf.open(filename);
 			comms::Packet p;
 			while (1) {
 				// Exchange packets (no analysis of contents)
 				if (m_pipes.binread(&p, sizeof (p)) > 0) {
-					log("DATA (CLIENT)") << p;
+					Log("DATA (CLIENT)") << p;
 					eth_comms.sendPacket(&p);
 				}
 
 				if (eth_comms.recvPacket(&p) > 0) {
-					log("DATA (SERVER)") << p;
+					Log("DATA (SERVER)") << p;
 					m_pipes.binwrite(&p, sizeof (p));
 					outf << p << std::endl;
 				}
@@ -170,20 +170,20 @@ comms::Pipe Client::run(std::string filename) {
 			exit(0);
 		} else {
 			// Assign the pipes for the main process and close the un-needed ones
-			log.reopen_log();
+			Log.reopen_log();
 			return m_pipes;
 		}
 	} catch (comms::PipeException e) {
-		log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
+		Log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
 		m_pipes.close_pipes();
 		exit(-1);
 	} catch (EthernetException e) {
-		log("FATAL") << "Problem with communication\n\t\"" << e.what() << "\"";
+		Log("FATAL") << "Problem with communication\n\t\"" << e.what() << "\"";
 		fprintf(stdout, "Ethernet- %s\n", e.what());
 		m_pipes.close_pipes();
 		throw e;
 	} catch (...) {
-		log("FATAL") << "Unexpected error with client\n\t\""
+		Log("FATAL") << "Unexpected error with client\n\t\""
 				<< std::strerror(errno) << "\"";
 		m_pipes.close_pipes();
 		exit(-3);
@@ -192,67 +192,67 @@ comms::Pipe Client::run(std::string filename) {
 
 comms::Pipe Server::run(std::string filename) {
 	// Fork a process to handle server stuff
-	log("INFO") << "Starting data sharing with client";
+	Log("INFO") << "Starting data sharing with client";
 	try {
 		m_pipes = comms::Pipe();
-		log("INFO") << "Waiting for client connection";
-		m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-		if (m_newsockfd < 0) {
-			log("FATAL") << "Error waiting for client connection";
+		Log("INFO") << "Waiting for client connection";
+		_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &m_clilen);
+		if (_newsockfd < 0) {
+			Log("FATAL") << "Error waiting for client connection";
 			throw EthernetException("Error on accept");
 		}
-		log("INFO") << "Client has established connection";
-		log("INFO") << "Forking processes";
-		if ((m_pid = m_pipes.Fork()) == 0) {
+		Log("INFO") << "Client has established connection";
+		Log("INFO") << "Forking processes";
+		if ((_pid = m_pipes.Fork()) == 0) {
 			// This is the child process that handles all the requests
-			log.reopen_log();
-			comms::Transceiver eth_comms(m_newsockfd);
+			Log.reopen_log();
+			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
 			outf.open(filename);
 			comms::Packet p;
 			while (1) {
 				if (eth_comms.recvPacket(&p) > 0) {
-					log("DATA (CLIENT)") << p;
+					Log("DATA (CLIENT)") << p;
 					outf << p << std::endl;
 					m_pipes.binwrite(&p, sizeof (comms::Packet));
 				}
 				if (m_pipes.binread(&p, sizeof (comms::Packet)) > 0) {
-					log("DATA (SERVER)") << p;
+					Log("DATA (SERVER)") << p;
 					eth_comms.sendPacket(&p);
 				}
 				Timer::sleep_ms(10);
 
 			}
 			outf.close();
-			close(m_newsockfd);
-			close(m_sockfd);
+			close(_newsockfd);
+			close(_sockfd);
 			m_pipes.close_pipes();
 			exit(0);
 		} else {
 			// This is the main parent process
-			log.reopen_log();
+			Log.reopen_log();
 			return m_pipes;
 		}
 	} catch (comms::PipeException e) {
 		// Ignore it and exit gracefully
-		log("FATAL") << "Problem reading/writing to pipes\n\t\"" << e.what()
+		Log("FATAL") << "Problem reading/writing to pipes\n\t\"" << e.what()
 				<< "\"";
-		close(m_newsockfd);
-		close(m_sockfd);
+		close(_newsockfd);
+		close(_sockfd);
 		m_pipes.close_pipes();
 		exit(-1);
 	} catch (EthernetException e) {
-		log("FATAL") << "Problem with Ethernet communication\n\t\"" << e.what()
+		Log("FATAL") << "Problem with Ethernet communication\n\t\"" << e.what()
 				<< "\"";
-		close(m_newsockfd);
-		close(m_sockfd);
+		close(_newsockfd);
+		close(_sockfd);
 		m_pipes.close_pipes();
 		throw e;
 	} catch (...) {
-		log("FATAL") << "Unexpected error with server\n\t\""
+		Log("FATAL") << "Unexpected error with server\n\t\""
 				<< std::strerror(errno) << "\"";
-		close(m_newsockfd);
-		close(m_sockfd);
+		close(_newsockfd);
+		close(_sockfd);
 		m_pipes.close_pipes();
 		exit(-3);
 	}

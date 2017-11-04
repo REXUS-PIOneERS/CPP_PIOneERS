@@ -38,7 +38,7 @@ void UART::setupUART() {
 		throw UARTException("ERROR opening serial port");
 	}
 	speed_t f_baud;
-	switch (m_baudrate) {
+	switch (_baudrate) {
 		case 9600:
 			f_baud = B9600;
 			break;
@@ -87,22 +87,22 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 	 * Sends request to the ImP to begin sending data. Returns the file stream
 	 * to the main program and continually writes the data to this stream.
 	 */
-	log("INFO") << "Starting ImP and IMU data collection";
+	Log("INFO") << "Starting ImP and IMU data collection";
 	try {
-		m_pipes = comms::Pipe();
-		if ((m_pid = m_pipes.Fork()) == 0) {
+		_pipes = comms::Pipe();
+		if ((_pid = _pipes.Fork()) == 0) {
 			// This is the child process
-			log.reopen_log();
+			Log.reopen_log();
 			// Infinite loop for data collection
 			comms::Transceiver ImP_comms(uart_filestream);
 			// Send initial start command
 			ImP_comms.sendBytes("C", 1);
-			log("DATA (SENT") << "C";
+			Log("DATA (SENT") << "C";
 			for (int j = 0;; j++) {
 				std::ofstream outf;
 				char unique_file[50];
 				sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
-				log("INFO") << "Starting new data file \"" << unique_file << "\"";
+				Log("INFO") << "Starting new data file \"" << unique_file << "\"";
 				outf.open(unique_file);
 				// Take five measurements then change the file
 				int intv = 200;
@@ -128,16 +128,16 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 							comms::byte2_t index = (5 * j) + i;
 							comms::Protocol::pack(p1, id1, index, buf);
 							comms::Protocol::pack(p2, id2, index, buf + 12);
-							m_pipes.binwrite(&p1, sizeof (p1));
-							m_pipes.binwrite(&p2, sizeof (p2));
+							_pipes.binwrite(&p1, sizeof (p1));
+							_pipes.binwrite(&p2, sizeof (p2));
 							buf[n] = '\0';
 							for (int i = 0; i < n; i++)
 								outf << (int) buf[n] << ",";
 							outf << std::endl;
-							log("DATA (IMP)") << p1;
-							log("DATA (ImP)") << p2;
+							Log("DATA (IMP)") << p1;
+							Log("DATA (ImP)") << p2;
 							ImP_comms.sendBytes("N", 1);
-							log("DATA (SENT)") << "N";
+							Log("DATA (SENT)") << "N";
 							break;
 						}
 					}
@@ -146,25 +146,25 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 				}
 			}
 		} else {
-			log.reopen_log();
-			return m_pipes;
+			Log.reopen_log();
+			return _pipes;
 		}
 	} catch (comms::PipeException e) {
-		log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
-		m_pipes.close_pipes();
+		Log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
+		_pipes.close_pipes();
 		close(uart_filestream);
 		exit(-1);
 	} catch (...) {
-		log("FATAL") << "Unexpected error with ImP\n\t\"" << std::strerror(errno);
-		m_pipes.close_pipes();
+		Log("FATAL") << "Unexpected error with ImP\n\t\"" << std::strerror(errno);
+		_pipes.close_pipes();
 		close(uart_filestream);
 		exit(-2);
 	}
 }
 
 int ImP::stopDataCollection() {
-	log("INFO") << "Ending data collection by closing pipes";
-	if (m_pid)
-		m_pipes.close_pipes();
+	Log("INFO") << "Ending data collection by closing pipes";
+	if (_pid)
+		_pipes.close_pipes();
 	return 0;
 }

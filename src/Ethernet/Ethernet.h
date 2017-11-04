@@ -22,11 +22,10 @@
 #define ETHERNET_H
 
 class Server {
-	int m_sockfd, m_newsockfd, m_port, m_pid;
+	int _sockfd, _newsockfd, _port, _pid;
 	socklen_t m_clilen;
-	struct sockaddr_in m_serv_addr, m_cli_addr;
-	char m_buf[256];
-	Logger log;
+	struct sockaddr_in _serv_addr, _cli_addr;
+	Logger Log;
 
 public:
 	comms::Pipe m_pipes;
@@ -36,8 +35,8 @@ public:
 	 *
 	 * @param port: Port for communication with clients
 	 */
-	Server(const int port) : m_port(port), log("/Docs/Logs/server") {
-		log.start_log();
+	Server(const int port) : _port(port), Log("/Docs/Logs/server") {
+		Log.start_log();
 		setup();
 	}
 
@@ -60,12 +59,12 @@ private:
 };
 
 class Client {
-	int m_port, m_pid;
-	std::string m_host_name;
-	int m_sockfd;
-	struct sockaddr_in m_serv_addr;
-	struct hostent *m_server;
-	Logger log;
+	int _port, _pid;
+	std::string _host_name;
+	int _sockfd;
+	struct sockaddr_in _serv_addr;
+	struct hostent *_server;
+	Logger Log;
 public:
 	comms::Pipe m_pipes;
 
@@ -75,8 +74,8 @@ public:
 	 * @param host_name: Name or IP address of the server
 	 */
 	Client(const int port, const std::string host_name)
-	: m_port(port), m_host_name(host_name), log("/Docs/Logs/client") {
-		log.start_log();
+	: _port(port), _host_name(host_name), Log("/Docs/Logs/client") {
+		Log.start_log();
 	}
 
 	/**
@@ -110,16 +109,16 @@ class EthernetException {
 public:
 
 	EthernetException(const std::string error) {
-		m_error = error + " :" + std::strerror(errno);
+		_error = error + " :" + std::strerror(errno);
 	}
 
 	const char * what() {
-		return m_error.c_str();
+		return _error.c_str();
 	}
 
 private:
 
-	std::string m_error;
+	std::string _error;
 };
 
 #endif /* ETHERNET_H */
