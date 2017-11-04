@@ -56,11 +56,11 @@ public:
 
 	int sendPacket(comms::Packet &p) {
 		Log("SENT") << p;
-		return comms::Transceiver::sendPacket(p);
+		return comms::Transceiver::sendPacket(&p);
 	}
 
 	int recvPacket(comms::Packet &p) {
-		int n = comms::Transceiver::recvPacket(p);
+		int n = comms::Transceiver::recvPacket(&p);
 		if (n > 0)
 			Log("RECEIVED") << p;
 		return n;
