@@ -75,11 +75,71 @@ UART::~UART() {
 	close(uart_filestream);
 }
 
+void RXSM::buffer() {
+	try {
+		_pipes = comms::Pipe();
+		if ((_pid = _pipes.Fork()) == 0) {
+			// This is the child process
+			Log.child_log();
+			comms::Packet p;
+			int n;
+			while (1) {
+				n = _pipes.binread(&p, sizeof (p));
+				if (n > 0)
+					sendPacket(p);
+				Timer::sleep_ms(10);
+
+				n = recvPacket(p);
+				if (n > 0)
+					_pipes.binwrite(p, sizeof (p));
+				Timer::sleep_ms(10);
+			}
+		} else {
+			// This is the parent process
+			return _pipes;
+		}
+	} catch (comms::PipeException e) {
+		Log("FATAL") << "Failed to read or write to pipe\n\t" << e.what();
+		Log("INFO") << "Shutting down communication with RXSM";
+		_pipes.close_pipes();
+		exit(-1);
+	} catch (...) {
+		Log("FATAL") << "Unknown exception with RXSM\n\t" << std::strerror(errno);
+		Log("INFO") << "Shutting down communication with RXSM";
+		_pipes.close_pipes();
+		exit(-2);
+	}
+}
+
+int RXSM::sendPacket(comms::Packet &p) {
+	Log("SENT") << p;
+	if (_pid)
+		return _pipes.binwrite(&p, sizeof (p));
+	else
+		return comms::Transceiver::sendPacket(&p);
+}
+
+int RXSM::recvPacket(comms::Packet &p) {
+	int n;
+	if (_pid)
+		n = _pipes.binread(&p, sizeof (p));
+	else
+		n = comms::Transceiver::recvPacket(&p);
+	if (n > 0)
+		Log("RECEIVED") << p;
+	return n;
+}
+
 int RXSM::sendMsg(std::string msg) {
+	int n = msg.length();
+	int sent = 0;
 	comms::Packet p;
-	int id = ID_MSG1;
-	comms::Protocol::pack(p, id, _index++, &msg);
-	return sendPacket(p);
+	for (int i = 0; i < n; i += 15) {
+		std::string data = msg.substr(i, 15);
+		comms::Protocol::pack(p, ID_MSG1, _index++, &data);
+		sent += sendPacket(p);
+	}
+	return sent;
 }
 
 comms::Pipe ImP::startDataCollection(const std::string filename) {

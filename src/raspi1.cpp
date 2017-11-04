@@ -109,6 +109,7 @@ void signal_handler(int s) {
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
 	Log("INFO") << "Ending program, Pi rebooting";
+	REXUS.sendMsg("Pi Rebooting");
 	system("sudo reboot");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
@@ -146,6 +147,7 @@ int SODS_SIGNAL() {
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
 	Log("INFO") << "Ending program, Pi rebooting";
+	REXUS.sendMsg("Pi rebooting");
 	system("sudo reboot");
 	return 0;
 }
@@ -161,6 +163,7 @@ int SODS_SIGNAL() {
  */
 int SOE_SIGNAL() {
 	Log("INFO") << "SOE signal received";
+	REXUS.sendMsg("SOE received");
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
 	IMU.setupAcc();
@@ -173,6 +176,7 @@ int SOE_SIGNAL() {
 	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
 	if (flight_mode) {
+		RXSM.sendMsg("Extending boom");
 		// Extend the boom!
 		int count = encoder_count;
 		int diff = encoder_rate;
@@ -211,7 +215,11 @@ int SOE_SIGNAL() {
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
-		Log("INFO") << "Boom deployed to maximum";
+		double dist = 0.1256 * (count / 600);
+		Log("INFO") << "Boom deployed to " << dist << " m";
+		std::stringstream ss;
+		ss << "Boom deployed to " << dist << " m";
+		REXUS.sendMsg(ss.str());
 	}
 	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
@@ -247,9 +255,11 @@ int LO_SIGNAL() {
 	REXUS.sendMsg("LO received");
 	Cam.startVideo("Docs/Video/rexus_video");
 	Log("INFO") << "Camera recording";
+	REXUS.sendMsg("Recording Video");
 	// Poll the SOE pin until signal is received
 	// TODO implement check to make sure no false signals!
 	Log("INFO") << "Waiting for SOE";
+	REXUS.sendMsg("Waiting for SOE");
 	bool signal_received = false;
 	while (!signal_received) {
 		delay(10);
@@ -291,10 +301,10 @@ int main(int argc, char* argv[]) {
 	pullUpDnControl(LAUNCH_MODE, PUD_UP);
 	flight_mode = digitalRead(LAUNCH_MODE);
 	Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
-	if (flight_mode) {
+	if (flight_mode)
 		REXUS.sendMsg("WARNING: Flight mode enabled");
-	}
-
+	else
+		REXUS.sendMsg("Entering test mode");
 	// Setup Motor Pins
 	pinMode(MOTOR_CW, OUTPUT);
 	pinMode(MOTOR_ACW, OUTPUT);
@@ -316,6 +326,8 @@ int main(int argc, char* argv[]) {
 	// TODO handle error where we can't connect to the server
 	Log("INFO") << "Ethernet connection successful";
 	Log("INFO") << "Waiting for LO";
+	REXUS.sendMsg("Ethernet connected");
+	REXUS.sendMsg("Waiting for LO");
 	// Wait for LO signal
 	bool signal_received = false;
 	while (!signal_received) {

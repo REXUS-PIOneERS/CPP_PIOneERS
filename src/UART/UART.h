@@ -43,6 +43,8 @@ public:
 class RXSM : public UART, public comms::Transceiver {
 	Logger Log;
 	int _index = 0;
+	comms::Pipe _pipes;
+	int _pid = 0;
 
 public:
 
@@ -54,22 +56,18 @@ public:
 
 	int sendMsg(std::string msg);
 
-	int sendPacket(comms::Packet &p) {
-		Log("SENT") << p;
-		return comms::Transceiver::sendPacket(&p);
-	}
+	int sendPacket(comms::Packet &p);
 
-	int recvPacket(comms::Packet &p) {
-		int n = comms::Transceiver::recvPacket(&p);
-		if (n > 0)
-			Log("RECEIVED") << p;
-		return n;
-	}
+	int recvPacket(comms::Packet &p);
 
 	~RXSM() {
 		Log("INFO") << "Destroying RXSM object";
 	}
 
+private:
+	void buffer();
+
+	void end_buffer();
 
 };
 

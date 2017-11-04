@@ -68,3 +68,19 @@ Connect the various components to the Pi 1 as shown in the pinout diagram.
 ![Alt text](/img/pin_usage.JPG)
 
 ### Usage Instructions
+
+To run the program you can call
+```
+sudo ./bin/raspi1  // For Pi 1
+sudo ./bin/raspi2  // For Pi 2
+```
+To make the program run at boot edit the /etc/rc.local file
+```
+sudo nano /etc/rc.local
+
+//Add this line to the file for Pi 1
+sudo /home/pi/CPP_PIOneERS/bin/raspi1 &
+
+//And this line for Pi 2
+sudo /home/pi/CPP_PIOneERS/bin/raspi2 &
+```
