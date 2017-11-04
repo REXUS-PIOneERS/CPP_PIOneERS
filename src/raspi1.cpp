@@ -67,7 +67,7 @@ RPi_IMU IMU; //  Not initialised yet to prevent damage during lift off
 comms::Pipe IMU_stream;
 
 // Setup for the UART communications
-int baud = 30400; // TODO find right value for RXSM
+int baud = 38400; // TODO find right value for RXSM
 RXSM REXUS(baud);
 comms::Pipe rxsm_stream;
 
