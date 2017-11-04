@@ -24,7 +24,7 @@
 #include "comms/packet.h"
 
 #include <wiringPi.h>
-#include "pins.h"
+#include "pins1.h"
 #include "timing/timer.h"
 #include "logger/logger.h"
 

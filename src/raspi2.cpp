@@ -13,7 +13,7 @@
 #include <iostream>
 #include <signal.h>
 
-#include "pins.h"
+#include "pins2.h"
 #include "camera/camera.h"
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
