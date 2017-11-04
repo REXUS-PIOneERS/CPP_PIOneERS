@@ -35,6 +35,7 @@ bool flight_mode = false;
 
 // Motor Setup
 int encoder_count = 0;
+int encoder_rate = 100;
 
 /**
  * Advances the encoder_count variable by one.
@@ -173,18 +174,27 @@ int SOE_SIGNAL() {
 	comms::Packet p;
 	if (flight_mode) {
 		// Extend the boom!
+		int count = encoder_count;
+		int diff = encoder_rate;
+		Timer tmr;
 		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
 		digitalWrite(MOTOR_CW, 1);
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
 		// Keep checking the encoder count till it reaches the required amount.
-		int count = 0;
 		while (count < 10000) {
 			// Lock is used to keep everything thread safe
 			piLock(1);
+			diff = encoder_count - count;
 			count = encoder_count;
 			piUnlock(1);
-			Log("INFO") << "Encoder count-" << encoder_count;
+			Log("INFO") << "Encoder count- " << encoder_count;
+			Log("INFO") << "Encoder rate- " << diff * 10 << " counts/sec";
+			// Check the boom is actually deploying
+			if ((tmr.elapsed() > 20000) && (diff < 10)) {
+				Log("ERROR") << "Boom not deploying as expected";
+				break;
+			}
 			// Read data from IMU_data_stream and echo it to Ethernet
 			int n = IMU_stream.binread(&p, sizeof (p));
 			if (n > 0) {

@@ -133,12 +133,12 @@ int SOE_SIGNAL() {
 	ImP_stream = ImP.startDataCollection("Docs/Data/Pi2/test");
 	Log("INFO") << "Started data collection from ImP";
 	comms::Packet p; // Buffer for reading data from the IMU stream
-	// Trigger the burn wire!
+	// Trigger the burn wire for 10 seconds!
 	Log("INFO") << "Triggering burnwire";
 	digitalWrite(BURNWIRE, 1);
 	Timer tmr;
 	Log("INFO") << "Burn wire triggered" << std::endl;
-	while (tmr.elapsed() < 6000) {
+	while (tmr.elapsed() < 10000) {
 		// Get ImP data
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
