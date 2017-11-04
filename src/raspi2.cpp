@@ -34,7 +34,7 @@ PiCamera Cam;
 
 // Setup for the UART communications
 int baud = 230400;
-UART ImP;
+ImP IMP(baud);
 comms::Pipe ImP_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
@@ -130,7 +130,7 @@ int SOE_SIGNAL() {
 	 */
 	Log("INFO") << "SOE signal received";
 	// Setup the ImP and start requesting data
-	ImP_stream = ImP.startDataCollection("Docs/Data/Pi2/test");
+	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/test");
 	Log("INFO") << "Started data collection from ImP";
 	comms::Packet p; // Buffer for reading data from the IMU stream
 	// Trigger the burn wire for 10 seconds!
