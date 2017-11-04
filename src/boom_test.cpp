@@ -8,6 +8,9 @@ const int MOTOR_ACW = 25;
 
 void signal_handler(int sig) {
 	std::cout << "Stopping Motor" << std::endl;
+	digitalWrite(MOTOR_CW, 0);
+	digitalWrite(MOTOR_ACW, 0);
+	exit(sig);
 }
 
 void count_encoder() {
