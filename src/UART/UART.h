@@ -64,7 +64,6 @@ public:
 		Log("INFO") << "Destroying RXSM object";
 	}
 
-private:
 	void buffer();
 
 	void end_buffer();

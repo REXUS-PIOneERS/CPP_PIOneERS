@@ -13,6 +13,7 @@
 #include <unistd.h> //For sleep
 #include <stdlib.h>
 #include <iostream>
+#include <sstream>
 #include <signal.h>  // For catching signals!
 
 #include "RPi_IMU/RPi_IMU.h"
@@ -85,6 +86,7 @@ Client raspi1(port_no, server_name);
 void signal_handler(int s) {
 	Log("FATAL") << "Exiting program after signal " << s;
 	REXUS.sendMsg("Ending Program");
+	REXUS.end_buffer();
 	// TODO send exit signal to Pi 2!
 	if (Cam.is_running()) {
 		Cam.stopVideo();
@@ -176,7 +178,7 @@ int SOE_SIGNAL() {
 	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
 	if (flight_mode) {
-		RXSM.sendMsg("Extending boom");
+		REXUS.sendMsg("Extending boom");
 		// Extend the boom!
 		int count = encoder_count;
 		int diff = encoder_rate;
@@ -281,6 +283,7 @@ int main(int argc, char* argv[]) {
 	signal(SIGINT, signal_handler);
 	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video Docs/Logs");
 	Log.start_log();
+	REXUS.buffer();
 	Log("INFO") << "Pi 1 is running";
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi

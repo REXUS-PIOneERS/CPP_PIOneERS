@@ -91,12 +91,12 @@ void RXSM::buffer() {
 
 				n = recvPacket(p);
 				if (n > 0)
-					_pipes.binwrite(p, sizeof (p));
+					_pipes.binwrite(&p, sizeof (p));
 				Timer::sleep_ms(10);
 			}
 		} else {
 			// This is the parent process
-			return _pipes;
+			return;
 		}
 	} catch (comms::PipeException e) {
 		Log("FATAL") << "Failed to read or write to pipe\n\t" << e.what();
@@ -109,6 +109,11 @@ void RXSM::buffer() {
 		_pipes.close_pipes();
 		exit(-2);
 	}
+}
+
+void RXSM::end_buffer() {
+	if (_pid)
+		_pipes.close_pipes();
 }
 
 int RXSM::sendPacket(comms::Packet &p) {
