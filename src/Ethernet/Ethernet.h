@@ -23,12 +23,13 @@
 
 class Server {
 	int _sockfd, _newsockfd, _port, _pid;
-	socklen_t m_clilen;
+	socklen_t _clilen;
 	struct sockaddr_in _serv_addr, _cli_addr;
 	Logger Log;
+	comms::Pipe _pipes;
+	bool _connected = false;
 
 public:
-	comms::Pipe m_pipes;
 
 	/**
 	 * Constructor for the Server class
@@ -37,8 +38,16 @@ public:
 	 */
 	Server(const int port) : _port(port), Log("/Docs/Logs/server") {
 		Log.start_log();
-		setup();
 	}
+
+	/**
+	 * Checks the status of pipe and ethernet communications for the server.
+	 * @return 0 if all is good
+	 * 0bXXXXXXX1 represents read end of pipe is unavailbale
+	 * 0bXXXXXX1X represents write end of pipe is unavailable
+	 * 0bXXXXX1XX represents ethernet communication is down
+	 */
+	int status();
 
 	/**
 	 * Starts the server running as a child process ready for accepting
@@ -47,14 +56,14 @@ public:
 	 */
 	comms::Pipe run(std::string filename);
 
-	~Server();
 
-private:
 	/**
 	 * Sets up basic variables for creating a server
 	 * @return 0 = success, otherwise = failure
 	 */
 	int setup();
+
+	~Server();
 
 };
 
@@ -65,8 +74,9 @@ class Client {
 	struct sockaddr_in _serv_addr;
 	struct hostent *_server;
 	Logger Log;
+	comms::Pipe _pipes;
+	bool _connected = false;
 public:
-	comms::Pipe m_pipes;
 
 	/**
 	 * Constructor for the Client class
@@ -76,6 +86,10 @@ public:
 	Client(const int port, const std::string host_name)
 	: _port(port), _host_name(host_name), Log("/Docs/Logs/client") {
 		Log.start_log();
+	}
+
+	bool active() {
+		return _connected;
 	}
 
 	/**
@@ -96,13 +110,14 @@ public:
 	 */
 	int close_connection();
 
-	~Client();
-private:
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client
 	 * @return 0 = success, otherwise = failure
 	 */
 	int setup();
+
+	~Client();
+
 };
 
 class EthernetException {

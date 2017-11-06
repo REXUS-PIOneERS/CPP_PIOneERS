@@ -99,25 +99,25 @@ namespace comms {
 		// Write n bytes of data to the pipe.
 		int fd = getWritefd();
 		if (fd < 0)
-			throw PipeException("ERROR process not forked");
+			return -1;
 		if (!poll_write(fd))
-			throw PipeException("ERROR pipe unavailable for write");
+			return -2;
 		if (n == write(fd, data, n))
 			return n;
 		else
-			throw PipeException("ERROR writing to pipe");
+			return -3;
 	}
 
 	int Pipe::binread(void* data, int n) {
 		// Reads upto n bytes into the character array, returns number of bytes read
 		int fd = getReadfd();
 		if (fd < 0)
-			throw PipeException("ERROR process not forked");
+			return -1;
 		if (!poll_read(fd))
-			return 0;
+			return -2;
 		int bytes_read = read(fd, data, n);
 		if (bytes_read == -1)
-			throw PipeException("ERROR reading from pipe");
+			return -3;
 		else
 			return bytes_read;
 	}

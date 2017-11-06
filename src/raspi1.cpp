@@ -209,11 +209,14 @@ int SOE_SIGNAL() {
 				ethernet_stream.binwrite(&p, sizeof (p));
 				Log("INFO") << "Data sent to Ethernet Communications";
 			}
+
 			n = ethernet_stream.binread(&p, sizeof (p));
 			if (n > 0) {
 				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
 			}
+			// TODO what about when there is an error (n < 0)
+
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
@@ -317,22 +320,25 @@ int main(int argc, char* argv[]) {
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		Timer::sleep_ms(10);
-	Log("INFO") << "INFO: Trying to establish Ethernet connection with " << server_name;
+	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
 	// Try to connect to Pi 2
 	try {
+		raspi1.setup();
 		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
+		Log("INFO") << "Ethernet connection successful";
+		REXUS.sendMsg("Ethernet connected");
 	} catch (EthernetException e) {
-		Log("FATAL") << "FATAL: Ethernet connection failed with error\n\t\"" << e.what()
+		Log("ERROR") << "Ethernet connection failed with error\n\t\"" << e.what()
 				<< "\"";
-		signal_handler(-5);
+		REXUS.sendMsg("Ethernet Failure");
+		Log("INFO") << "Continuing without Ethernet connection";
 	}
-	// TODO handle error where we can't connect to the server
-	Log("INFO") << "Ethernet connection successful";
 	Log("INFO") << "Waiting for LO";
-	REXUS.sendMsg("Ethernet connected");
 	REXUS.sendMsg("Waiting for LO");
 	// Wait for LO signal
 	bool signal_received = false;
+	comms::Packet p;
+	int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received

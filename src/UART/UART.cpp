@@ -117,11 +117,17 @@ void RXSM::end_buffer() {
 }
 
 int RXSM::sendPacket(comms::Packet &p) {
-	Log("SENT") << p;
+	int n;
 	if (_pid)
-		return _pipes.binwrite(&p, sizeof (p));
+		n = _pipes.binwrite(&p, sizeof (p));
 	else
-		return comms::Transceiver::sendPacket(&p);
+		n = comms::Transceiver::sendPacket(&p);
+
+	if (n > 0)
+		Log("SENT") << p;
+	else if (n < 0)
+		Log("ERROR") << "Packet not sent\n\t" << std::strerror(errno);
+	return n;
 }
 
 int RXSM::recvPacket(comms::Packet &p) {
@@ -130,8 +136,11 @@ int RXSM::recvPacket(comms::Packet &p) {
 		n = _pipes.binread(&p, sizeof (p));
 	else
 		n = comms::Transceiver::recvPacket(&p);
+
 	if (n > 0)
 		Log("RECEIVED") << p;
+	else if (n < 0)
+		Log("ERROR") << "Problem getting data\n\t" << std::strerror(errno);
 	return n;
 }
 

@@ -27,6 +27,37 @@
 #include "timing/timer.h"
 #include "logger/logger.h"
 #include <error.h>
+#include <sstream>
+
+#include <poll.h>
+
+int Server::status() {
+	if (!_pid)
+		return -1;
+	// Checks a file descriptor is ready for reading
+	int rtn = 0;
+	struct pollfd fds[3];
+	int timeout = 0;
+	// Read end of Pipe
+	fds[0].fd = _pipes.getReadfd();
+	fds[0].events = POLLIN;
+	// Write end of Pipe
+	fds[1].fd = _pipes.getWritefd();
+	fds[1].events = POLLOUT;
+	// Ethernet file descriptor
+	fds[2].fd = _newsockfd;
+	fds[2].events = POLLIN | POLLOUT;
+	// Check if the file descriptor is ready for reading
+	if (poll(fds, 1, timeout)) {
+		if (!(fds[0].revents & POLLIN))
+			rtn &= 0x01;
+		if (!(fds[1].revents & POLLOUT))
+			rtn &= 0x02;
+		if (!(fds[2].revents & (POLLIN | POLLOUT)))
+			rtn &= 0x04;
+	}
+	return rtn;
+}
 
 // Functions for setting up as a server
 
@@ -50,7 +81,7 @@ int Server::setup() {
 	}
 	// Sets backlog queue to 5 connections and allows socket to listen
 	listen(_sockfd, 5);
-	m_clilen = sizeof (_cli_addr);
+	_clilen = sizeof (_cli_addr);
 	Log("INFO") << "Server setup successful";
 	return 0;
 }
@@ -95,6 +126,7 @@ int Client::open_connection() {
 		Log("ERROR") << "Request to connect to server failed";
 		throw EthernetException("Failed to connect to server"); // Failed to connect!
 	}
+	_connected = true;
 	return 0;
 }
 
@@ -102,8 +134,10 @@ int Client::close_connection() {
 	Log("INFO") << "Ending connection with server and closing process";
 	if (_sockfd) {
 		close(_sockfd);
-		m_pipes.close_pipes();
+		_sockfd = 0;
+		_pipes.close_pipes();
 	}
+	_connected = false;
 }
 
 Client::~Client() {
@@ -140,11 +174,10 @@ comms::Pipe Client::run(std::string filename) {
 	 */
 	Log("INFO") << "Starting data sharing with server";
 	try {
-		m_pipes = comms::Pipe();
-		setup();
+		_pipes = comms::Pipe();
 		open_connection();
 		Log("INFO") << "Forking processes";
-		if ((_pid = m_pipes.Fork()) == 0) {
+		if ((_pid = _pipes.Fork()) == 0) {
 			// This is the child process.
 			Log.child_log();
 			comms::Transceiver eth_comms(_sockfd);
@@ -153,38 +186,38 @@ comms::Pipe Client::run(std::string filename) {
 			comms::Packet p;
 			while (1) {
 				// Exchange packets (no analysis of contents)
-				if (m_pipes.binread(&p, sizeof (p)) > 0) {
+				if (_pipes.binread(&p, sizeof (p)) > 0) {
 					Log("DATA (CLIENT)") << p;
 					eth_comms.sendPacket(&p);
 				}
 
 				if (eth_comms.recvPacket(&p) > 0) {
 					Log("DATA (SERVER)") << p;
-					m_pipes.binwrite(&p, sizeof (p));
+					_pipes.binwrite(&p, sizeof (p));
 					outf << p << std::endl;
 				}
 				Timer::sleep_ms(10);
 			}
 			outf.close();
-			m_pipes.close_pipes();
+			_pipes.close_pipes();
 			exit(0);
 		} else {
 			// Assign the pipes for the main process and close the un-needed ones
-			return m_pipes;
+			return _pipes;
 		}
 	} catch (comms::PipeException e) {
 		Log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
-		m_pipes.close_pipes();
+		_pipes.close_pipes();
 		exit(-1);
 	} catch (EthernetException e) {
 		Log("FATAL") << "Problem with communication\n\t\"" << e.what() << "\"";
 		fprintf(stdout, "Ethernet- %s\n", e.what());
-		m_pipes.close_pipes();
+		_pipes.close_pipes();
 		throw e;
 	} catch (...) {
 		Log("FATAL") << "Unexpected error with client\n\t\""
 				<< std::strerror(errno) << "\"";
-		m_pipes.close_pipes();
+		_pipes.close_pipes();
 		exit(-3);
 	}
 }
@@ -193,65 +226,69 @@ comms::Pipe Server::run(std::string filename) {
 	// Fork a process to handle server stuff
 	Log("INFO") << "Starting data sharing with client";
 	try {
-		m_pipes = comms::Pipe();
 		Log("INFO") << "Waiting for client connection";
-		_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &m_clilen);
-		if (_newsockfd < 0) {
-			Log("FATAL") << "Error waiting for client connection";
-			throw EthernetException("Error on accept");
-		}
+		_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &_clilen);
+		if (_newsockfd < 0)
+			throw -3;
 		Log("INFO") << "Client has established connection";
+
 		Log("INFO") << "Forking processes";
-		if ((_pid = m_pipes.Fork()) == 0) {
+		_pipes = comms::Pipe();
+		if ((_pid = _pipes.Fork()) == 0) {
 			// This is the child process that handles all the requests
 			Log.child_log();
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
 			outf.open(filename);
 			comms::Packet p;
+			int n;
 			while (1) {
-				if (eth_comms.recvPacket(&p) > 0) {
-					Log("DATA (CLIENT)") << p;
+				// Get packet from client and send to pipe
+				n = eth_comms.recvPacket(&p);
+				if (n < 0)
+					throw -2;
+				else if (n > 0) {
+					Log("RECEIVED") << p;
 					outf << p << std::endl;
-					m_pipes.binwrite(&p, sizeof (comms::Packet));
+					if (_pipes.binwrite(&p, sizeof (p)) < 0)
+						throw -1;
 				}
-				if (m_pipes.binread(&p, sizeof (comms::Packet)) > 0) {
-					Log("DATA (SERVER)") << p;
-					eth_comms.sendPacket(&p);
+
+				// Get packet from pipe and send to server
+				n = _pipes.binread(&p, sizeof (p));
+				if (n < 0)
+					throw -1;
+				else if (n > 0) {
+					Log("SENDING") << p;
+					if (eth_comms.sendPacket(&p) < 0)
+						throw -2;
 				}
 				Timer::sleep_ms(10);
-
 			}
-			outf.close();
-			close(_newsockfd);
-			close(_sockfd);
-			m_pipes.close_pipes();
-			exit(0);
 		} else {
 			// This is the main parent process
-			return m_pipes;
+			return _pipes;
 		}
-	} catch (comms::PipeException e) {
-		// Ignore it and exit gracefully
-		Log("FATAL") << "Problem reading/writing to pipes\n\t\"" << e.what()
-				<< "\"";
-		close(_newsockfd);
-		close(_sockfd);
-		m_pipes.close_pipes();
-		exit(-1);
-	} catch (EthernetException e) {
-		Log("FATAL") << "Problem with Ethernet communication\n\t\"" << e.what()
-				<< "\"";
-		close(_newsockfd);
-		close(_sockfd);
-		m_pipes.close_pipes();
-		throw e;
-	} catch (...) {
-		Log("FATAL") << "Unexpected error with server\n\t\""
-				<< std::strerror(errno) << "\"";
-		close(_newsockfd);
-		close(_sockfd);
-		m_pipes.close_pipes();
-		exit(-3);
+	} catch (int e) {
+		switch (e) {
+			case -1:
+				// Problem with the pipes
+				Log("ERROR") << "Problem with the pipes\n\t" << std::strerror(errno);
+				close(_newsockfd);
+				_pipes.close_pipes();
+				break;
+			case -2:
+				// Problem with the Ethernet
+				Log("ERROR") << "Problem with the Ethernet\n\t" << std::strerror(errno);
+				close(_newsockfd);
+				_pipes.close_pipes();
+				break;
+			case -3:
+				// Problem with accept
+				Log("ERROR") << "Error on accept\n\t" << std::strerror(errno);
+				return _pipes;
+		}
+		exit(e);
 	}
 }
+

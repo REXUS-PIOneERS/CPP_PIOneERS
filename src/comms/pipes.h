@@ -54,7 +54,10 @@ namespace comms {
 		 *
 		 * @param data: Buffer array containing the data
 		 * @param n: Number of bytes to write (i.e. size of data array)
-		 * @return The number of bytes written
+		 * @return The number of bytes written or an error code:
+		 * -1: Process not yet forked
+		 * -2: Pipe unavailbale
+		 * -3: Error while writing
 		 */
 		int binwrite(const void* data, int n);
 
@@ -63,7 +66,10 @@ namespace comms {
 		 *
 		 * @param data: Buffer to store the data
 		 * @param n: Maximum number of bytes to read (i.e. size of data buffer)
-		 * @return Number of bytes read (0 if pipe has no data for reading)
+		 * @return Number of bytes read (0 if pipe has no data for reading) or an error code:
+		 * -1: Process not yet forked
+		 * -2: Pipe unavailable
+		 * -3: Error while reading
 		 */
 		int binread(void* data, int n);
 
