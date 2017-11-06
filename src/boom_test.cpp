@@ -1,4 +1,6 @@
 #include <wiringPi.h>
+#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <iostream>
 #include <signal.h>
@@ -12,6 +14,8 @@ void signal_handler(int sig) {
 	digitalWrite(MOTOR_ACW, 0);
 	exit(sig);
 }
+
+int encoder_count = 0;
 
 void count_encoder() {
 	piLock(1);
