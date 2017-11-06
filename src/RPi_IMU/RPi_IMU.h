@@ -12,22 +12,39 @@
 
 #include <stdio.h>
 #include <stdint.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "LSM9DS0.h"   //Stores addresses for the BerryIMU
-#include "pipes/pipes.h"
+#include "comms/pipes.h"
+#include "comms/packet.h"
+
+#include "logger/logger.h"
 
 #include <sys/types.h>
 
 class RPi_IMU {
 	char *filename = (char*) "/dev/i2c-1";
 	int i2c_file = 0;
-	int pid; //Id of the background process
-	Pipe m_pipes;
+	int _pid; //Id of the background process
+	comms::Pipe _pipes;
+	Logger Log;
 
 public:
+
 	/**
 	 * Default constructor opens the i2c file ready for communication.
 	 */
-	RPi_IMU();
+	RPi_IMU() : Log("/Docs/Logs/imu") {
+		Log.start_log();
+		//Open the I2C bus
+		Log("INFO") << "Attempting to open i2c bus";
+		if ((i2c_file = open(filename, O_RDWR)) < 0) {
+			Log("ERROR") << "Failed to open i2c bus";
+		}
+	}
 
 	/**
 	 * Sets up the accelerometer registers. See BerryIMU documentation for
@@ -114,12 +131,14 @@ public:
 	 * Read data from all axes of acc, gyro and mag.
 	 * @param data: Array of size 9 to store data
 	 */
-	void readRegisters(uint16_t *data);
+	void readRegisters(comms::byte1_t *data);
 
-	Pipe startDataCollection(char* filename);
+	comms::Pipe startDataCollection(char* filename);
 	int stopDataCollection();
 
 	~RPi_IMU() {
+		Log("INFO") << "Destroying IMU object";
+		Log.stop_log();
 	}
 
 private:

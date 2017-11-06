@@ -1,7 +1,7 @@
 #include "protocol.h"
 #include <iostream>
 
-namespace rfcom {
+namespace comms {
 
 	byte2_t Protocol::crc16Gen(const byte1_t* pos, size_t len, byte2_t generator) {
 		if (pos == NULL)
@@ -56,5 +56,42 @@ namespace rfcom {
 			return false;
 
 		return true;
+	}
+
+	int Protocol::pack(Packet &p, byte1_t id, byte2_t index, void* p_data) {
+		size_t actual_len;
+		//id invalid
+		if (!(actual_len = lengthByID(id)))
+			return -1;
+		p.sync = 0x00;
+		p.ID = id;
+		p.index = index;
+
+		memcpy(p.data, p_data, actual_len);
+		memset(p.data + actual_len, '\0', sizeof (p.data) - actual_len);
+
+		//CRC
+		p.checksum = Protocol::crc16Gen(&(p.ID), 19, crc_poly);
+		//COBS
+		Protocol::cobsEncode(&(p.ohb), 23, p.sync);
+
+
+		return 0;
+	}
+
+	int Protocol::unpack(Packet &p, byte1_t& id, byte2_t& index, void* p_data) {
+		//COBS decode failure
+		if (!Protocol::cobsDecode(&(p.ohb), 23, p.sync))
+			return -1;
+
+		//CRC mismatch
+		if (Protocol::crc16Gen(&(p.ID), 19, crc_poly) != p.checksum)
+			return -2;
+
+		id = p.ID;
+		index = p.index;
+		memcpy(p_data, p.data, sizeof (p.data));
+
+		return 0;
 	}
 }

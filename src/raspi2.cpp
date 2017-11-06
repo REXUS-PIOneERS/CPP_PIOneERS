@@ -11,40 +11,36 @@
 #include <unistd.h> //For sleep
 #include <stdlib.h>
 #include <iostream>
+#include <signal.h>
 
-#include "RPi_IMU/RPi_IMU.h"
+#include "pins2.h"
 #include "camera/camera.h"
 #include "UART/UART.h"
 #include "Ethernet/Ethernet.h"
-#include "pipes/pipes.h"
+#include "comms/pipes.h"
+#include "comms/protocol.h"
+#include "comms/packet.h"
+#include "timing/timer.h"
+#include "logger/logger.h"
 
 #include <wiringPi.h>
 
-// Main inputs for experiment control
-int LO = 29;
-int SOE = 28;
-int SODS = 27;
+Logger Log("/Docs/Logs/raspi2");
 
-int LAUNCH_MODE_OUT = 10;
-int LAUNCH_MODE_IN = 11;
 bool flight_mode = false;
 
-// Burn Wire Setup
-int BURNWIRE = 4;
-
 // Global variable for the Camera and IMU
-PiCamera Cam = PiCamera();
+PiCamera Cam;
 
 // Setup for the UART communications
 int baud = 230400;
-UART ImP = UART();
-Pipe ImP_stream;
+ImP IMP(baud);
+comms::Pipe ImP_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-Pipe ethernet_stream;
-Server ethernet_comms = Server(port_no);
-int ALIVE = 3;
+comms::Pipe ethernet_stream;
+Server ethernet_comms(port_no);
 
 /**
  * Checks whether input is activated
@@ -61,17 +57,30 @@ bool poll_input(int pin) {
 }
 
 void signal_handler(int s) {
-	fprintf(stdout, "Caught signal %d\n"
-			"Ending child processes...", s);
-	Cam.stopVideo();
-	if (&ethernet_stream != NULL) {
-		delay(100);
-		ethernet_stream.close_pipes();
+	Log("FATAL") << "Exiting program after signal " << s;
+	if (Cam.is_running()) {
+		Cam.stopVideo();
+		Log("INFO") << "Stopping camera process";
+	} else {
+		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
-	if (&ImP_stream != NULL)
+
+	if (&ethernet_stream != NULL) {
+		ethernet_stream.close_pipes();
+		Log("INFO") << "Closed Ethernet communication";
+	} else {
+		Log("ERROR") << "Ethernet process died prematurely or did not start";
+	}
+	if (&ImP_stream != NULL) {
 		ImP_stream.close_pipes();
-	fprintf(stdout, "Child processes closed, exiting program\n");
-	system("sudo shutdown now");
+		Log("INFO") << "Closed ImP communication";
+	} else {
+		Log("ERROR") << "ImP process died prematurely or did not start";
+	}
+	digitalWrite(BURNWIRE, 0);
+	// TODO copy data to a further backup directory
+	Log("INFO") << "Ending program, Pi rebooting";
+	system("sudo reboot");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
 
@@ -82,10 +91,31 @@ int SODS_SIGNAL() {
 	 * shorting due to melting on re-entry. All data is copied into a backup
 	 * directory.
 	 */
-	fprintf(stdout, "Signal Received: SODS\n");
-	Cam.stopVideo();
-	ethernet_stream.close_pipes();
-	ImP_stream.close_pipes();
+	Log("INFO") << "SODS signal received";
+	if (Cam.is_running()) {
+		Cam.stopVideo();
+		Log("INFO") << "Stopping camera process";
+	} else {
+		Log("ERROR") << "Camera process died prematurely or did not start";
+	}
+
+	if (&ethernet_stream != NULL) {
+		ethernet_stream.close_pipes();
+		Log("INFO") << "Closed Ethernet communication";
+	} else {
+		Log("ERROR") << "Ethernet process died prematurely or did not start";
+	}
+	if (&ImP_stream != NULL) {
+		ImP_stream.close_pipes();
+		Log("INFO") << "Closed ImP communication";
+	} else {
+		Log("ERROR") << "ImP process died prematurely or did not start";
+	}
+	digitalWrite(BURNWIRE, 0);
+	digitalWrite(BURNWIRE, 0);
+	// TODO copy data to a further backup directory
+	Log("INFO") << "Ending program, Pi rebooting";
+	system("sudo reboot");
 	return 0;
 }
 
@@ -98,44 +128,47 @@ int SOE_SIGNAL() {
 	 * boom has reached it's full length or something has gone wrong and the
 	 * count of the encoder is sent to ground.
 	 */
-	fprintf(stdout, "Signal Received: SOE\n");
+	Log("INFO") << "SOE signal received";
 	// Setup the ImP and start requesting data
-	ImP_stream = ImP.startDataCollection("Docs/Data/Pi2/test");
-	char buf[256]; // Buffer for reading data from the IMU stream
-	// Trigger the burn wire!
+	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/test");
+	Log("INFO") << "Started data collection from ImP";
+	comms::Packet p; // Buffer for reading data from the IMU stream
+	// Trigger the burn wire for 10 seconds!
+	Log("INFO") << "Triggering burnwire";
 	digitalWrite(BURNWIRE, 1);
-	unsigned int start = millis();
-	fprintf(stdout, "Triggering burn wire...");
-	fflush(stdout);
-	while (1) {
-		unsigned int time = millis() - start;
-		fprintf(stdout, "%d ms ", time);
-		fflush(stdout);
-		if (time > 6000) break;
+	Timer tmr;
+	Log("INFO") << "Burn wire triggered" << std::endl;
+	while (tmr.elapsed() < 10000) {
 		// Get ImP data
-		int n = ImP_stream.binread(buf, 255);
+		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			buf[n] = '\0';
-			fprintf(stdout, "DATA: %s\n", buf);
-			ethernet_stream.binwrite(buf, n);
+			Log("DATA (ImP)") << p;
+			ethernet_stream.binwrite(&p, sizeof (p));
 		}
-		delay(100);
+
+		n = ethernet_stream.binread(&p, sizeof (p));
+		if (n > 0)
+			Log("DATA (PI1)") << p;
+		Timer::sleep_ms(10);
 	}
 	digitalWrite(BURNWIRE, 0);
-
+	Log("INFO") << "Burn wire off after " << tmr.elapsed() << " ms";
+	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
 	while (!signal_received) {
-		delay(10);
 		signal_received = poll_input(SODS);
 		// Read data from IMU_data_stream and echo it to Ethernet
-		char buf[256];
-		int n = ImP_stream.binread(buf, 255);
+		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
-			buf[n] = '\0';
-			fprintf(stdout, "DATA: %s\n", buf);
-			ethernet_stream.binwrite(buf, n);
+			Log("DATA (ImP)") << p;
+			ethernet_stream.binwrite(&p, sizeof (p));
 		}
+
+		n = ethernet_stream.binread(&p, sizeof (p));
+		if (n > 0)
+			Log("DATA (PI1)") << p;
+		Timer::sleep_ms(10);
 	}
 	return SODS_SIGNAL();
 }
@@ -146,13 +179,14 @@ int LO_SIGNAL() {
 	 * are set to start recording video and we then wait to receive the 'Start
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
-	fprintf(stdout, "Signal Received: LO\n");
+	Log("INFO") << "LO signal received";
 	Cam.startVideo("Docs/Video/rexus_video");
+	Log("INFO") << "Camera started recording video";
 	// Poll the SOE pin until signal is received
-	fprintf(stdout, "Waiting for SOE signal...\n");
+	Log("INFO") << "Waiting for SOE";
 	bool signal_received = false;
 	while (!signal_received) {
-		delay(10);
+		Timer::sleep_ms(10);
 		signal_received = poll_input(SOE);
 		// TODO Implement communications with RXSM
 	}
@@ -166,9 +200,11 @@ int main() {
 	 * required tests, regularly reporting status until the LO Signal is
 	 * received.
 	 */
+	signal(SIGINT, signal_handler);
 	// Create necessary directories for saving files
-	fprintf(stdout, "Pi 2 is alive and running.\n");
-	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video");
+	system("mkdir -p Docs/Data/Pi1 Docs/Data/Pi2 Docs/Data/test Docs/Video Docs/Logs");
+	Log.start_log();
+	Log("INFO") << "Pi2 is alive";
 	wiringPiSetup();
 	// Setup main signal pins
 	pinMode(LO, INPUT);
@@ -178,49 +214,44 @@ int main() {
 	pinMode(SODS, INPUT);
 	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, OUTPUT);
-
+	Log("INFO") << "Main signal pins setup";
 	// Setup pins and check whether we are in flight mode
-	pinMode(LAUNCH_MODE_OUT, OUTPUT);
-	pinMode(LAUNCH_MODE_IN, INPUT);
-	pullUpDnControl(LAUNCH_MODE_IN, PUD_DOWN);
-	digitalWrite(LAUNCH_MODE_OUT, 1);
-	flight_mode = digitalRead(LAUNCH_MODE_IN);
+	pinMode(LAUNCH_MODE, INPUT);
+	pullUpDnControl(LAUNCH_MODE, PUD_UP);
+	flight_mode = digitalRead(LAUNCH_MODE);
+	Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 
 	// Setup Burn Wire
 	pinMode(BURNWIRE, OUTPUT);
 
 	// Setup server and wait for client
 	digitalWrite(ALIVE, 1);
-	ethernet_stream = ethernet_comms.run("Docs/Data/Pi1/backup.txt");
-	fprintf(stdout, "Waiting for LO signal...\n");
-
+	Log("INFO") << "Waiting for connection from client on port " << port_no;
+	try {
+		ethernet_stream = ethernet_comms.run("Docs/Data/Pi1/backup.txt");
+	} catch (EthernetException e) {
+		Log("FATAL") << "Unable to connect to pi 1";
+		signal_handler(-5);
+	}
+	Log("INFO") << "Connection to Pi1 successfil";
+	Log("INFO") << "Waiting for LO signal";
 	// Check for LO signal.
 	std::string msg;
 	bool signal_received = false;
+	comms::Packet p;
+	comms::byte1_t id;
+	comms::byte2_t index;
+	char data[16];
 	while (!signal_received) {
-		delay(10);
+		Timer::sleep_ms(10);
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
-		msg = ethernet_stream.strread();
-		switch (msg[0]) {
-			case 'M': // For message
-				switch (msg) {
-					case "Mt": // For test
-						// TODO create function for tests
-						//std::string result = run_tests();
-						break;
-					case "Mr": // For reset
-						system("sudo reboot");
-						break;
-					case "Me": // For exit
-						signal_handler();
-						break;
-				}
-				break;
-			case 'D': // For data
-				break;
-			default:
-				fprintf(stdout, "Received Unidentified Message");
+		int n = ethernet_stream.binread(&p, sizeof (p));
+		if (n > 0) {
+			Log("DATA (PI1)") << p;
+			comms::Protocol::unpack(p, id, index, data);
+			Log("DATA (PI1)") << "Unpacked\n\t\"" << std::string(data) << "\"";
+			//TODO handle incoming commands!
 		}
 	}
 	LO_SIGNAL();

@@ -3,13 +3,15 @@
 
 #include <cstdio>
 #include "packet.h"
+#include <iostream>
+#include <cstring>
 
 #define CRC16_GEN_BUYPASS (0x8005)
 #define CRC16_GEN_XMODEM (0x1021)
 #define CRC16_GEN_DECTX (0x0589)
 #define CRC16_GEN_T10DIFF (0x8BB7)
 
-namespace rfcom {
+namespace comms {
 
 	//_Tc --- data type of the CRC generator.
 	//CRC generator must not contain leading zeros.
@@ -48,6 +50,34 @@ namespace rfcom {
 		   boolean, indicates the buffer can be correctly decoded.
 		 */
 		static bool cobsDecode(byte1_t* pos, size_t len, byte1_t delim);
+
+		/**
+			Try to pack up the data.
+			@params
+			p: address of packet for data to be packed into.
+			id: id of the packet
+			index: index of the packet
+			p_data: starting position of data buffer.
+			@return
+			0: Success.
+			-1: invalid id.
+		 */
+		static int pack(Packet &p, byte1_t id, byte2_t index, void* p_data);
+
+		/**
+		   Try to unpack a packet.
+		   @params
+		   p: packet to be unpacked
+		   id: the reference of ID.
+		   index: the reference packet index.
+		   p_data: starting position of data buffer.
+		   len: the actual length of buffer. Depends on ID
+		   @return
+		   0: Success.
+		   -1: COBS decode failure.
+		   -2: CRC mismatch.
+		 */
+		static int unpack(Packet &p, byte1_t& id, byte2_t& index, void* p_data);
 	};
 }
 

@@ -10,20 +10,25 @@
 #include <stdlib.h>
 #include <string>
 #include <error.h>
-#include "pipes/pipes.h"
-#include "packing/radiocom.h"
+#include "comms/pipes.h"
+#include "comms/transceiver.h"
+
+#include "logger/logger.h"
 
 #ifndef UART_H
 #define UART_H
 
-class UART : public {
-	Pipe m_pipes;
+class UART {
+protected:
 	int uart_filestream;
-	int m_pid;
+
+private:
+	int _baudrate;
 
 public:
 
-	UART() {
+	UART(int baudrate) {
+		_baudrate = baudrate;
 		setupUART();
 	}
 
@@ -32,23 +37,50 @@ public:
 	 */
 	void setupUART();
 
-	/**
-	 * Send bytes over UART connection.
-	 *
-	 * @param buf: Buffer containing the bytes to be sent
-	 * @param n: Number of bytes to send
-	 * @return The number of bytes read
-	 */
-	int sendBytes(const void *buf, int n);
+	~UART();
+};
 
-	/**
-	 * Get bytes over the UART connection
-	 *
-	 * @param buf: Buffer for receiving the bytes
-	 * @param n: Maximum number of bytes to read
-	 * @return The number of bytes read
-	 */
-	int getBytes(void *buf, int n);
+class RXSM : public UART, public comms::Transceiver {
+	Logger Log;
+	int _index = 0;
+	comms::Pipe _pipes;
+	int _pid = 0;
+
+public:
+
+	RXSM(int baudrate = 38400) : UART(baudrate), comms::Transceiver(uart_filestream), Log("/Docs/Logs/RXSM") {
+		Log.start_log();
+		Log("INFO") << "Creating RXSM object";
+		return;
+	}
+
+	int sendMsg(std::string msg);
+
+	int sendPacket(comms::Packet &p);
+
+	int recvPacket(comms::Packet &p);
+
+	~RXSM() {
+		Log("INFO") << "Destroying RXSM object";
+	}
+
+	void buffer();
+
+	void end_buffer();
+
+};
+
+class ImP : public UART {
+	Logger Log;
+	comms::Pipe _pipes;
+	int _pid;
+
+public:
+
+	ImP(int baudrate = 230400) : UART(baudrate), Log("/Docs/Logs/ImP") {
+		Log.start_log();
+		return;
+	}
 
 	/**
 	 * Collect and save data from the ImP. Returned pipe receives all data from
@@ -57,7 +89,7 @@ public:
 	 * @param filename: Place to save data
 	 * @return Pipe for sending and receiving data.
 	 */
-	Pipe startDataCollection(const std::string filename);
+	comms::Pipe startDataCollection(const std::string filename);
 
 	/**
 	 * Stop the process collecting data.
@@ -70,15 +102,15 @@ class UARTException {
 public:
 
 	UARTException(std::string error) {
-		m_error = error + " :" + std::strerror(errno);
+		_error = error + " :" + std::strerror(errno);
 	}
 
 	const char * what() {
-		return m_error.c_str();
+		return _error.c_str();
 	}
 
 private:
-	std::string m_error;
+	std::string _error;
 };
 
 #endif /* UART_H */

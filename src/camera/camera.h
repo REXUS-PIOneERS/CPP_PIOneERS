@@ -13,15 +13,20 @@
 #include <unistd.h>
 #include <string>
 
+#include "logger/logger.h"
+
 class PiCamera {
 	pid_t camera_pid = 0;
+	Logger log;
 
 public:
 
 	/**
 	 * Default constructor for the PiCamera class
 	 */
-	PiCamera() {
+	PiCamera() : log("/Docs/Logs/camera") {
+		log.start_log();
+		log("INFO") << "Camera created";
 	}
 
 	/**
@@ -35,6 +40,12 @@ public:
 	 * Stop the video recording by sending a USR1 signal
 	 */
 	void stopVideo();
+
+	/**
+	 * Check whether the camera is running.
+	 * @return ture or false
+	 */
+	bool is_running();
 };
 
 
