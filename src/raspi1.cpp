@@ -125,6 +125,7 @@ void signal_handler(int s) {
  */
 int SODS_SIGNAL() {
 	Log("INFO") << "SODS signal received";
+	std::cout << "SODS received" << std::endl;
 	REXUS.sendMsg("SODS received");
 	if (Cam.is_running()) {
 		Cam.stopVideo();
@@ -165,6 +166,7 @@ int SODS_SIGNAL() {
  */
 int SOE_SIGNAL() {
 	Log("INFO") << "SOE signal received";
+	std::cout << "SOE received" << std::endl;
 	REXUS.sendMsg("SOE received");
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
@@ -253,6 +255,7 @@ int SOE_SIGNAL() {
  * of Experiment' signal (when the nose-cone is ejected)
  */
 int LO_SIGNAL() {
+	std::cout << "LO Recevied" << std::endl;
 	Log("INFO") << "LO signal received";
 	REXUS.sendMsg("LO received");
 	Cam.startVideo("Docs/Video/rexus_video");
@@ -285,6 +288,7 @@ int main(int argc, char* argv[]) {
 	Log.start_log();
 	REXUS.buffer();
 	Log("INFO") << "Pi 1 is running";
+	std::cout << "Pi 1 is running";
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
@@ -297,7 +301,7 @@ int main(int argc, char* argv[]) {
 	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
-	Log("INFO") << "Main signal pins setup";
+	Log("INFO") << "Main signal pins setup" << std::endl;
 
 	// Setup pins and check whether we are in flight mode
 	pinMode(LAUNCH_MODE, INPUT);
@@ -326,11 +330,13 @@ int main(int argc, char* argv[]) {
 				<< "\"";
 		signal_handler(-5);
 	}
+	std::cout << "Ethernet connected" << std::endl;
 	// TODO handle error where we can't connect to the server
 	Log("INFO") << "Ethernet connection successful";
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Ethernet connected");
 	REXUS.sendMsg("Waiting for LO");
+	std::cout << "Waiting for LO" << std::endl;
 	// Wait for LO signal
 	bool signal_received = false;
 	while (!signal_received) {

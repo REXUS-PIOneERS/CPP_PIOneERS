@@ -84,6 +84,9 @@ $(TESTOUT): $(TESTOBJS)
 boom_test: ./src/boom_test.cpp
 	$(CC) $(CFLAGS) -o &@ &^ &(TESTINC)
 
+imp_example: ./src/imp_example.cpp
+	$(CC) $(CFLAGS) -o $@ $^ $(TESTINC)
+
 # clean
 clean:
 	@echo "Cleaning..."
