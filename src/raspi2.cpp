@@ -53,7 +53,7 @@ bool poll_input(int pin) {
 		count += digitalRead(pin);
 		delayMicroseconds(200);
 	}
-	return (count < 3) ? true : false;
+	return (count > 2) ? true : false;
 }
 
 void signal_handler(int s) {
@@ -208,11 +208,11 @@ int main() {
 	wiringPiSetup();
 	// Setup main signal pins
 	pinMode(LO, INPUT);
-	pullUpDnControl(LO, PUD_UP);
+	pullUpDnControl(LO, PUD_DOWN);
 	pinMode(SOE, INPUT);
-	pullUpDnControl(SOE, PUD_UP);
+	pullUpDnControl(SOE, PUD_DOWN);
 	pinMode(SODS, INPUT);
-	pullUpDnControl(SODS, PUD_UP);
+	pullUpDnControl(SODS, PUD_DOWN);
 	pinMode(ALIVE, OUTPUT);
 	Log("INFO") << "Main signal pins setup";
 	// Setup pins and check whether we are in flight mode
