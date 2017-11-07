@@ -58,7 +58,7 @@ bool poll_input(int pin) {
 		count += digitalRead(pin);
 		delayMicroseconds(200);
 	}
-	return (count < 3) ? true : false;
+	return (count > 2) ? true : false;
 }
 
 
@@ -288,7 +288,7 @@ int main(int argc, char* argv[]) {
 	Log.start_log();
 	REXUS.buffer();
 	Log("INFO") << "Pi 1 is running";
-	std::cout << "Pi 1 is running";
+	std::cout << "Pi 1 is running" << std::endl;
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
