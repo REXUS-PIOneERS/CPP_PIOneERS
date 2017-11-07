@@ -81,6 +81,9 @@ $(TESTOUT): $(TESTOBJS)
 ./build/IMU_Tests.o: $(IMUTESTSRC)
 	$(CC) $(CFLAGS) -o $@ $^ $(TESTINC)
 
+boom_test: ./src/boom_test.cpp
+	$(CC) $(CFLAGS) -o &@ &^ &(TESTINC)
+
 # clean
 clean:
 	@echo "Cleaning..."

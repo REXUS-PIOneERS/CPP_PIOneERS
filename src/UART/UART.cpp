@@ -177,6 +177,13 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					// Wait for data to come through
 					while (1) {
 						int n = ImP_comms.recvBytes(buf, 255);
+						if (n > 0) {
+							buf[n] = '\0';
+							outf << buf << std::endl;
+							_pipes.binwrite(buf, n);
+							ImP_comms.sendBytes("N", 1);
+						}
+						tmr.sleep_ms(10);
 						/*
 						 * It is assumed that the data is received in the following format
 						 * Byte 1-6 Accelerometer (x, y, z)
@@ -185,6 +192,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 						 * Byte 19-22 time
 						 * Byte 23-24 ImP Measurement
 						 */
+						/*
 						if (n > 0) {
 							comms::Packet p1;
 							comms::Packet p2;
@@ -205,10 +213,12 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 							Log("DATA (SENT)") << "N";
 							break;
 						}
+						 */
 					}
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);
 				}
+				outf.close();
 			}
 		} else {
 			return _pipes;
