@@ -190,7 +190,7 @@ int SOE_SIGNAL() {
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
 		// Keep checking the encoder count till it reaches the required amount.
-		while (count < 10000) {
+		while (count < 21000) {
 			// Lock is used to keep everything thread safe
 			piLock(1);
 			diff = encoder_count - count;
