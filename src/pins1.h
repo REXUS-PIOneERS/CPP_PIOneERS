@@ -12,7 +12,7 @@
 
 // Signals for main logic control
 #define LO    29
-#define SOE    23
+#define SOE    28
 #define SODS   27
 #define LAUNCH_MODE  11
 
