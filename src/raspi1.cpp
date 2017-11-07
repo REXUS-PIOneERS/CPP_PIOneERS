@@ -294,11 +294,11 @@ int main(int argc, char* argv[]) {
 	wiringPiSetup();
 	// Setup main signal pins
 	pinMode(LO, INPUT);
-	pullUpDnControl(LO, PUD_UP);
+	pullUpDnControl(LO, PUD_DOWN);
 	pinMode(SOE, INPUT);
-	pullUpDnControl(SOE, PUD_UP);
+	pullUpDnControl(SOE, PUD_DOWN);
 	pinMode(SODS, INPUT);
-	pullUpDnControl(SODS, PUD_UP);
+	pullUpDnControl(SODS, PUD_DOWN);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
 	Log("INFO") << "Main signal pins setup" << std::endl;
