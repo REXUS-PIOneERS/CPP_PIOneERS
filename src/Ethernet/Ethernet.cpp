@@ -193,6 +193,7 @@ comms::Pipe Server::run(std::string filename) {
 	// Fork a process to handle server stuff
 	Log("INFO") << "Starting data sharing with client";
 	try {
+		setup();
 		m_pipes = comms::Pipe();
 		Log("INFO") << "Waiting for client connection";
 		_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &m_clilen);

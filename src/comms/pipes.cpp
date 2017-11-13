@@ -60,9 +60,9 @@ namespace comms {
 		// We'll handle pipe problems ourself!
 		signal(SIGPIPE, SIG_IGN);
 		if (pipe(m_pipes1))
-			throw PipeException("ERROR making pipes");
+			return -1; // Error making pipes
 		if (pipe(m_pipes2))
-			throw PipeException("ERROR making pipes");
+			return -1; // Error making pipes
 		m_ch_read = m_pipes1[0];
 		m_par_write = m_pipes1[1];
 		m_par_read = m_pipes2[0];
@@ -99,25 +99,26 @@ namespace comms {
 		// Write n bytes of data to the pipe.
 		int fd = getWritefd();
 		if (fd < 0)
-			throw PipeException("ERROR process not forked");
+			return -1; // process not forked
 		if (!poll_write(fd))
-			throw PipeException("ERROR pipe unavailable for write");
+			return -2; // pipe unavailable for write
 		if (n == write(fd, data, n))
 			return n;
 		else
-			throw PipeException("ERROR writing to pipe");
+			return -3; // error writing to pipe
 	}
 
 	int Pipe::binread(void* data, int n) {
 		// Reads upto n bytes into the character array, returns number of bytes read
 		int fd = getReadfd();
 		if (fd < 0)
-			throw PipeException("ERROR process not forked");
+			return -1; // Process not forked
+		throw PipeException("ERROR process not forked");
 		if (!poll_read(fd))
 			return 0;
 		int bytes_read = read(fd, data, n);
 		if (bytes_read == -1)
-			throw PipeException("ERROR reading from pipe");
+			return -3; // Error reading from pipe
 		else
 			return bytes_read;
 	}

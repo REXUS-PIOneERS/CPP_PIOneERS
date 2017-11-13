@@ -37,7 +37,6 @@ public:
 	 */
 	Server(const int port) : _port(port), Log("/Docs/Logs/server") {
 		Log.start_log();
-		setup();
 	}
 
 	/**
