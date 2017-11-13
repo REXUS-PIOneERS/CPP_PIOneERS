@@ -321,20 +321,20 @@ int main(int argc, char* argv[]) {
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	while (!digitalRead(ALIVE))
 		Timer::sleep_ms(10);
-	Log("INFO") << "INFO: Trying to establish Ethernet connection with " << server_name;
+	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
 	// Try to connect to Pi 2
 	try {
 		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
+		std::cout << "Ethernet connected" << std::endl;
+		Log("INFO") << "Ethernet connection successful";
+		REXUS.sendMsg("Ethernet connected");
 	} catch (EthernetException e) {
-		Log("FATAL") << "FATAL: Ethernet connection failed with error\n\t\"" << e.what()
+		Log("ERROR") << "Ethernet connection failed with error\n\t\"" << e.what()
 				<< "\"";
-		signal_handler(-5);
+		Log("INFO") << "Continuing without Ethernet communications";
 	}
-	std::cout << "Ethernet connected" << std::endl;
-	// TODO handle error where we can't connect to the server
-	Log("INFO") << "Ethernet connection successful";
+	// TODO should we try to reconnect to server?
 	Log("INFO") << "Waiting for LO";
-	REXUS.sendMsg("Ethernet connected");
 	REXUS.sendMsg("Waiting for LO");
 	std::cout << "Waiting for LO" << std::endl;
 	// Wait for LO signal

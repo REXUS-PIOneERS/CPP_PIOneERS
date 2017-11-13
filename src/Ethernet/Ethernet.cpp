@@ -223,11 +223,6 @@ comms::Pipe Server::run(std::string filename) {
 				Timer::sleep_ms(10);
 
 			}
-			outf.close();
-			close(_newsockfd);
-			close(_sockfd);
-			m_pipes.close_pipes();
-			exit(0);
 		} else {
 			// This is the main parent process
 			return m_pipes;
