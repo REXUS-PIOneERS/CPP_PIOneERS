@@ -58,7 +58,7 @@ bool poll_input(int pin) {
 		count += digitalRead(pin);
 		delayMicroseconds(200);
 	}
-	return (count > 2) ? true : false;
+	return (count < 3) ? true : false;
 }
 
 
@@ -294,11 +294,11 @@ int main(int argc, char* argv[]) {
 	wiringPiSetup();
 	// Setup main signal pins
 	pinMode(LO, INPUT);
-	pullUpDnControl(LO, PUD_DOWN);
+	pullUpDnControl(LO, PUD_UP);
 	pinMode(SOE, INPUT);
-	pullUpDnControl(SOE, PUD_DOWN);
+	pullUpDnControl(SOE, PUD_UP);
 	pinMode(SODS, INPUT);
-	pullUpDnControl(SODS, PUD_DOWN);
+	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
 	Log("INFO") << "Main signal pins setup" << std::endl;
