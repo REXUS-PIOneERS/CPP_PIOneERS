@@ -281,13 +281,14 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			comms::byte1_t data[22];
 			int intv = 200;
 			Timer measurement_time;
+			std::string measurement_start = measurement_time.str_datetime();
 			// Infinite loop for taking measurements
 			Log("INFO") << "Starting loop for taking measurements";
 			for (int j = 0;; j++) {
 				// Open the file for saving data
 				std::ofstream outf;
 				char unique_file[50];
-				sprintf(unique_file, "%s%04d.txt", filename, j);
+				sprintf(unique_file, "%s_%s%04d.txt", measurement_start.c_str(), filename, j);
 				Log("INFO") << "Opening new file for writing data \"" <<
 						unique_file << "\"";
 				outf.open(unique_file);

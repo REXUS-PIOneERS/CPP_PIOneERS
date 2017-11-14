@@ -15,6 +15,7 @@
 #include <cstring>
 #include <sys/wait.h>
 #include <string>
+#include "timing/timer.h"
 #include <error.h>
 
 void PiCamera::startVideo(std::string filename) {
@@ -23,7 +24,7 @@ void PiCamera::startVideo(std::string filename) {
 		log("INFO") << "Starting camera recording video";
 		// raspivid -n -t 10 -s -o rexus_video%04d.h264 -sg 5000 -g 25 -w 1920 -h 1080 -fps 25
 		char unique_file[50];
-		sprintf(unique_file, "%s%%04d.h264", filename.c_str());
+		sprintf(unique_file, "%s_%s%%04d.h264", Timer.str_datetime().c_str(), filename.c_str());
 		char* cmd[] = {
 			"raspivid",
 			"-n",
