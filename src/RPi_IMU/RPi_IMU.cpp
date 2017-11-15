@@ -288,7 +288,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				// Open the file for saving data
 				std::ofstream outf;
 				char unique_file[50];
-				sprintf(unique_file, "%s_%s%04d.txt", measurement_start.c_str(), filename, j);
+				sprintf(unique_file, "%s_%s%04d.txt", filename, measurement_start.c_str(), j);
 				Log("INFO") << "Opening new file for writing data \"" <<
 						unique_file << "\"";
 				outf.open(unique_file);
