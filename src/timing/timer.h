@@ -27,7 +27,7 @@ public:
 	 * Return date-time in the format y-m-dTh:m:s
 	 * @return string representing date and time
 	 */
-	std::string str_datetime() {
+	static std::string str_datetime() {
 		std::time_t tt = std::chrono::system_clock::to_time_t(clock_::now());
 		std::tm tm = {0};
 		gmtime_r(&tt, &tm);
