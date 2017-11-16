@@ -27,6 +27,8 @@
 #include <string>
 #include "timing/timer.h"
 #include <fstream>  //For writing to files
+#include <sstream>
+#include <iomanip>
 
 // Includes for I2c
 #include <linux/i2c-dev.h>
@@ -287,11 +289,12 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			for (int j = 0;; j++) {
 				// Open the file for saving data
 				std::ofstream outf;
-				char unique_file[50];
-				sprintf(unique_file, "%s_%s%04d.txt", filename, measurement_start.c_str(), j);
+				std::stringstream unique_file;
+				unique_file << filename << "_" << measurement_start << "_"
+						<< std::setfill('0') << std::setw(4) << j;
 				Log("INFO") << "Opening new file for writing data \"" <<
-						unique_file << "\"";
-				outf.open(unique_file);
+						unique_file.str() << "\"";
+				outf.open(unique_file.str());
 				// Take 5 measurements i.e. 1 seconds worth of data
 				for (int i = 0; i < 5; i++) {
 					Timer tmr;

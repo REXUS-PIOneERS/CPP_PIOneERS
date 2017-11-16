@@ -8,6 +8,7 @@
 
 #include <sstream>
 #include <string>
+#include <iomanip>
 
 class Timer {
 public:
@@ -24,7 +25,7 @@ public:
 	}
 
 	/**
-	 * Return date-time in the format y-m-dTh:m:s
+	 * Return date-time in the format YY-MM-DDThhmmss
 	 * @return string representing date and time
 	 */
 	static std::string str_datetime() {
@@ -32,8 +33,8 @@ public:
 		std::tm tm = {0};
 		gmtime_r(&tt, &tm);
 		std::stringstream ss;
-		ss << tm.tm_year - 100 << "-" << tm.tm_mon << "-" << tm.tm_mday << "T" <<
-				tm.tm_hour << ":" << tm.tm_min << ":" << tm.tm_sec;
+		ss << std::setfill('0') << std::setw(2) << tm.tm_year - 100 << "-" << tm.tm_mon << "-" << tm.tm_mday << "T" <<
+				tm.tm_hour << tm.tm_min << tm.tm_sec;
 		return ss.str();
 	}
 
