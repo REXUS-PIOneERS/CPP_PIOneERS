@@ -46,7 +46,18 @@ namespace comms {
 
 	int Transceiver::recvPacket(Packet *p) {
 		if (poll_read(_fd_recv)) {
-			int n = read(_fd_recv, (void*) p, sizeof (Packet));
+			uint8_t ch = 0;
+			int n = 0;
+			int i = 0;
+			uint8_t packet[24];
+			// Read one character at a time until 0 is found
+			while ((n = read(_fd_recv, ch, 1)) > 0) {
+				packet[i++] = ch;
+				if ((ch != 0) && (i != 0)) break;
+			}
+			if (n < 0) return n; // There was an error somewhere
+			if (i > 24) return -4; // Too much data for a packet...
+			std::memcpy(p, packet, --i);
 			return n;
 		}
 		return 0;

@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <fstream> //for std::ofstream
+#include <sstream> //for std::stringstream
 #include <iostream>  //for std::endl
 
 #include <string>
@@ -149,7 +150,9 @@ comms::Pipe Client::run(std::string filename) {
 			Log.child_log();
 			comms::Transceiver eth_comms(_sockfd);
 			std::ofstream outf;
-			outf.open(filename);
+			std::stringstream outf_name;
+			outf_name << filename << "_" << Timer::str_datetime();
+			outf.open(outf_name.str());
 			comms::Packet p;
 			while (1) {
 				// Exchange packets (no analysis of contents)
@@ -208,6 +211,8 @@ comms::Pipe Server::run(std::string filename) {
 			Log.child_log();
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
+			std::stringstream outf_name;
+			outf_name << filename << "_" << Timer::str_datetime();
 			outf.open(filename);
 			comms::Packet p;
 			while (1) {

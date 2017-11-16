@@ -58,7 +58,7 @@ bool poll_input(int pin) {
 		count += digitalRead(pin);
 		delayMicroseconds(200);
 	}
-	return (count > 2) ? true : false;
+	return (count < 3) ? true : false;
 }
 
 
@@ -190,7 +190,7 @@ int SOE_SIGNAL() {
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
 		// Keep checking the encoder count till it reaches the required amount.
-		while (count < 21000) {
+		while (count < 19500) {
 			// Lock is used to keep everything thread safe
 			piLock(1);
 			diff = encoder_count - count;
@@ -219,8 +219,8 @@ int SOE_SIGNAL() {
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
-		double dist = 0.1256 * (count / 600);
-		Log("INFO") << "Boom deployed to " << dist << " m";
+		double dist = 0.0833 * (count / 1000);
+		Log("INFO") << "Boom deployed to approx: " << dist << " m";
 		std::stringstream ss;
 		ss << "Boom deployed to " << dist << " m";
 		REXUS.sendMsg(ss.str());
@@ -294,11 +294,11 @@ int main(int argc, char* argv[]) {
 	wiringPiSetup();
 	// Setup main signal pins
 	pinMode(LO, INPUT);
-	pullUpDnControl(LO, PUD_DOWN);
+	pullUpDnControl(LO, PUD_UP);
 	pinMode(SOE, INPUT);
-	pullUpDnControl(SOE, PUD_DOWN);
+	pullUpDnControl(SOE, PUD_UP);
 	pinMode(SODS, INPUT);
-	pullUpDnControl(SODS, PUD_DOWN);
+	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
 	Log("INFO") << "Main signal pins setup" << std::endl;

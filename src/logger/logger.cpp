@@ -34,16 +34,16 @@ Logger::Logger(std::string filename) {
 void Logger::start_log() {
 	_tmr.reset();
 	std::ostringstream ss;
-	ss << _filename << "_" << _tmr.time() << ".txt";
+	ss << _filename << "_" << Timer::str_datetime() << ".txt";
 	_this_filename = ss.str();
 	_outf.open(_this_filename);
 }
 
 void Logger::child_log() {
 	std::stringstream ss;
-	ss << _filename << "_child_" << _tmr.time() << ".txt";
+	ss << _filename << "_child_" << Timer::str_datetime() << ".txt";
 	_this_filename = ss.str();
-	_outf.open(_this_filename, std::fstream::app);
+	_outf.open(_this_filename);
 }
 
 std::ostream& Logger::operator()(std::string str) {
