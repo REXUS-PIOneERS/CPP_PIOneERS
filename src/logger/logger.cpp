@@ -43,7 +43,7 @@ void Logger::child_log() {
 	std::stringstream ss;
 	ss << _filename << "_child_" << Timer::str_datetime() << ".txt";
 	_this_filename = ss.str();
-	_outf.open(_this_filename, std::fstream::app);
+	_outf.open(_this_filename);
 }
 
 std::ostream& Logger::operator()(std::string str) {
