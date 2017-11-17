@@ -214,7 +214,7 @@ void Raspi1::run(std::string filename) {
 		share_data();
 	} else {
 		// Assign the pipes for the main process and close the un-needed ones
-		return _pipes;
+		return;
 	}
 }
 
