@@ -31,7 +31,7 @@ namespace tests {
 
 	int IMU_test() {
 		int rtn = 0;
-		RPi_IMU IMU();
+		RPi_IMU IMU;
 		if (!IMU.setupAcc())
 			rtn |= 0b00000011;
 		if (!IMU.readAccAxis(1))
@@ -44,12 +44,10 @@ namespace tests {
 		Timer::sleep_ms(500);
 		comms::Packet p;
 		int n = 0;
-		try {
-			for (int i = 0; i < 5; i++) {
-				if (stream.binread(&p, sizeof (p)) == 0)
-					rtn |= 0b00001000;
-				Timer::sleep_ms(200);
-			}
+		for (int i = 0; i < 5; i++) {
+			if (stream.binread(&p, sizeof (p)) <= 0)
+				rtn |= 0b00001000;
+			Timer::sleep_ms(200);
 		}
 		stream.close_pipes();
 		std::fstream f("imutest0001.txt");
@@ -61,7 +59,7 @@ namespace tests {
 	}
 
 	int camera_test() {
-		PiCamera cam = PiCamera();
+		PiCamera cam;
 		cam.startVideo("camtest");
 		Timer::sleep_ms(2500);
 		// Check camera process is running
@@ -71,7 +69,7 @@ namespace tests {
 		cam.stopVideo();
 		// Check files were created
 		std::fstream f("camtest0001.h264");
-		if (f.good) {
+		if (f.good()) {
 			system("sudo rm -rf *.h264");
 			return 0;
 		} else
