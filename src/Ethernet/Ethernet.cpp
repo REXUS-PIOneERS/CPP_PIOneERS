@@ -99,7 +99,7 @@ int Client::open_connection() {
 	return 0;
 }
 
-int Client::close_connection() {
+void Client::close_connection() {
 	Log("INFO") << "Ending connection with server and closing process";
 	if (_sockfd) {
 		close(_sockfd);
@@ -281,8 +281,8 @@ void Raspi2::share_data() {
 			_pipes.close_pipes();
 		} catch (EthernetException e) {
 			_is_running = false;
-			Log("FATAL") << "Problem with Ethernet communication\n\t << e.what();
-					close(_newsockfd);
+			Log("FATAL") << "Problem with Ethernet communication\n\t" << e.what();
+			close(_newsockfd);
 			_pipes.close_pipes();
 			// Allow program to try and reconnect
 		} catch (...) {

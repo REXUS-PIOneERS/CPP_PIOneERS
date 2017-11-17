@@ -16,6 +16,7 @@
 #include <error.h>  // For errno
 
 #include "comms/pipes.h"
+#include "comms/packet.h"
 #include "logger/logger.h"
 
 #ifndef ETHERNET_H
@@ -115,7 +116,7 @@ public:
 	 * Closes connection with the server
 	 * @return 0 = success, otherwise = failure
 	 */
-	int close_connection();
+	void close_connection();
 
 	~Client();
 protected:
