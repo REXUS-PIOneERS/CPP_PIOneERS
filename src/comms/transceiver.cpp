@@ -46,12 +46,12 @@ namespace comms {
 
 	int Transceiver::recvPacket(Packet *p) {
 		if (poll_read(_fd_recv)) {
-			uint8_t ch = 0;
+			byte1_t ch = 0;
 			int n = 0;
 			int i = 0;
-			uint8_t packet[24];
+			byte1_t packet[24];
 			// Read one character at a time until 0 is found
-			while ((n = read(_fd_recv, ch, 1)) > 0) {
+			while ((n = read(_fd_recv, (void*) ch, 1)) > 0) {
 				packet[i++] = ch;
 				if ((ch != 0) && (i != 0)) break;
 			}
