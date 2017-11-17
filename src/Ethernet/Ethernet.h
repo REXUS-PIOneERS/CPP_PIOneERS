@@ -22,13 +22,20 @@
 #define ETHERNET_H
 
 class Server {
+protected:
 	int _sockfd, _newsockfd, _port, _pid;
 	socklen_t m_clilen;
 	struct sockaddr_in _serv_addr, _cli_addr;
+	std::string _filename;
 	Logger Log;
+	comms::Pipe _pipes;
 
+	/**
+	 * Sets up basic variables for creating a server
+	 * @return 0 = success, otherwise = failure
+	 */
+	int setup();
 public:
-	comms::Pipe m_pipes;
 
 	/**
 	 * Constructor for the Server class
@@ -39,33 +46,50 @@ public:
 		Log.start_log();
 	}
 
+	~Server();
+};
+
+class Raspi2 : public Server {
+	bool _is_running = false;
+public:
+
+	Raspi2(const int port) : Server(port) {
+		Log.start_log();
+	}
+
 	/**
 	 * Starts the server running as a child process ready for accepting
 	 * connections from a client.
 	 * @return Pipe class for communication charing data with child process.
 	 */
-	comms::Pipe run(std::string filename);
+	void run(std::string filename);
 
-	~Server();
+	void share_data();
 
-private:
-	/**
-	 * Sets up basic variables for creating a server
-	 * @return 0 = success, otherwise = failure
-	 */
-	int setup();
+	int sendPacket(comms::Packet &p) {
+		return _pipes.binwrite(&p, sizeof (comms::Packet));
+	}
 
+	int recvPacket(comms::Packet &p) {
+		return _pipes.binread(&p, sizeof (comms::Packet));
+	}
+
+	void end() {
+		_pipes.close_pipes();
+	}
 };
 
 class Client {
+protected:
 	int _port, _pid;
 	std::string _host_name;
 	int _sockfd;
 	struct sockaddr_in _serv_addr;
 	struct hostent *_server;
+	std::string _filename;
 	Logger Log;
 public:
-	comms::Pipe m_pipes;
+	comms::Pipe _pipes;
 
 	/**
 	 * Constructor for the Client class
@@ -76,12 +100,6 @@ public:
 	: _port(port), _host_name(host_name), Log("/Docs/Logs/client") {
 		Log.start_log();
 	}
-
-	/**
-	 * Opens a connection with the server as a separate process
-	 * @return Pipe for communication with the process.
-	 */
-	comms::Pipe run(std::string filename);
 
 	/**
 	 * Opens a new connection with the server
@@ -96,12 +114,37 @@ public:
 	int close_connection();
 
 	~Client();
-private:
+protected:
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client
 	 * @return 0 = success, otherwise = failure
 	 */
 	int setup();
+};
+
+class Raspi1 : public Client {
+	bool _is_running;
+public:
+
+	Raspi1(const int port, const std::string host_name) : Server(port) {
+		Log.start_log();
+	}
+
+	void run(std::string filename);
+
+	void share_data();
+
+	int sendPacket(comms::Packet &p) {
+		return _pipes.binwrite(&p, sizeof (comms::Packet));
+	}
+
+	int recvPacket(comms::Packet &p) {
+		return _pipes.binread(&p, sizeof (comms::Packet));
+	}
+
+	void end() {
+		_pipes.close_pipes();
+	}
 };
 
 class EthernetException {

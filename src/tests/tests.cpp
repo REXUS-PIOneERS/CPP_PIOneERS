@@ -24,17 +24,16 @@
 int all_tests() {
 	IMU_test();
 	camera_test();
-	ImP_test();
 	return 0;
 }
 
 int IMU_test() {
 	int rtn = 0;
-	RPi_IMU IMU = RPi_IMU();
+	RPi_IMU IMU();
 	if (!IMU.setupAcc())
-		rtn &= 0b00000011;
+		rtn |= 0b00000011;
 	if (!IMU.readAccAxis(1))
-		rtn &= 0b00000100;
+		rtn |= 0b00000100;
 	// Test multiprocessing
 	IMU.setupGyr();
 	IMU.setupMag();
@@ -46,7 +45,7 @@ int IMU_test() {
 	try {
 		for (int i = 0; i < 5; i++) {
 			if (stream.binread(&p, sizeof (p)) == 0)
-				rtn &= 0b00001000;
+				rtn |= 0b00001000;
 			Timer::sleep_ms(200);
 		}
 	}
@@ -56,7 +55,7 @@ int IMU_test() {
 		system("sudo rm -rf *.txt");
 		return rtn;
 	} else
-		return rtn && 0b00001000;
+		return (rtn | 0b00001000);
 }
 
 int camera_test() {
@@ -65,7 +64,7 @@ int camera_test() {
 	Timer::sleep_ms(2500);
 	// Check camera process is running
 	if (!cam.is_running())
-		return -1;
+		return 1;
 	Timer::sleep_ms(2500);
 	cam.stopVideo();
 	// Check files were created
@@ -74,22 +73,9 @@ int camera_test() {
 		system("sudo rm -rf *.h264");
 		return 0;
 	} else
-		return -2;
+		return 1;
 }
 
 int ImP_test() {
-	return 0;
-}
-
-int motor_turn(int dir, int n) {
-	wiringPiSetup();
-	pinMode(MOTOR_CW, OUTPUT);
-	pinMode(MOTOR_ACW, OUTPUT);
-	switch (dir)
-		case 0:
-		return 0;
-}
-
-int relay_test(int time) {
 	return 0;
 }

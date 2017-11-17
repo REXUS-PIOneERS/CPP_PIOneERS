@@ -23,6 +23,7 @@
 #include "comms/pipes.h"
 #include "comms/protocol.h"
 #include "comms/packet.h"
+#include "tests/tests.h";
 
 #include <wiringPi.h>
 #include "pins1.h"
@@ -75,8 +76,7 @@ comms::Pipe rxsm_stream;
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
 std::string server_name = "raspi2.local";
-comms::Pipe ethernet_stream; // 0 = read, 1 = write
-Client raspi1(port_no, server_name);
+Raspi1 raspi1(port_no, server_name);
 
 /**
  * Handles any SIGINT signals received by the program (i.e. ctrl^c), making sure
@@ -96,7 +96,7 @@ void signal_handler(int s) {
 	}
 
 	if (&ethernet_stream != NULL) {
-		ethernet_stream.close_pipes();
+		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
@@ -135,7 +135,7 @@ int SODS_SIGNAL() {
 	}
 
 	if (&ethernet_stream != NULL) {
-		ethernet_stream.close_pipes();
+		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
@@ -208,10 +208,10 @@ int SOE_SIGNAL() {
 			if (n > 0) {
 				Log("DATA (IMU1)") << p;
 				REXUS.sendPacket(p);
-				ethernet_stream.binwrite(&p, sizeof (p));
+				raspi1.sendPacket(p);
 				Log("INFO") << "Data sent to Ethernet Communications";
 			}
-			n = ethernet_stream.binread(&p, sizeof (p));
+			n = raspi1.recvPacket(p);
 			if (n > 0) {
 				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
@@ -236,10 +236,10 @@ int SOE_SIGNAL() {
 		if (n > 0) {
 			Log("DATA (IMU1)") << p;
 			REXUS.sendPacket(p);
-			ethernet_stream.binwrite(&p, sizeof (p));
+			raspi1.sendPacket(p);
 			Log("INFO") << "Data sent to Ethernet Communications";
 		}
-		n = ethernet_stream.binread(&p, sizeof (p));
+		n = raspi1.recvPacket(p);
 		if (n > 0) {
 			Log("DATA (PI2)") << p;
 			REXUS.sendPacket(p);
@@ -324,7 +324,7 @@ int main(int argc, char* argv[]) {
 	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
 	// Try to connect to Pi 2
 	try {
-		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
+		raspi1.run("Docs/Data/Pi2/backup.txt");
 		std::cout << "Ethernet connected" << std::endl;
 		Log("INFO") << "Ethernet connection successful";
 		REXUS.sendMsg("Ethernet connected");
@@ -339,11 +339,45 @@ int main(int argc, char* argv[]) {
 	std::cout << "Waiting for LO" << std::endl;
 	// Wait for LO signal
 	bool signal_received = false;
+	comms::Packet p;
+	comms::byte1_t id;
+	comms::byte2_t index;
+	comms::byte1_t data[16];
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received
 		signal_received = poll_input(LO);
-		// TODO Implement communications with RXSM
+		// Check for any packets from RXSM
+		int n = REXUS.recvPacket(p);
+		if (n > 0) {
+			REXUS.sendMsg("ACK");
+			Log("RXSM") << p;
+			raspi1.sendPacket(p);
+			comms::Protocol::unpack(p, id, index, data);
+			if (id == 0b11000000) {
+				switch (data[0]) {
+					case 1: // restart
+						Log("INFO") << "Rebooting...";
+						system("sudo reboot now");
+						exit(0);
+					case 2: // shutdown
+						Log("INFO") << "Shutting down...";
+						system("sudo shutdown now");
+						exit(0);
+					case 3: // Toggle flight mode
+						Log("INFO") << "Toggling flight mode";
+						flight_mode = (flight_mode) ? false : true;
+						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
+						if (flight_mode)
+							REXUS.sendMsg("WARNING: Flight mode enabled");
+						else
+							REXUS.sendMsg("Entering test mode");
+						break;
+					case 4: // Run all tests
+						tests::all_tests();
+				}
+			}
+		}
 	}
 	LO_SIGNAL();
 	return 0;
