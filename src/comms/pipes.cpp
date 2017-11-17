@@ -59,8 +59,8 @@ namespace comms {
 	Pipe::Pipe() {
 		// We'll handle pipe problems ourself!
 		signal(SIGPIPE, SIG_IGN);
-		pipe(m_pipes1)
-		pipe(m_pipes2)
+		pipe(m_pipes1);
+		pipe(m_pipes2);
 		m_ch_read = m_pipes1[0];
 		m_par_write = m_pipes1[1];
 		m_par_read = m_pipes2[0];
