@@ -23,7 +23,7 @@
 #include "comms/pipes.h"
 #include "comms/protocol.h"
 #include "comms/packet.h"
-#include "tests/tests.h";
+#include "tests/tests.h"
 
 #include <wiringPi.h>
 #include "pins1.h"
@@ -95,7 +95,7 @@ void signal_handler(int s) {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (&ethernet_stream != NULL) {
+	if (raspi1.is_alive()) {
 		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
@@ -134,7 +134,7 @@ int SODS_SIGNAL() {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (&ethernet_stream != NULL) {
+	if (raspi1.is_alive()) {
 		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {

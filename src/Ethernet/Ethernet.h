@@ -66,6 +66,10 @@ public:
 
 	void share_data();
 
+	bool is_alive() {
+		return _is_running;
+	}
+
 	int sendPacket(comms::Packet &p) {
 		return _pipes.binwrite(&p, sizeof (comms::Packet));
 	}
@@ -126,13 +130,17 @@ class Raspi1 : public Client {
 	bool _is_running;
 public:
 
-	Raspi1(const int port, const std::string host_name) : Server(port) {
+	Raspi1(const int port, const std::string host_name) : Client(port, host_name) {
 		Log.start_log();
 	}
 
 	void run(std::string filename);
 
 	void share_data();
+
+	bool is_alive() {
+		return _is_running;
+	}
 
 	int sendPacket(comms::Packet &p) {
 		return _pipes.binwrite(&p, sizeof (comms::Packet));
