@@ -22,6 +22,7 @@
 #include "comms/packet.h"
 #include "timing/timer.h"
 #include "logger/logger.h"
+#include "tests/tests.h"
 
 #include <wiringPi.h>
 
@@ -264,10 +265,6 @@ int main() {
 						Log("INFO") << "Toggling flight mode";
 						flight_mode = (flight_mode) ? false : true;
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
-						if (flight_mode)
-							REXUS.sendMsg("WARNING: Flight mode enabled");
-						else
-							REXUS.sendMsg("Entering test mode");
 						break;
 					case 4: // Run all tests
 						tests::all_tests();
