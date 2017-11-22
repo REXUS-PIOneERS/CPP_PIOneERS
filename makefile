@@ -2,8 +2,8 @@ TARGET1 = ./bin/raspi1
 TARGET2 = ./bin/raspi2
 
 CC = g++
-PI1OBJS = ./build/raspi1.o ./build/tests.o ./build/logger.o ./build/packet.o ./build/protocol.o ./build/transciever.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
-PI2OBJS = ./build/raspi2.o ./build/tests.o ./build/logger.o ./build/packet.o ./build/protocol.o ./build/transciever.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
+PI1OBJS = ./build/raspi1.o ./build/tests.o ./build/logger.o ./build/packet.o ./build/protocol.o ./build/transceiver.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
+PI2OBJS = ./build/raspi2.o ./build/tests.o ./build/logger.o ./build/packet.o ./build/protocol.o ./build/transceiver.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
 LFLAGS = -Wall
 CFLAGS = -Wall -c -std=c++11
 INCLUDES = -lwiringPi -I/home/pi/CPP_PIOneERS/src
@@ -56,7 +56,7 @@ $(TARGET2): $(PI2OBJS)
 ./build/protocol.o : $(PROTOSRC)
 	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
 
-./build/transciever.o : $(TRANSRC)
+./build/transceiver.o : $(TRANSRC)
 	$(CC) $(CFLAGS) -o $@ $^ $(INCLUDES)
 
 ./build/pipes.o: $(PIPESRC)
