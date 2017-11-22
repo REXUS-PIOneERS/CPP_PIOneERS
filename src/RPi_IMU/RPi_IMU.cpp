@@ -291,7 +291,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				std::ofstream outf;
 				std::stringstream unique_file;
 				unique_file << filename << "_" << measurement_start << "_"
-						<< std::setfill('0') << std::setw(4) << j;
+						<< std::setfill('0') << std::setw(4) << j << ".txt";
 				Log("INFO") << "Opening new file for writing data \"" <<
 						unique_file.str() << "\"";
 				outf.open(unique_file.str());

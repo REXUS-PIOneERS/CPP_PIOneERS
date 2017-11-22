@@ -96,6 +96,7 @@ int Client::open_connection() {
 		Log("ERROR") << "Request to connect to server failed";
 		throw EthernetException("Failed to connect to server"); // Failed to connect!
 	}
+	Log("INFO") << "Successfully connected to server";
 	return 0;
 }
 
@@ -140,7 +141,7 @@ void Raspi1::share_data() {
 			comms::Transceiver eth_comms(_sockfd);
 			std::ofstream outf;
 			std::stringstream outf_name;
-			outf_name << _filename << "_" << Timer::str_datetime();
+			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
 			outf.open(outf_name.str());
 			comms::Packet p;
 			while (1) {

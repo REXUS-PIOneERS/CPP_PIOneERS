@@ -171,7 +171,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 				std::ofstream outf;
 				std::stringstream unique_file;
 				unique_file << filename << "_" << measurement_start << "_"
-						<< std::setfill('0') << std::setw(4) << j;
+						<< std::setfill('0') << std::setw(4) << j << ".txt";
 				Log("INFO") << "Starting new data file \"" << unique_file.str() << "\"";
 				outf.open(unique_file.str());
 				// Take five measurements then change the file

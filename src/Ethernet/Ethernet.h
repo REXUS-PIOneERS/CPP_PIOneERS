@@ -55,7 +55,6 @@ class Raspi2 : public Server {
 public:
 
 	Raspi2(const int port) : Server(port) {
-		Log.start_log();
 	}
 
 	/**
@@ -132,7 +131,6 @@ class Raspi1 : public Client {
 public:
 
 	Raspi1(const int port, const std::string host_name) : Client(port, host_name) {
-		Log.start_log();
 	}
 
 	void run(std::string filename);
