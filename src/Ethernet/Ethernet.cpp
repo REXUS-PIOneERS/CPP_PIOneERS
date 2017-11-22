@@ -235,7 +235,7 @@ void Raspi2::share_data() {
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
 			std::stringstream outf_name;
-			outf_name << _filename << "_" << Timer::str_datetime();
+			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
 			outf.open(outf_name.str());
 			comms::Packet p;
 			while (1) {
