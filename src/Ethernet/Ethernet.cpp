@@ -142,8 +142,10 @@ void Raspi1::share_data() {
 			std::ofstream outf;
 			std::stringstream outf_name;
 			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
+			Log("INFO") << "Opening backup file: " << outf_name.str();
 			outf.open(outf_name.str());
 			comms::Packet p;
+			Log("INFO") << "Beginning data-sharing loop";
 			while (1) {
 				int n;
 				n = eth_comms.recvPacket(&p);
