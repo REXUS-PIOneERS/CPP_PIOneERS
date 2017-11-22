@@ -111,7 +111,6 @@ namespace comms {
 		int fd = getReadfd();
 		if (fd < 0)
 			return -1; // Process not forked
-		throw PipeException("ERROR process not forked");
 		if (!poll_read(fd))
 			return 0;
 		int bytes_read = read(fd, data, n);
