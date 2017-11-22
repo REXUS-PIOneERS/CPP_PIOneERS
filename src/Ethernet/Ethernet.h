@@ -45,6 +45,7 @@ public:
 	 */
 	Server(const int port) : _port(port), Log("/Docs/Logs/server") {
 		Log.start_log();
+		Log("INFO") << "Log started by server";
 	}
 
 	~Server();
@@ -103,6 +104,7 @@ public:
 	Client(const int port, const std::string host_name)
 	: _port(port), _host_name(host_name), Log("/Docs/Logs/client") {
 		Log.start_log();
+		Log("INFO") << "Log started by client";
 	}
 
 	/**
