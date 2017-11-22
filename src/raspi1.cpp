@@ -324,7 +324,7 @@ int main(int argc, char* argv[]) {
 	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
 	// Try to connect to Pi 2
 	try {
-		raspi1.run("Docs/Data/Pi2/backup.txt");
+		raspi1.run("Docs/Data/Pi2/backup");
 		std::cout << "Ethernet connected" << std::endl;
 		Log("INFO") << "Ethernet connection successful";
 		REXUS.sendMsg("Ethernet connected");

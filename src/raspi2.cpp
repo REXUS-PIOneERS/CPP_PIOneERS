@@ -228,7 +228,7 @@ int main() {
 	digitalWrite(ALIVE, 1);
 	Log("INFO") << "Waiting for connection from client on port " << port_no;
 	try {
-		raspi2.run("Docs/Data/Pi1/backup.txt");
+		raspi2.run("Docs/Data/Pi1/backup");
 	} catch (EthernetException e) {
 		Log("FATAL") << "Unable to connect to pi 1";
 		signal_handler(-5);
