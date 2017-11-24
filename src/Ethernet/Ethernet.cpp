@@ -222,9 +222,9 @@ void Raspi1::run(std::string filename) {
 }
 
 void Raspi2::share_data() {
+	setup();
 	while (1) {
 		try {
-			setup();
 			Log("INFO") << "Waiting for client connection";
 			_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &m_clilen);
 			if (_newsockfd < 0) {
