@@ -380,9 +380,11 @@ int main(int argc, char* argv[]) {
 							REXUS.sendMsg("Tests Failed");
 						else
 							REXUS.sendMsg("Tests Passed");
+						break;
 					default:
 						REXUS.sendMsg("Not Recognised");
 						Log("ERROR") << "Command not recognised" << data[0];
+						break;
 				}
 			}
 		}
