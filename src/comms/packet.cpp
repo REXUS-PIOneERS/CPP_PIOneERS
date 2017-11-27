@@ -8,7 +8,7 @@ namespace comms {
 		o << "ID: " << (int) p.ID << " Index: " << p.index << " Data: ";
 		if (p.ID == ID_MSG1) {
 			for (int i = 0; i < 16; i++)
-				o << p.data[i];
+				o << (char) p.data[i];
 		} else {
 			for (int i = 0; i < 16; i++)
 				o << (int) p.data[i] << ',';

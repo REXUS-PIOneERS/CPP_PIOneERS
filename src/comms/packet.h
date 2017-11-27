@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <iostream>
 
-#define crc_poly 0x724E  // Polynomail for calculating checksim
+#define crc_poly 0x8005  // Polynomail for calculating checksim
 
 #define ID_MSG1  0b10010000 // Message from Pi 1
 #define ID_MSG2  0b10100000 // Message from Pi 2
