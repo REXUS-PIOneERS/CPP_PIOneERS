@@ -357,14 +357,19 @@ int main(int argc, char* argv[]) {
 			if (id == 0b11000000) {
 				switch (data[0]) {
 					case 1: // restart
+					{
 						Log("INFO") << "Rebooting...";
 						system("sudo reboot now");
 						exit(0);
+					}
 					case 2: // shutdown
+					{
 						Log("INFO") << "Shutting down...";
 						system("sudo shutdown now");
 						exit(0);
+					}
 					case 3: // Toggle flight mode
+					{
 						Log("INFO") << "Toggling flight mode";
 						flight_mode = (flight_mode) ? false : true;
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
@@ -373,7 +378,9 @@ int main(int argc, char* argv[]) {
 						else
 							REXUS.sendMsg("Entering test mode");
 						break;
+					}
 					case 4: // Run all tests
+					{
 						Log("INFO") << "Running Tests";
 						int result = tests::all_tests();
 						if (result)
@@ -381,10 +388,13 @@ int main(int argc, char* argv[]) {
 						else
 							REXUS.sendMsg("Tests Passed");
 						break;
+					}
 					default:
+					{
 						REXUS.sendMsg("Not Recognised");
 						Log("ERROR") << "Command not recognised" << data[0];
 						break;
+					}
 				}
 			}
 		}
