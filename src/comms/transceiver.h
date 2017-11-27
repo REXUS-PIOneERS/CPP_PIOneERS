@@ -11,6 +11,8 @@
 
 namespace comms {
 
+	class PacketChecker;
+
 	class Transceiver {
 	public:
 
