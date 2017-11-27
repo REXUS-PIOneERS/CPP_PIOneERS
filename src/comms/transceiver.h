@@ -54,7 +54,7 @@ namespace comms {
 		   0: Success.
 		   -1: No packets in queue
 		 */
-		int recvPacket(Packet *p);
+		int recvPacket(Packet *p, int timeout_ms = 10);
 
 		/**
 		   Push a packet to the send queue
