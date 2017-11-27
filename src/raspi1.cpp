@@ -354,6 +354,7 @@ int main(int argc, char* argv[]) {
 			Log("RXSM") << p;
 			raspi1.sendPacket(p);
 			comms::Protocol::unpack(p, id, index, data);
+			Log("UNPACKED") << "ID: " << id << "DATA[0]: " << data[0];
 			if (id == 0b11000000) {
 				switch (data[0]) {
 					case 1: // restart
