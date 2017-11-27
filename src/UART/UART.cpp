@@ -144,8 +144,9 @@ int RXSM::sendMsg(std::string msg) {
 	int sent = 0;
 	comms::Packet p;
 	for (int i = 0; i < n; i += 16) {
+		bzero(buf, 17);
 		std::string data = msg.substr(i, 16);
-		buf = data.c_str();
+		strcpy(buf, data.c_str());
 		comms::Protocol::pack(p, ID_MSG1, _index++, buf);
 		sent += sendPacket(p);
 	}
