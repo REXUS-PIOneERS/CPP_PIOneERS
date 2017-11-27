@@ -110,7 +110,7 @@ namespace comms {
 		return 0;
 	}
 
-	bool PacketChecker::get_packet(comms::Packet &p) {
+	bool PacketChecker::get_packet(comms::Packet *p) {
 		if (_flag) {
 			memcpy(p, _buf, sizeof (comms::Packet));
 			return true;
