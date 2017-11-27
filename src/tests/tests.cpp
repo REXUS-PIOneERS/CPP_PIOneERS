@@ -24,9 +24,9 @@
 namespace tests {
 
 	int all_tests() {
-		IMU_test();
-		camera_test();
-		return 0;
+		int a = IMU_test();
+		int b = camera_test();
+		return a | b;
 	}
 
 	int IMU_test() {
