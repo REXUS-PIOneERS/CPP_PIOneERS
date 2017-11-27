@@ -374,11 +374,15 @@ int main(int argc, char* argv[]) {
 							REXUS.sendMsg("Entering test mode");
 						break;
 					case 4: // Run all tests
+						Log("INFO") << "Running Tests";
 						int result = tests::all_tests();
 						if (result)
 							REXUS.sendMsg("Tests Failed");
 						else
 							REXUS.sendMsg("Tests Passed");
+					default:
+						REXUS.sendMsg("Not Recognised");
+						Log("ERROR") << "Command not recognised" << data[0];
 				}
 			}
 		}
