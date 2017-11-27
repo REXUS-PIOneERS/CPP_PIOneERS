@@ -140,13 +140,12 @@ int RXSM::recvPacket(comms::Packet &p) {
 
 int RXSM::sendMsg(std::string msg) {
 	int n = msg.length();
+	char *buf = new char [17];
 	int sent = 0;
-	char buf[15];
 	comms::Packet p;
-	for (int i = 0; i < n; i += 15) {
-		bzero(buf, 15);
-		std::string data = msg.substr(i, 15);
-		buf = msg.c_str();
+	for (int i = 0; i < n; i += 16) {
+		std::string data = msg.substr(i, 16);
+		buf = data.c_str();
 		comms::Protocol::pack(p, ID_MSG1, _index++, buf);
 		sent += sendPacket(p);
 	}
