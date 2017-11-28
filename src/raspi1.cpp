@@ -190,6 +190,8 @@ int SOE_SIGNAL() {
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
 		// Keep checking the encoder count till it reaches the required amount.
+		int i = 0;
+		std::stringstream ss;
 		while (count < 19500) {
 			// Lock is used to keep everything thread safe
 			piLock(1);
@@ -198,6 +200,14 @@ int SOE_SIGNAL() {
 			piUnlock(1);
 			Log("INFO") << "Encoder count- " << encoder_count;
 			Log("INFO") << "Encoder rate- " << diff * 10 << " counts/sec";
+			// Occasionally send count to ground
+			if (tmr.elapsed > 1000 * i) {
+				i++;
+				ss << "Count: " << encoder_count << " Rate: " <<
+						diff * 10;
+				REXUS.sendMsg(ss.str());
+				ss.clear();
+			}
 			// Check the boom is actually deploying
 			if ((tmr.elapsed() > 20000) && (diff < 10)) {
 				Log("ERROR") << "Boom not deploying as expected";
@@ -383,12 +393,8 @@ int main(int argc, char* argv[]) {
 					case 4: // Run all tests
 					{
 						Log("INFO") << "Running Tests";
-						int result = tests::all_tests();
-						if (result)
-							REXUS.sendMsg("Tests Failed");
-						else
-							REXUS.sendMsg("Tests Passed");
-						break;
+						std::string result = tests::all_tests();
+						REXUS.sendMsg(result);
 					}
 					default:
 					{

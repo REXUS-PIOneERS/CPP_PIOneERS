@@ -23,19 +23,23 @@
 
 namespace tests {
 
-	int all_tests() {
-		int a = IMU_test();
-		int b = camera_test();
-		return a | b;
+	std::string all_tests() {
+		std::string rtn = IMU_test();
+		rtn += camera_test();
+		return rtn;
 	}
 
-	int IMU_test() {
-		int rtn = 0;
+	std::string IMU_test() {
+		std::string rtn = "\nTesting IMU...\n";
 		RPi_IMU IMU;
 		if (!IMU.setupAcc())
-			rtn |= 0b00000011;
+			rtn += "Failed to write to sensor.\n";
+		else
+			rtn += "Data written to sensor.\n";
 		if (!IMU.readAccAxis(1))
-			rtn |= 0b00000100;
+			failures += "Failed to read from sensor.\n";
+		else
+			rtn += "Value read from sensor.\n";
 		// Test multiprocessing
 		IMU.setupGyr();
 		IMU.setupMag();
@@ -46,34 +50,37 @@ namespace tests {
 		int n = 0;
 		for (int i = 0; i < 5; i++) {
 			if (stream.binread(&p, sizeof (p)) <= 0)
-				rtn |= 0b00001000;
+				rtn += "Stream not receiving data.\n";
+			else
+				rtn += "Stream receiving data.\n";
 			Timer::sleep_ms(200);
 		}
 		stream.close_pipes();
 		std::fstream f("imutest0001.txt");
 		if (f.good()) {
 			system("sudo rm -rf *.txt");
-			return rtn;
+			return rtn + "Data saved to file.\n";
 		} else
-			return (rtn | 0b00001000);
+			return rtn + "Data not saved to file.\n";
 	}
 
-	int camera_test() {
-		PiCamera cam;
+	std::string camera_test() {
+		std::string rtn = "\nTesting Camera...\n"
+				PiCamera cam;
 		cam.startVideo("camtest");
 		Timer::sleep_ms(2500);
 		// Check camera process is running
 		if (!cam.is_running())
-			return 1;
+			return rtn + "Camera failed to start.\n";
 		Timer::sleep_ms(2500);
 		cam.stopVideo();
 		// Check files were created
 		std::fstream f("camtest0001.h264");
 		if (f.good()) {
 			system("sudo rm -rf *.h264");
-			return 0;
+			return rtn + "Camera tests passed.\n";
 		} else
-			return 1;
+			return rtn + "No files found.\n";
 	}
 
 	int ImP_test() {
