@@ -140,11 +140,14 @@ int RXSM::recvPacket(comms::Packet &p) {
 
 int RXSM::sendMsg(std::string msg) {
 	int n = msg.length();
+	char *buf = new char [17];
 	int sent = 0;
 	comms::Packet p;
-	for (int i = 0; i < n; i += 15) {
-		std::string data = msg.substr(i, 15);
-		comms::Protocol::pack(p, ID_MSG1, _index++, &data);
+	for (int i = 0; i < n; i += 16) {
+		bzero(buf, 17);
+		std::string data = msg.substr(i, 16);
+		strcpy(buf, data.c_str());
+		comms::Protocol::pack(p, ID_MSG1, _index++, buf);
 		sent += sendPacket(p);
 	}
 	return sent;
@@ -171,7 +174,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 				std::ofstream outf;
 				std::stringstream unique_file;
 				unique_file << filename << "_" << measurement_start << "_"
-						<< std::setfill('0') << std::setw(4) << j;
+						<< std::setfill('0') << std::setw(4) << j << ".txt";
 				Log("INFO") << "Starting new data file \"" << unique_file.str() << "\"";
 				outf.open(unique_file.str());
 				// Take five measurements then change the file
