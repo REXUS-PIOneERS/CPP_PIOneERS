@@ -329,7 +329,6 @@ int main(int argc, char* argv[]) {
 	digitalWrite(MOTOR_ACW, 0);
 	Log("INFO") << "Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
-	/*
 	while (!digitalRead(ALIVE))
 		Timer::sleep_ms(10);
 	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
@@ -344,7 +343,6 @@ int main(int argc, char* argv[]) {
 				<< "\"";
 		Log("INFO") << "Continuing without Ethernet communications";
 	}
-	*/
 	// TODO should we try to reconnect to server?
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");

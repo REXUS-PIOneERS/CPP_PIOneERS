@@ -49,16 +49,16 @@ void UART::setupUART() {
 			f_baud = B19200;
 			break;
 		case 38400:
-			f_baud = 38400;
+			f_baud = B38400;
 			break;
 		case 57600:
-			f_baud = 57600;
+			f_baud = B57600;
 			break;
 		case 115200:
-			f_baud = 115200;
+			f_baud = B115200;
 			break;
 		case 230400:
-			f_baud = 230400;
+			f_baud = B230400;
 			break;
 		default:
 			throw UARTException("ERROR baud rate not defined");
