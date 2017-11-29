@@ -37,7 +37,7 @@ namespace tests {
 		else
 			rtn += "Data written to sensor.\n";
 		if (!IMU.readAccAxis(1))
-			failures += "Failed to read from sensor.\n";
+			rtn += "Failed to read from sensor.\n";
 		else
 			rtn += "Value read from sensor.\n";
 		// Test multiprocessing
@@ -65,7 +65,7 @@ namespace tests {
 	}
 
 	std::string camera_test() {
-		std::string rtn = "\nTesting Camera...\n"
+		std::string rtn = "\nTesting Camera...\n";
 				PiCamera cam;
 		cam.startVideo("camtest");
 		Timer::sleep_ms(2500);

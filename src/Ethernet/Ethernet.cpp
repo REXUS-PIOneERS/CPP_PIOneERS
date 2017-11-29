@@ -190,6 +190,7 @@ void Raspi1::share_data() {
 			Log("ERROR") << "Problem with communication\n\t" << e.what();
 			_pipes.close_pipes();
 			Log("INFO") << "Trying to reconnect";
+			exit(-1);
 		} catch (...) {
 			_is_running = false;
 			Log("FATAL") << "Unexpected error with client\n\t" << std::strerror(errno);
@@ -287,6 +288,7 @@ void Raspi2::share_data() {
 			Log("FATAL") << "Problem with Ethernet communication\n\t" << e.what();
 			close(_newsockfd);
 			_pipes.close_pipes();
+			exit(-1);
 			// Allow program to try and reconnect
 		} catch (...) {
 			_is_running = false;

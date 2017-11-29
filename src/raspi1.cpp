@@ -191,7 +191,7 @@ int SOE_SIGNAL() {
 		Log("INFO") << "Motor triggered, boom deploying";
 		// Keep checking the encoder count till it reaches the required amount.
 		int i = 0;
-		std::stringstream ss;
+		std::stringstream strs;
 		while (count < 19500) {
 			// Lock is used to keep everything thread safe
 			piLock(1);
@@ -201,12 +201,12 @@ int SOE_SIGNAL() {
 			Log("INFO") << "Encoder count- " << encoder_count;
 			Log("INFO") << "Encoder rate- " << diff * 10 << " counts/sec";
 			// Occasionally send count to ground
-			if (tmr.elapsed > 1000 * i) {
+			if (tmr.elapsed() > (1000 * i)) {
 				i++;
-				ss << "Count: " << encoder_count << " Rate: " <<
+				strs << "Count: " << encoder_count << " Rate: " <<
 						diff * 10;
-				REXUS.sendMsg(ss.str());
-				ss.clear();
+				REXUS.sendMsg(strs.str());
+				strs.clear();
 			}
 			// Check the boom is actually deploying
 			if ((tmr.elapsed() > 20000) && (diff < 10)) {
@@ -329,6 +329,7 @@ int main(int argc, char* argv[]) {
 	digitalWrite(MOTOR_ACW, 0);
 	Log("INFO") << "Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
+	/*
 	while (!digitalRead(ALIVE))
 		Timer::sleep_ms(10);
 	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
@@ -343,6 +344,7 @@ int main(int argc, char* argv[]) {
 				<< "\"";
 		Log("INFO") << "Continuing without Ethernet communications";
 	}
+	*/
 	// TODO should we try to reconnect to server?
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");
