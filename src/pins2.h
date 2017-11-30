@@ -13,7 +13,7 @@
 // Signals for main logic control
 #define LO    29
 #define SOE    28
-#define SODS   27
+#define SODS   26
 #define LAUNCH_MODE  11
 
 // Connection between pi 1 and 2
