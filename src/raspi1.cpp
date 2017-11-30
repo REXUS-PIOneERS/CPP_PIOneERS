@@ -30,6 +30,9 @@
 #include "timing/timer.h"
 #include "logger/logger.h"
 
+#include <error.h>
+#include <string.h>
+
 Logger Log("/Docs/Logs/raspi1");
 
 // Main inputs for experiment control
@@ -42,7 +45,7 @@ int encoder_rate = 100;
 /**
  * Advances the encoder_count variable by one.
  */
-void count_encoder() {
+void interrupt() {
 	piLock(1);
 	encoder_count++;
 	piUnlock(1);
@@ -185,10 +188,11 @@ int SOE_SIGNAL() {
 		int count = encoder_count;
 		int diff = encoder_rate;
 		Timer tmr;
-		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
+		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, interrupt);
 		digitalWrite(MOTOR_CW, 1);
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
+		Log("INFO") << "Starting Loop";
 		// Keep checking the encoder count till it reaches the required amount.
 		int i = 0;
 		std::stringstream strs;
