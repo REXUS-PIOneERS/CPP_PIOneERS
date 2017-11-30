@@ -55,7 +55,7 @@ namespace tests {
 				rtn += "Stream receiving data.\n";
 			Timer::sleep_ms(200);
 		}
-		stream.close_pipes();
+		IMU.stopDataCollection();
 		std::fstream f("imutest0001.txt");
 		if (f.good()) {
 			system("sudo rm -rf *.txt");
