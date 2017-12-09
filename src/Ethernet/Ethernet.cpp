@@ -217,13 +217,17 @@ void Raspi1::run(std::string filename) {
 		Log.child_log();
 		share_data();
 	} else {
-		// Assign the pipes for the main process and close the un-needed ones
 		return;
 	}
 }
 
 void Raspi2::share_data() {
-	setup();
+	try {
+		setup();
+	} catch (EthernetException e) {
+		Log("FATAL") << "Error setting up server\n\t" << e.what();
+		exit(-1);
+	}
 	while (1) {
 		try {
 			Log("INFO") << "Waiting for client connection";

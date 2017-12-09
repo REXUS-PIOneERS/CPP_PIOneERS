@@ -298,7 +298,6 @@ int main(int argc, char* argv[]) {
 	Log.start_log();
 	REXUS.buffer();
 	Log("INFO") << "Pi 1 is running";
-	std::cout << "Pi 1 is running" << std::endl;
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
@@ -329,24 +328,36 @@ int main(int argc, char* argv[]) {
 	digitalWrite(MOTOR_ACW, 0);
 	Log("INFO") << "Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
-	while (!digitalRead(ALIVE))
-		Timer::sleep_ms(10);
-	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
-	// Try to connect to Pi 2
-	try {
-		raspi1.run("Docs/Data/Pi2/backup");
-		std::cout << "Ethernet connected" << std::endl;
-		Log("INFO") << "Ethernet connection successful";
-		REXUS.sendMsg("Ethernet connected");
-	} catch (EthernetException e) {
-		Log("ERROR") << "Ethernet connection failed with error\n\t\"" << e.what()
-				<< "\"";
-		Log("INFO") << "Continuing without Ethernet communications";
+	Timer tmr;
+	while (tmr.elapsed() < 20000) {
+		if (digitalRead(ALIVE)) {
+			Log("INFO") << "Establishing ethernet connection";
+			raspi1.run("Docs/Data/Pi2/backup");
+			if (raspi1.is_alive()) {
+				Log("INFO") << "Connection successful";
+				REXUS.sendMsg("Ethernet connection successful");
+			} else {
+				Log("INFO") << "Connection failes";
+				REXUS.sendMsg("ERROR: Ethernet connection failed");
+			}
+		}
 	}
-	// TODO should we try to reconnect to server?
+	if (tmr.elapsed() < 20000) {
+		RXSM.sendMsg("ERROR: Timeout waiting for Pi 2")
+		Log("ERROR") << "Timeout waiting for Pi 2";
+		Log("INFO") << "Attempting ethernet connection anyway";
+		raspi1.run("Docs/Data/Pi2/backup");
+		if (raspi1.is_alive()) {
+			Log("INFO") << "Ethernet connection successful";
+			RXSM.sendMsg("Ethernet connected");
+		} else {
+			Log("ERROR") << "Unable to establish ethernet connection";
+			RXSM.sendMsg("ERROR: Ethernet failed");
+			RXSM.sendMsg("Continuing without ethernet comms");
+		}
+	}
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");
-	std::cout << "Waiting for LO" << std::endl;
 	// Wait for LO signal
 	bool signal_received = false;
 	comms::Packet p;
