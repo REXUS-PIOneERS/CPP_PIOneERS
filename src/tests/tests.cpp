@@ -51,43 +51,68 @@ int IMU_test() {
 		}
 	}
 	stream.close_pipes();
-	std::fstream f("imutest0001.txt");
-	if (f.good()) {
-		system("sudo rm -rf *.txt");
-		return rtn;
-	} else
-		return rtn && 0b00001000;
+	system("sudo rm -rf *.txt");
+	return rtn;
+	//std::fstream f("imutest0001.txt");
+	//if (f.good()) {
+	//	system("sudo rm -rf *.txt");
+	//	return rtn;
+	//} else
+	//	return rtn && 0b00001000;
 }
 
 int camera_test() {
+	std::string rtn;
 	PiCamera cam = PiCamera();
 	cam.startVideo("camtest");
 	Timer::sleep_ms(2500);
 	// Check camera process is running
 	if (!cam.is_running())
-		return -1;
-	Timer::sleep_ms(2500);
-	cam.stopVideo();
-	// Check files were created
-	std::fstream f("camtest0001.h264");
-	if (f.good) {
+		return "Camera not working";
+	else {
+		Timer::sleep_ms(2500);
+		cam.stopVideo();
+		// Check files were created
 		system("sudo rm -rf *.h264");
-		return 0;
-	} else
-		return -2;
+		return "Camera working";
+	}
+	//std::fstream f("camtest0001.h264");
+	//if (f.good) {
+	//	system("sudo rm -rf *.h264");
+	//	return 0;
+	//} else
+	//	return -2;
 }
 
 int ImP_test() {
 	return 0;
 }
 
-int motor_turn(int dir, int n) {
+int motor_turn(int dir, int n, int *counter) {
 	wiringPiSetup();
 	pinMode(MOTOR_CW, OUTPUT);
 	pinMode(MOTOR_ACW, OUTPUT);
-	switch (dir)
+	switch (dir) {
 		case 0:
-		return 0;
+			digitalWrite(MOTOR_CW, 1);
+		case 1:
+			digitalWrite(MOTOR_ACW, 1);
+	}
+	int count;
+	while (1) {
+		piLock(1);
+		count = *counter;
+		piUnlock(1);
+		if (count > n)
+			break;
+		Timer::sleep_ms(100);
+	}
+	digitalWrite(MOTOR_CW, 0);
+	digitalWrite(MOTOR_ACW, 0);
+	piLock(1);
+	*counter = 0;
+	piUnlock(1);
+	return count;
 }
 
 int relay_test(int time) {
