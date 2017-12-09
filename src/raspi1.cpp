@@ -343,17 +343,17 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	if (tmr.elapsed() < 20000) {
-		RXSM.sendMsg("ERROR: Timeout waiting for Pi 2")
+		REXUS.sendMsg("ERROR: Timeout waiting for Pi 2");
 		Log("ERROR") << "Timeout waiting for Pi 2";
 		Log("INFO") << "Attempting ethernet connection anyway";
 		raspi1.run("Docs/Data/Pi2/backup");
 		if (raspi1.is_alive()) {
 			Log("INFO") << "Ethernet connection successful";
-			RXSM.sendMsg("Ethernet connected");
+			REXUS.sendMsg("Ethernet connected");
 		} else {
 			Log("ERROR") << "Unable to establish ethernet connection";
-			RXSM.sendMsg("ERROR: Ethernet failed");
-			RXSM.sendMsg("Continuing without ethernet comms");
+			REXUS.sendMsg("ERROR: Ethernet failed");
+			REXUS.sendMsg("Continuing without ethernet comms");
 		}
 	}
 	Log("INFO") << "Waiting for LO";
