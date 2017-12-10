@@ -18,6 +18,7 @@
 #include "timing/timer.h"
 #include <error.h>
 
+
 void PiCamera::startVideo(std::string filename) {
 	if ((camera_pid = fork()) == 0) {
 		//Create the command structure
