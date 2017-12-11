@@ -137,6 +137,7 @@ int SOE_SIGNAL() {
 	Log("INFO") << "Triggering burnwire";
 	digitalWrite(BURNWIRE, 1);
 	Timer tmr;
+	raspi2.sendMsg("Burnwire triggered...");
 	Log("INFO") << "Burn wire triggered" << std::endl;
 	while (tmr.elapsed() < 10000) {
 		// Get ImP data
@@ -153,6 +154,7 @@ int SOE_SIGNAL() {
 	}
 	digitalWrite(BURNWIRE, 0);
 	Log("INFO") << "Burn wire off after " << tmr.elapsed() << " ms";
+	raspi2.sendMsg("Burnwire off");
 	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
@@ -180,6 +182,7 @@ int LO_SIGNAL() {
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
 	Log("INFO") << "LO signal received";
+	raspi2.sendMsg("Pi2: Recevied LO");
 	Cam.startVideo("Docs/Video/rexus_video");
 	Log("INFO") << "Camera started recording video";
 	// Poll the SOE pin until signal is received
@@ -188,7 +191,6 @@ int LO_SIGNAL() {
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		signal_received = poll_input(SOE);
-		// TODO Implement communications with RXSM
 	}
 	return SOE_SIGNAL();
 }
@@ -234,6 +236,7 @@ int main() {
 		signal_handler(-5);
 	}
 	Log("INFO") << "Connection to Pi1 successfil";
+	raspi2.sendMsg("Connected to Pi1");
 	Log("INFO") << "Waiting for LO signal";
 	// Check for LO signal.
 	std::string msg;
@@ -242,11 +245,12 @@ int main() {
 	comms::byte1_t id;
 	comms::byte2_t index;
 	char data[16];
+	int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
-		int n = raspi2.recvPacket(p);
+		n = raspi2.recvPacket(p);
 		if (n > 0) {
 			Log("PI1") << p;
 			comms::Protocol::unpack(p, id, index, data);
@@ -254,20 +258,35 @@ int main() {
 				Log("RXSM") << "Received Command: " << data[0];
 				switch (data[0]) {
 					case 1: // restart
+					{
 						Log("INFO") << "Rebooting...";
 						system("sudo reboot now");
 						exit(0);
+					}
 					case 2: // shutdown
+					{
 						Log("INFO") << "Shutting down...";
 						system("sudo shutdown now");
 						exit(0);
+					}
 					case 3: // Toggle flight mode
+					{
 						Log("INFO") << "Toggling flight mode";
 						flight_mode = (flight_mode) ? false : true;
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
+						if (flight_mode)
+							raspi2.sendMsg("WARNING: Flight mode enabled");
+						else
+							raspi2.sendMsg("Test mode enabled");
 						break;
+					}
 					case 4: // Run all tests
-						tests::all_tests();
+					{
+						Log("INFO") << "Running tests...";
+						std::string result = tests::pi2_tests();
+						raspi2.sendMsg(result);
+						Log("INFO") << "Test results\n\t" << result;
+					}
 				}
 			}
 			Log("DATA (PI1)") << "Unpacked\n\t\"" << std::string(data) << "\"";

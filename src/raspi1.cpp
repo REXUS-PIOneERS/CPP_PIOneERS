@@ -276,11 +276,17 @@ int LO_SIGNAL() {
 	Log("INFO") << "Waiting for SOE";
 	REXUS.sendMsg("Waiting for SOE");
 	bool signal_received = false;
+	int counter = 0;
 	while (!signal_received) {
 		delay(10);
 		// Implements a loop to ensure SOE signal has actually been received
 		signal_received = poll_input(SOE);
-		// TODO Implement communications with RXSM
+		// Send a message every second for the sake of sanity!
+		if (counter++ >= 100) {
+			counter = 0;
+			RXSM.sendMsg("I'm still alive...");
+		}
+
 	}
 	return SOE_SIGNAL();
 }
@@ -409,8 +415,9 @@ int main(int argc, char* argv[]) {
 					case 4: // Run all tests
 					{
 						Log("INFO") << "Running Tests";
-						std::string result = tests::all_tests();
+						std::string result = tests::pi1_tests();
 						REXUS.sendMsg(result);
+						Log("INFO") << "Test Results\n\t" << result;
 					}
 					default:
 					{
