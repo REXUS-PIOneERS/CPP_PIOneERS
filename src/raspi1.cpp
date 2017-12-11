@@ -364,12 +364,17 @@ int main(int argc, char* argv[]) {
 	comms::byte1_t id;
 	comms::byte2_t index;
 	comms::byte1_t data[16];
+	int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received
 		signal_received = poll_input(LO);
+		//Check for packets from Pi2
+		n = raspi1.recvPacket(p);
+		if (n > 0)
+			REXUS.sendPacket(p);
 		// Check for any packets from RXSM
-		int n = REXUS.recvPacket(p);
+		n = REXUS.recvPacket(p);
 		if (n > 0) {
 			REXUS.sendMsg("ACK");
 			Log("RXSM") << p;

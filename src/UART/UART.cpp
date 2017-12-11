@@ -175,6 +175,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 			ImP_comms.sendBytes("C", 1);
 			Log("DATA (SENT") << "C";
 			std::string measurement_start = Timer::str_datetime();
+			int err;
 			for (int j = 0;; j++) {
 				std::ofstream outf;
 				std::stringstream unique_file;
@@ -193,7 +194,8 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 						if (n > 0) {
 							buf[n] = '\0';
 							outf << buf << std::endl;
-							_pipes.binwrite(buf, n);
+							if ((err = _pipes.binwrite(buf, n)) < 0)
+								throw err;
 							ImP_comms.sendBytes("N", 1);
 						}
 						tmr.sleep_ms(10);
@@ -236,13 +238,13 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 		} else {
 			return _pipes;
 		}
-	} catch (comms::PipeException e) {
-		Log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
+	} catch (int e) {
+		Log("FATAL") << "Unable to read/write to pipes(" << e << ")\n\t" << std::strerror(errno);
 		_pipes.close_pipes();
 		close(uart_filestream);
-		exit(-1);
+		exit(e);
 	} catch (...) {
-		Log("FATAL") << "Unexpected error with ImP\n\t\"" << std::strerror(errno);
+		Log("FATAL") << "Unexpected error with ImP\n\t" << std::strerror(errno);
 		_pipes.close_pipes();
 		close(uart_filestream);
 		exit(-2);

@@ -23,9 +23,15 @@
 
 namespace tests {
 
-	std::string all_tests() {
+	std::string pi1_tests() {
 		std::string rtn = IMU_test();
 		rtn += camera_test();
+		return rtn;
+	}
+
+	std::string pi2_tests() {
+		std::string rtn = ImP_test();
+		retn += camera_test();
 		return rtn;
 	}
 
@@ -88,7 +94,21 @@ namespace tests {
 	}
 
 	int ImP_test() {
-		return 0;
+		std::string rtn = "\nTesting ImP...\n";
+		comms::Packet p;
+		comms::Pipe pipe;
+		ImP imp(38400);
+		pipe = imp.startDataCollection("imptest");
+		Timer::sleep_ms(500);
+		int n = pipe.binread(&p, sizeof(comms::Packet));
+		if (n > 0)
+			rtn += "ImP sending data.\n";
+		else
+			rtn += "ImP not sending data.\n";
+		pipe.close_pipes();
+		Timer::sleep_ms(500);
+		system("sudo rm -rf *.txt");
+		return rtn;
 	}
 
 }

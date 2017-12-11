@@ -79,6 +79,8 @@ public:
 		return _pipes.binread(&p, sizeof (comms::Packet));
 	}
 
+	int sendMsg(std::string msg);
+
 	void end() {
 		_pipes.close_pipes();
 	}
