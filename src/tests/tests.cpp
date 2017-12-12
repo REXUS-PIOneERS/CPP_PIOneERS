@@ -23,11 +23,7 @@
 
 namespace tests {
 
-<<<<<<< HEAD
 	std::string pi1_tests() {
-=======
- 	std::string all_tests() {
->>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 		std::string rtn = IMU_test();
 		rtn += camera_test();
 		return rtn;
