@@ -48,7 +48,6 @@ public:
 		Log.start_log();
 		Log("INFO") << "Log started by server";
 	}
-
 	~Server();
 };
 
@@ -136,7 +135,6 @@ public:
 	 */
 	void close_connection();
 
-	~Client();
 protected:
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client

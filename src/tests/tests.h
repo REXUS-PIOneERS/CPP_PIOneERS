@@ -40,6 +40,7 @@ namespace tests {
 	 */
 	std::string camera_test();
 
+	std::string ImP_test();
 }
 #endif /* TESTS_H */
 

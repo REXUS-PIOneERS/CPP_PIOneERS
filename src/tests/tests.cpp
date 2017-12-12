@@ -19,6 +19,7 @@
 
 #include "comms/pipes.h"
 #include "comms/packet.h"
+#include "pins1.h"
 #include <iostream>
 
 namespace tests {
@@ -31,7 +32,7 @@ namespace tests {
 
 	std::string pi2_tests() {
 		std::string rtn = ImP_test();
-		retn += camera_test();
+		rtn += camera_test();
 		return rtn;
 	}
 
@@ -84,7 +85,7 @@ namespace tests {
 		Timer::sleep_ms(2500);
 		cam.stopVideo();
 		system("sudo rm -rf *.h264");
-		return rtn;
+		return rtn + "Camera worked.\n";
 		// Check files were created
 		//std::fstream f("camtest0001.h264");
 		//if (f.good()) {
@@ -94,7 +95,7 @@ namespace tests {
 		//	return rtn + "No files found.\n";
 	}
 
-	int ImP_test() {
+	std::string ImP_test() {
 		std::string rtn = "\nTesting ImP...\n";
 		comms::Packet p;
 		comms::Pipe pipe;
