@@ -2,6 +2,7 @@
 #include "transceiver.h"
 #include <unistd.h>
 #include <poll.h>
+#include "timing/timer.h"
 
 /**
  * Check whether a file descriptor is ready for reading
@@ -44,10 +45,26 @@ bool poll_write(const int fd) {
 
 namespace comms {
 
-	int Transceiver::recvPacket(Packet *p) {
-		if (poll_read(_fd_recv)) {
-			int n = read(_fd_recv, (void*) p, sizeof (Packet));
-			return n;
+	int Transceiver::recvPacket(Packet *p, int timeout_ms) {
+		Timer tmr;
+		int n;
+		while (1) {
+			if (poll_read(_fd_recv)) {
+				byte1_t ch = 0;
+				n = read(_fd_recv, &ch, 1);
+				if (n == 1) {
+					n = _checker.push_byte(ch);
+					if (n > 0) {
+						_checker.get_packet(p);
+						return n;
+					}
+				} else {
+					return n;
+				}
+			} else {
+				if (tmr.elapsed() < timeout_ms)
+					return 0;
+			}
 		}
 		return 0;
 	}
@@ -74,5 +91,31 @@ namespace comms {
 			return n;
 		}
 		return -1;
+	}
+
+	int PacketChecker::push_byte(uint8_t byte) {
+		_buf[_index] = byte;
+		if (_buf == 0 && _index != 0) {
+			int rtn = _index;
+			_index = 0;
+			_flag = true;
+			return rtn;
+		}
+		_index++;
+		if (_index == 24) {
+			_index = 0;
+			_flag = true;
+			return 24;
+		}
+		return 0;
+	}
+
+	bool PacketChecker::get_packet(comms::Packet *p) {
+		if (_flag) {
+			memcpy(p, _buf, sizeof (comms::Packet));
+			return true;
+		} else {
+			return false;
+		}
 	}
 }

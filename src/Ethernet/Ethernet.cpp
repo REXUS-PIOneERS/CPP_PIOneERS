@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <fstream> //for std::ofstream
+#include <sstream> //for std::stringstream
 #include <iostream>  //for std::endl
 
 #include <string>
@@ -126,15 +127,14 @@ int Client::open_connection() {
 		Log("ERROR") << "Request to connect to server failed";
 		throw EthernetException("Failed to connect to server"); // Failed to connect!
 	}
-	_connected = true;
+	Log("INFO") << "Successfully connected to server";
 	return 0;
 }
 
-int Client::close_connection() {
+void Client::close_connection() {
 	Log("INFO") << "Ending connection with server and closing process";
 	if (_sockfd) {
 		close(_sockfd);
-		_sockfd = 0;
 		_pipes.close_pipes();
 	}
 	_connected = false;
@@ -164,7 +164,75 @@ Client::~Client() {
  *		the connection
  */
 
-comms::Pipe Client::run(std::string filename) {
+void Raspi1::share_data() {
+	while (1) {
+		try {
+			setup();
+			open_connection();
+			_is_running = true;
+			comms::Transceiver eth_comms(_sockfd);
+			std::ofstream outf;
+			std::stringstream outf_name;
+			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
+			Log("INFO") << "Opening backup file: " << outf_name.str();
+			outf.open(outf_name.str());
+			comms::Packet p;
+			Log("INFO") << "Beginning data-sharing loop";
+			while (1) {
+				int n;
+				n = eth_comms.recvPacket(&p);
+				if (n < 0) throw EthernetException("Error receiving packet");
+				else if (n > 0) {
+					Log("DATA (SERVER)") << p;
+					outf << p << std::endl;
+					n = _pipes.binwrite(&p, sizeof (comms::Packet));
+					if (n < 0) throw n;
+				}
+
+				n = _pipes.binread(&p, sizeof (comms::Packet));
+				if (n < 0) throw n;
+				else if (n > 0) {
+					Log("DATA (CLIENT)") << p;
+					n = eth_comms.sendPacket(&p);
+					if (n < 0) throw EthernetException("Error sending packet");
+				}
+				Timer::sleep_ms(1);
+			}
+		} catch (int e) {
+			_is_running = false;
+			switch (e) {
+				case -1: // Process not forked correctly
+					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
+					break;
+				case -2: // Pipe unavailable
+				case -3: //
+					Log("ERROR") << "Problem with read/write to pipes\n\t" << std::strerror(errno);
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(0); // This is expected when we want to end the process
+				default:
+					Log("ERROR") << "Unexpected error code: " << e;
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(-1);
+			}
+			_pipes.close_pipes();
+		} catch (EthernetException e) {
+			_is_running = false;
+			Log("ERROR") << "Problem with communication\n\t" << e.what();
+			_pipes.close_pipes();
+			Log("INFO") << "Trying to reconnect";
+			exit(-1);
+		} catch (...) {
+			_is_running = false;
+			Log("FATAL") << "Unexpected error with client\n\t" << std::strerror(errno);
+			_pipes.close_pipes();
+			exit(-2);
+		}
+	}
+}
+
+void Raspi1::run(std::string filename) {
 	/*
 	 * Generate a pipe for transferring the data, fork the process and send
 	 * back the required pipes.
@@ -172,123 +240,111 @@ comms::Pipe Client::run(std::string filename) {
 	 * packets and sending these to the server as well as receiving packets
 	 * in return.
 	 */
+	_filename = filename;
 	Log("INFO") << "Starting data sharing with server";
-	try {
-		_pipes = comms::Pipe();
-		open_connection();
-		Log("INFO") << "Forking processes";
-		if ((_pid = _pipes.Fork()) == 0) {
-			// This is the child process.
-			Log.child_log();
-			comms::Transceiver eth_comms(_sockfd);
-			std::ofstream outf;
-			outf.open(filename);
-			comms::Packet p;
-			while (1) {
-				// Exchange packets (no analysis of contents)
-				if (_pipes.binread(&p, sizeof (p)) > 0) {
-					Log("DATA (CLIENT)") << p;
-					eth_comms.sendPacket(&p);
-				}
-
-				if (eth_comms.recvPacket(&p) > 0) {
-					Log("DATA (SERVER)") << p;
-					_pipes.binwrite(&p, sizeof (p));
-					outf << p << std::endl;
-				}
-				Timer::sleep_ms(10);
-			}
-			outf.close();
-			_pipes.close_pipes();
-			exit(0);
-		} else {
-			// Assign the pipes for the main process and close the un-needed ones
-			return _pipes;
-		}
-	} catch (comms::PipeException e) {
-		Log("FATAL") << "Unable to read/write to pipes\n\t\"" << e.what() << "\"";
-		_pipes.close_pipes();
-		exit(-1);
-	} catch (EthernetException e) {
-		Log("FATAL") << "Problem with communication\n\t\"" << e.what() << "\"";
-		fprintf(stdout, "Ethernet- %s\n", e.what());
-		_pipes.close_pipes();
-		throw e;
-	} catch (...) {
-		Log("FATAL") << "Unexpected error with client\n\t\""
-				<< std::strerror(errno) << "\"";
-		_pipes.close_pipes();
-		exit(-3);
+	_pipes = comms::Pipe();
+	Log("INFO") << "Forking processes";
+	if ((_pid = _pipes.Fork()) == 0) {
+		// This is the child process.
+		Log.child_log();
+		share_data();
+	} else {
+		// Assign the pipes for the main process and close the un-needed ones
+		return;
 	}
 }
 
-comms::Pipe Server::run(std::string filename) {
-	// Fork a process to handle server stuff
-	Log("INFO") << "Starting data sharing with client";
-	try {
-		Log("INFO") << "Waiting for client connection";
-		_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &_clilen);
-		if (_newsockfd < 0)
-			throw -3;
-		Log("INFO") << "Client has established connection";
-
-		Log("INFO") << "Forking processes";
-		_pipes = comms::Pipe();
-		if ((_pid = _pipes.Fork()) == 0) {
-			// This is the child process that handles all the requests
-			Log.child_log();
+void Raspi2::share_data() {
+	setup();
+	while (1) {
+		try {
+			Log("INFO") << "Waiting for client connection";
+			_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &m_clilen);
+			if (_newsockfd < 0) {
+				Log("ERROR") << "Problem waiting for client connection";
+				throw EthernetException("Error on accept");
+			}
+			_is_running = true;
+			Log("INFO") << "Client has established connection";
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
-			outf.open(filename);
+			std::stringstream outf_name;
+			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
+			outf.open(outf_name.str());
 			comms::Packet p;
 			int n;
 			while (1) {
-				// Get packet from client and send to pipe
+				int n;
 				n = eth_comms.recvPacket(&p);
-				if (n < 0)
-					throw -2;
+				if (n < 0) throw EthernetException("Error receiving packet");
 				else if (n > 0) {
-					Log("RECEIVED") << p;
+					Log("DATA (CLIENT)") << p;
 					outf << p << std::endl;
-					if (_pipes.binwrite(&p, sizeof (p)) < 0)
-						throw -1;
+					n = _pipes.binwrite(&p, sizeof (comms::Packet));
+					if (n < 0) throw n;
 				}
 
-				// Get packet from pipe and send to server
-				n = _pipes.binread(&p, sizeof (p));
-				if (n < 0)
-					throw -1;
+				n = _pipes.binread(&p, sizeof (comms::Packet));
+				if (n < 0) throw n;
 				else if (n > 0) {
-					Log("SENDING") << p;
-					if (eth_comms.sendPacket(&p) < 0)
-						throw -2;
+					Log("DATA (SERVER)") << p;
+					n = eth_comms.sendPacket(&p);
+					if (n < 0) throw EthernetException("Error sending packet");
 				}
-				Timer::sleep_ms(10);
+				Timer::sleep_ms(1);
 			}
-		} else {
-			// This is the main parent process
-			return _pipes;
+		} catch (int e) {
+			_is_running = false;
+			switch (e) {
+				case -1: // Process not forked correctly
+					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
+					break;
+				case -2: // Pipe unavailable
+				case -3: //
+					Log("ERROR") << "Problem with read/write to pipes\n\t" << std::strerror(errno);
+					close(_newsockfd);
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(0); // This is expected when we want to end the process
+				default:
+					Log("ERROR") << "Unexpected error code: " << e;
+					close(_newsockfd);
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(-1);
+			}
+			close(_newsockfd);
+			_pipes.close_pipes();
+		} catch (EthernetException e) {
+			_is_running = false;
+			Log("FATAL") << "Problem with Ethernet communication\n\t" << e.what();
+			close(_newsockfd);
+			_pipes.close_pipes();
+			exit(-1);
+			// Allow program to try and reconnect
+		} catch (...) {
+			_is_running = false;
+			Log("FATAL") << "Unexpected error with server\n\t" << std::strerror(errno);
+			close(_newsockfd);
+			close(_sockfd);
+			_pipes.close_pipes();
+			exit(-3);
 		}
-	} catch (int e) {
-		switch (e) {
-			case -1:
-				// Problem with the pipes
-				Log("ERROR") << "Problem with the pipes\n\t" << std::strerror(errno);
-				close(_newsockfd);
-				_pipes.close_pipes();
-				break;
-			case -2:
-				// Problem with the Ethernet
-				Log("ERROR") << "Problem with the Ethernet\n\t" << std::strerror(errno);
-				close(_newsockfd);
-				_pipes.close_pipes();
-				break;
-			case -3:
-				// Problem with accept
-				Log("ERROR") << "Error on accept\n\t" << std::strerror(errno);
-				return _pipes;
-		}
-		exit(e);
+	}
+}
+
+void Raspi2::run(std::string filename) {
+	// Fork a process to handle server stuff
+	_filename = filename;
+	Log("INFO") << "Starting data sharing with client";
+	Log("INFO") << "Forking processes";
+	if ((_pid = _pipes.Fork()) == 0) {
+		// This is the child process that handles all the requests
+		Log.child_log();
+		share_data();
+	} else {
+		// This is the main parent process
+		return;
 	}
 }
 

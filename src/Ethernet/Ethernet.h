@@ -16,19 +16,27 @@
 #include <error.h>  // For errno
 
 #include "comms/pipes.h"
+#include "comms/packet.h"
 #include "logger/logger.h"
 
 #ifndef ETHERNET_H
 #define ETHERNET_H
 
 class Server {
+protected:
 	int _sockfd, _newsockfd, _port, _pid;
 	socklen_t _clilen;
 	struct sockaddr_in _serv_addr, _cli_addr;
+	std::string _filename;
 	Logger Log;
 	comms::Pipe _pipes;
 	bool _connected = false;
 
+	/**
+	 * Sets up basic variables for creating a server
+	 * @return 0 = success, otherwise = failure
+	 */
+	int setup();
 public:
 
 	/**
@@ -38,6 +46,17 @@ public:
 	 */
 	Server(const int port) : _port(port), Log("/Docs/Logs/server") {
 		Log.start_log();
+		Log("INFO") << "Log started by server";
+	}
+
+	~Server();
+};
+
+class Raspi2 : public Server {
+	bool _is_running = false;
+public:
+
+	Raspi2(const int port) : Server(port) {
 	}
 
 	/**
@@ -54,25 +73,35 @@ public:
 	 * connections from a client.
 	 * @return Pipe class for communication charing data with child process.
 	 */
-	comms::Pipe run(std::string filename);
+	void run(std::string filename);
 
+	void share_data();
 
-	/**
-	 * Sets up basic variables for creating a server
-	 * @return 0 = success, otherwise = failure
-	 */
-	int setup();
+	bool is_alive() {
+		return _is_running;
+	}
 
-	~Server();
+	int sendPacket(comms::Packet &p) {
+		return _pipes.binwrite(&p, sizeof (comms::Packet));
+	}
 
+	int recvPacket(comms::Packet &p) {
+		return _pipes.binread(&p, sizeof (comms::Packet));
+	}
+
+	void end() {
+		_pipes.close_pipes();
+	}
 };
 
 class Client {
+protected:
 	int _port, _pid;
 	std::string _host_name;
 	int _sockfd;
 	struct sockaddr_in _serv_addr;
 	struct hostent *_server;
+	std::string _filename;
 	Logger Log;
 	comms::Pipe _pipes;
 	bool _connected = false;
@@ -86,17 +115,12 @@ public:
 	Client(const int port, const std::string host_name)
 	: _port(port), _host_name(host_name), Log("/Docs/Logs/client") {
 		Log.start_log();
+		Log("INFO") << "Log started by client";
 	}
 
 	bool active() {
 		return _connected;
 	}
-
-	/**
-	 * Opens a connection with the server as a separate process
-	 * @return Pipe for communication with the process.
-	 */
-	comms::Pipe run(std::string filename);
 
 	/**
 	 * Opens a new connection with the server
@@ -108,8 +132,10 @@ public:
 	 * Closes connection with the server
 	 * @return 0 = success, otherwise = failure
 	 */
-	int close_connection();
+	void close_connection();
 
+	~Client();
+protected:
 	/**
 	 * Called by constructor. Sets up basic variables needed for the client
 	 * @return 0 = success, otherwise = failure
@@ -118,6 +144,34 @@ public:
 
 	~Client();
 
+};
+
+class Raspi1 : public Client {
+	bool _is_running;
+public:
+
+	Raspi1(const int port, const std::string host_name) : Client(port, host_name) {
+	}
+
+	void run(std::string filename);
+
+	void share_data();
+
+	bool is_alive() {
+		return _is_running;
+	}
+
+	int sendPacket(comms::Packet &p) {
+		return _pipes.binwrite(&p, sizeof (comms::Packet));
+	}
+
+	int recvPacket(comms::Packet &p) {
+		return _pipes.binread(&p, sizeof (comms::Packet));
+	}
+
+	void end() {
+		_pipes.close_pipes();
+	}
 };
 
 class EthernetException {

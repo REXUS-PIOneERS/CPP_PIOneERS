@@ -22,6 +22,7 @@
 #include "comms/packet.h"
 #include "timing/timer.h"
 #include "logger/logger.h"
+#include "tests/tests.h"
 
 #include <wiringPi.h>
 
@@ -39,8 +40,7 @@ comms::Pipe ImP_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-comms::Pipe ethernet_stream;
-Server ethernet_comms(port_no);
+Raspi2 raspi2(port_no);
 
 /**
  * Checks whether input is activated
@@ -65,8 +65,8 @@ void signal_handler(int s) {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (&ethernet_stream != NULL) {
-		ethernet_stream.close_pipes();
+	if (raspi2.is_alive()) {
+		raspi2.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
@@ -99,8 +99,8 @@ int SODS_SIGNAL() {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (&ethernet_stream != NULL) {
-		ethernet_stream.close_pipes();
+	if (raspi2.is_alive()) {
+		raspi2.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
@@ -143,10 +143,10 @@ int SOE_SIGNAL() {
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
 			Log("DATA (ImP)") << p;
-			ethernet_stream.binwrite(&p, sizeof (p));
+			raspi2.sendPacket(p);
 		}
 
-		n = ethernet_stream.binread(&p, sizeof (p));
+		n = raspi2.recvPacket(p);
 		if (n > 0)
 			Log("DATA (PI1)") << p;
 		Timer::sleep_ms(10);
@@ -162,10 +162,10 @@ int SOE_SIGNAL() {
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
 			Log("DATA (ImP)") << p;
-			ethernet_stream.binwrite(&p, sizeof (p));
+			raspi2.sendPacket(p);
 		}
 
-		n = ethernet_stream.binread(&p, sizeof (p));
+		n = raspi2.recvPacket(p);
 		if (n > 0)
 			Log("DATA (PI1)") << p;
 		Timer::sleep_ms(10);
@@ -228,7 +228,7 @@ int main() {
 	digitalWrite(ALIVE, 1);
 	Log("INFO") << "Waiting for connection from client on port " << port_no;
 	try {
-		ethernet_stream = ethernet_comms.run("Docs/Data/Pi1/backup.txt");
+		raspi2.run("Docs/Data/Pi1/backup");
 	} catch (EthernetException e) {
 		Log("FATAL") << "Unable to connect to pi 1";
 		signal_handler(-5);
@@ -246,10 +246,30 @@ int main() {
 		Timer::sleep_ms(10);
 		signal_received = poll_input(LO);
 		// TODO Implement communications with Pi 1
-		int n = ethernet_stream.binread(&p, sizeof (p));
+		int n = raspi2.recvPacket(p);
 		if (n > 0) {
-			Log("DATA (PI1)") << p;
+			Log("PI1") << p;
 			comms::Protocol::unpack(p, id, index, data);
+			if (id == 0b11000000) {
+				Log("RXSM") << "Received Command: " << data[0];
+				switch (data[0]) {
+					case 1: // restart
+						Log("INFO") << "Rebooting...";
+						system("sudo reboot now");
+						exit(0);
+					case 2: // shutdown
+						Log("INFO") << "Shutting down...";
+						system("sudo shutdown now");
+						exit(0);
+					case 3: // Toggle flight mode
+						Log("INFO") << "Toggling flight mode";
+						flight_mode = (flight_mode) ? false : true;
+						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
+						break;
+					case 4: // Run all tests
+						tests::all_tests();
+				}
+			}
 			Log("DATA (PI1)") << "Unpacked\n\t\"" << std::string(data) << "\"";
 			//TODO handle incoming commands!
 		}

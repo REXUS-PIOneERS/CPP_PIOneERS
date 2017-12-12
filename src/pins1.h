@@ -12,8 +12,8 @@
 
 // Signals for main logic control
 #define LO    29
-#define SOE    23
-#define SODS   27
+#define SOE    28
+#define SODS   26
 #define LAUNCH_MODE  11
 
 // Pins for control of the motor

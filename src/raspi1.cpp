@@ -23,11 +23,15 @@
 #include "comms/pipes.h"
 #include "comms/protocol.h"
 #include "comms/packet.h"
+#include "tests/tests.h"
 
 #include <wiringPi.h>
 #include "pins1.h"
 #include "timing/timer.h"
 #include "logger/logger.h"
+
+#include <error.h>
+#include <string.h>
 
 Logger Log("/Docs/Logs/raspi1");
 
@@ -41,7 +45,7 @@ int encoder_rate = 100;
 /**
  * Advances the encoder_count variable by one.
  */
-void count_encoder() {
+void interrupt() {
 	piLock(1);
 	encoder_count++;
 	piUnlock(1);
@@ -75,8 +79,7 @@ comms::Pipe rxsm_stream;
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
 std::string server_name = "raspi2.local";
-comms::Pipe ethernet_stream; // 0 = read, 1 = write
-Client raspi1(port_no, server_name);
+Raspi1 raspi1(port_no, server_name);
 
 /**
  * Handles any SIGINT signals received by the program (i.e. ctrl^c), making sure
@@ -95,8 +98,8 @@ void signal_handler(int s) {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (&ethernet_stream != NULL) {
-		ethernet_stream.close_pipes();
+	if (raspi1.is_alive()) {
+		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
@@ -125,6 +128,7 @@ void signal_handler(int s) {
  */
 int SODS_SIGNAL() {
 	Log("INFO") << "SODS signal received";
+	std::cout << "SODS received" << std::endl;
 	REXUS.sendMsg("SODS received");
 	if (Cam.is_running()) {
 		Cam.stopVideo();
@@ -133,8 +137,8 @@ int SODS_SIGNAL() {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (&ethernet_stream != NULL) {
-		ethernet_stream.close_pipes();
+	if (raspi1.is_alive()) {
+		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
@@ -165,6 +169,7 @@ int SODS_SIGNAL() {
  */
 int SOE_SIGNAL() {
 	Log("INFO") << "SOE signal received";
+	std::cout << "SOE received" << std::endl;
 	REXUS.sendMsg("SOE received");
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
@@ -183,12 +188,15 @@ int SOE_SIGNAL() {
 		int count = encoder_count;
 		int diff = encoder_rate;
 		Timer tmr;
-		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, count_encoder);
+		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, interrupt);
 		digitalWrite(MOTOR_CW, 1);
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
+		Log("INFO") << "Starting Loop";
 		// Keep checking the encoder count till it reaches the required amount.
-		while (count < 10000) {
+		int i = 0;
+		std::stringstream strs;
+		while (count < 19500) {
 			// Lock is used to keep everything thread safe
 			piLock(1);
 			diff = encoder_count - count;
@@ -196,6 +204,14 @@ int SOE_SIGNAL() {
 			piUnlock(1);
 			Log("INFO") << "Encoder count- " << encoder_count;
 			Log("INFO") << "Encoder rate- " << diff * 10 << " counts/sec";
+			// Occasionally send count to ground
+			if (tmr.elapsed() > (1000 * i)) {
+				i++;
+				strs << "Count: " << encoder_count << " Rate: " <<
+						diff * 10;
+				REXUS.sendMsg(strs.str());
+				strs.clear();
+			}
 			// Check the boom is actually deploying
 			if ((tmr.elapsed() > 20000) && (diff < 10)) {
 				Log("ERROR") << "Boom not deploying as expected";
@@ -206,11 +222,10 @@ int SOE_SIGNAL() {
 			if (n > 0) {
 				Log("DATA (IMU1)") << p;
 				REXUS.sendPacket(p);
-				ethernet_stream.binwrite(&p, sizeof (p));
+				raspi1.sendPacket(p);
 				Log("INFO") << "Data sent to Ethernet Communications";
 			}
-
-			n = ethernet_stream.binread(&p, sizeof (p));
+			n = raspi1.recvPacket(p);
 			if (n > 0) {
 				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
@@ -220,8 +235,8 @@ int SOE_SIGNAL() {
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
-		double dist = 0.1256 * (count / 600);
-		Log("INFO") << "Boom deployed to " << dist << " m";
+		double dist = 0.0833 * (count / 1000);
+		Log("INFO") << "Boom deployed to approx: " << dist << " m";
 		std::stringstream ss;
 		ss << "Boom deployed to " << dist << " m";
 		REXUS.sendMsg(ss.str());
@@ -237,10 +252,10 @@ int SOE_SIGNAL() {
 		if (n > 0) {
 			Log("DATA (IMU1)") << p;
 			REXUS.sendPacket(p);
-			ethernet_stream.binwrite(&p, sizeof (p));
+			raspi1.sendPacket(p);
 			Log("INFO") << "Data sent to Ethernet Communications";
 		}
-		n = ethernet_stream.binread(&p, sizeof (p));
+		n = raspi1.recvPacket(p);
 		if (n > 0) {
 			Log("DATA (PI2)") << p;
 			REXUS.sendPacket(p);
@@ -256,6 +271,7 @@ int SOE_SIGNAL() {
  * of Experiment' signal (when the nose-cone is ejected)
  */
 int LO_SIGNAL() {
+	std::cout << "LO Recevied" << std::endl;
 	Log("INFO") << "LO signal received";
 	REXUS.sendMsg("LO received");
 	Cam.startVideo("Docs/Video/rexus_video");
@@ -288,6 +304,7 @@ int main(int argc, char* argv[]) {
 	Log.start_log();
 	REXUS.buffer();
 	Log("INFO") << "Pi 1 is running";
+	std::cout << "Pi 1 is running" << std::endl;
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
@@ -300,7 +317,7 @@ int main(int argc, char* argv[]) {
 	pullUpDnControl(SODS, PUD_UP);
 	pinMode(ALIVE, INPUT);
 	pullUpDnControl(ALIVE, PUD_DOWN);
-	Log("INFO") << "Main signal pins setup";
+	Log("INFO") << "Main signal pins setup" << std::endl;
 
 	// Setup pins and check whether we are in flight mode
 	pinMode(LAUNCH_MODE, INPUT);
@@ -323,8 +340,8 @@ int main(int argc, char* argv[]) {
 	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
 	// Try to connect to Pi 2
 	try {
-		raspi1.setup();
-		ethernet_stream = raspi1.run("Docs/Data/Pi2/backup.txt");
+		raspi1.run("Docs/Data/Pi2/backup");
+		std::cout << "Ethernet connected" << std::endl;
 		Log("INFO") << "Ethernet connection successful";
 		REXUS.sendMsg("Ethernet connected");
 	} catch (EthernetException e) {
@@ -335,15 +352,66 @@ int main(int argc, char* argv[]) {
 	}
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");
+	std::cout << "Waiting for LO" << std::endl;
 	// Wait for LO signal
 	bool signal_received = false;
 	comms::Packet p;
-	int n;
+	comms::byte1_t id;
+	comms::byte2_t index;
+	comms::byte1_t data[16];
+  int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received
 		signal_received = poll_input(LO);
-		// TODO Implement communications with RXSM
+		// Check for any packets from RXSM
+		int n = REXUS.recvPacket(p);
+		if (n > 0) {
+			REXUS.sendMsg("ACK");
+			Log("RXSM") << p;
+			raspi1.sendPacket(p);
+			comms::Protocol::unpack(p, id, index, data);
+			Log("UNPACKED") << "ID: " << id << "DATA[0]: " << data[0];
+			if (id == 0b11000000) {
+				switch (data[0]) {
+					case 1: // restart
+					{
+						Log("INFO") << "Rebooting...";
+						system("sudo reboot now");
+						exit(0);
+					}
+					case 2: // shutdown
+					{
+						Log("INFO") << "Shutting down...";
+						system("sudo shutdown now");
+						exit(0);
+					}
+					case 3: // Toggle flight mode
+					{
+						Log("INFO") << "Toggling flight mode";
+						flight_mode = (flight_mode) ? false : true;
+						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
+						if (flight_mode)
+							REXUS.sendMsg("WARNING: Flight mode enabled");
+						else
+							REXUS.sendMsg("Entering test mode");
+						break;
+					}
+					case 4: // Run all tests
+					{
+						Log("INFO") << "Running Tests";
+						std::string result = tests::all_tests();
+						REXUS.sendMsg(result);
+					}
+					default:
+					{
+						REXUS.sendMsg("Not Recognised");
+						Log("ERROR") << "Command not recognised" << data[0];
+						break;
+					}
+				}
+			}
+		}
 	}
 	LO_SIGNAL();
 	return 0;

@@ -21,35 +21,47 @@
 #include "comms/packet.h"
 #include <iostream>
 
-int all_tests() {
-	IMU_test();
-	camera_test();
-	ImP_test();
-	return 0;
-}
+namespace tests {
 
-int IMU_test() {
-	int rtn = 0;
-	RPi_IMU IMU = RPi_IMU();
-	if (!IMU.setupAcc())
-		rtn &= 0b00000011;
-	if (!IMU.readAccAxis(1))
-		rtn &= 0b00000100;
-	// Test multiprocessing
-	IMU.setupGyr();
-	IMU.setupMag();
-	comms::Pipe stream;
-	stream = IMU.startDataCollection("imutest");
-	Timer::sleep_ms(500);
-	comms::Packet p;
-	int n = 0;
-	try {
+ 	std::string all_tests() {
+		std::string rtn = IMU_test();
+		rtn += camera_test();
+		return rtn;
+	}
+
+	std::string IMU_test() {
+		std::string rtn = "\nTesting IMU...\n";
+		RPi_IMU IMU;
+		if (!IMU.setupAcc())
+			rtn += "Failed to write to sensor.\n";
+		else
+			rtn += "Data written to sensor.\n";
+		if (!IMU.readAccAxis(1))
+			rtn += "Failed to read from sensor.\n";
+		else
+			rtn += "Value read from sensor.\n";
+		// Test multiprocessing
+		IMU.setupGyr();
+		IMU.setupMag();
+		comms::Pipe stream;
+		stream = IMU.startDataCollection("imutest");
+		Timer::sleep_ms(500);
+		comms::Packet p;
+		int n = 0;
 		for (int i = 0; i < 5; i++) {
-			if (stream.binread(&p, sizeof (p)) == 0)
-				rtn &= 0b00001000;
+			if (stream.binread(&p, sizeof (p)) <= 0)
+				rtn += "Stream not receiving data.\n";
+			else
+				rtn += "Stream receiving data.\n";
 			Timer::sleep_ms(200);
 		}
-	}
+		IMU.stopDataCollection();
+		std::fstream f("imutest0001.txt");
+		if (f.good()) {
+			system("sudo rm -rf *.txt");
+			return rtn + "Data saved to file.\n";
+		} else
+			return rtn + "Data not saved to file.\n";
 	stream.close_pipes();
 	system("sudo rm -rf *.txt");
 	return rtn;
@@ -59,62 +71,60 @@ int IMU_test() {
 	//	return rtn;
 	//} else
 	//	return rtn && 0b00001000;
-}
+  }
 
-int camera_test() {
-	std::string rtn;
-	PiCamera cam = PiCamera();
-	cam.startVideo("camtest");
-	Timer::sleep_ms(2500);
-	// Check camera process is running
-	if (!cam.is_running())
-		return "Camera not working";
-	else {
-		Timer::sleep_ms(2500);
-		cam.stopVideo();
-		// Check files were created
-		system("sudo rm -rf *.h264");
-		return "Camera working";
-	}
-	//std::fstream f("camtest0001.h264");
-	//if (f.good) {
-	//	system("sudo rm -rf *.h264");
-	//	return 0;
-	//} else
-	//	return -2;
-}
+  int camera_test() {
+	  std::string rtn;
+  	PiCamera cam = PiCamera();
+	  cam.startVideo("camtest");
+	  Timer::sleep_ms(2500);
+	  // Check camera process is running
+	  if (!cam.is_running())
+		  return "Camera not working";
+	  else {
+		  Timer::sleep_ms(2500);
+		 cam.stopVideo();
+		 // Check files were created
+		 system("sudo rm -rf *.h264");
+		 return "Camera working";
+	  }
+	  //std::fstream f("camtest0001.h264");
+	  //if (f.good) {
+	  //	system("sudo rm -rf *.h264");
+	  //	return 0;
+	  //} else
+	  //	return -2;
+  }
 
-int ImP_test() {
-	return 0;
-}
+  int ImP_test() {
+    return 0;
+  }
 
-int motor_turn(int dir, int n, int *counter) {
-	wiringPiSetup();
-	pinMode(MOTOR_CW, OUTPUT);
-	pinMode(MOTOR_ACW, OUTPUT);
-	switch (dir) {
-		case 0:
-			digitalWrite(MOTOR_CW, 1);
-		case 1:
-			digitalWrite(MOTOR_ACW, 1);
-	}
-	int count;
-	while (1) {
-		piLock(1);
-		count = *counter;
-		piUnlock(1);
-		if (count > n)
-			break;
-		Timer::sleep_ms(100);
-	}
-	digitalWrite(MOTOR_CW, 0);
-	digitalWrite(MOTOR_ACW, 0);
-	piLock(1);
-	*counter = 0;
-	piUnlock(1);
-	return count;
-}
+  int motor_turn(int dir, int n, int *counter) {
+    wiringPiSetup();
+    pinMode(MOTOR_CW, OUTPUT);
+    pinMode(MOTOR_ACW, OUTPUT);
+    switch (dir) {
+      case 0:
+        digitalWrite(MOTOR_CW, 1);
+      case 1:
+        digitalWrite(MOTOR_ACW, 1);
+    }
+    int count;
+    while (1) {
+      piLock(1);
+      count = *counter;
+      piUnlock(1);
+      if (count > n)
+        break;
+      Timer::sleep_ms(100);
+    }
+    digitalWrite(MOTOR_CW, 0);
+    digitalWrite(MOTOR_ACW, 0);
+    piLock(1);
+    *counter = 0;
+    piUnlock(1);
+    return count;
+  }
 
-int relay_test(int time) {
-	return 0;
 }

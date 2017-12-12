@@ -11,6 +11,31 @@
 
 namespace comms {
 
+	class PacketChecker {
+		uint8_t _buf[24];
+		bool _flag = false;
+		int _index = 0;
+
+	public:
+
+		PacketChecker() {
+		}
+
+		/**
+		 * Puches the next byte into the checker
+		 * @param byte; the byte to be pushed
+		 * @return 0 when no packet to return, else the length of the packet
+		 */
+		int push_byte(uint8_t byte);
+
+		/**
+		 * Gets the packet from the buffer
+		 * @param p will hold the packet
+		 * @return false of no packet available yet
+		 */
+		bool get_packet(comms::Packet *p);
+	};
+
 	class Transceiver {
 	public:
 
@@ -29,7 +54,7 @@ namespace comms {
 		   0: Success.
 		   -1: No packets in queue
 		 */
-		int recvPacket(Packet *p);
+		int recvPacket(Packet *p, int timeout_ms = 10);
 
 		/**
 		   Push a packet to the send queue
@@ -47,6 +72,7 @@ namespace comms {
 		int _fd_recv;
 
 	private:
+		PacketChecker _checker;
 	};
 }
 #endif

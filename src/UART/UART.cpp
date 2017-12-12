@@ -19,6 +19,9 @@
 
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <iomanip>
+
 #include "UART.h"
 #include "comms/packet.h"
 #include "comms/pipes.h"
@@ -46,16 +49,16 @@ void UART::setupUART() {
 			f_baud = B19200;
 			break;
 		case 38400:
-			f_baud = 38400;
+			f_baud = B38400;
 			break;
 		case 57600:
-			f_baud = 57600;
+			f_baud = B57600;
 			break;
 		case 115200:
-			f_baud = 115200;
+			f_baud = B115200;
 			break;
 		case 230400:
-			f_baud = 230400;
+			f_baud = B230400;
 			break;
 		default:
 			throw UARTException("ERROR baud rate not defined");
@@ -145,11 +148,14 @@ int RXSM::recvPacket(comms::Packet &p) {
 
 int RXSM::sendMsg(std::string msg) {
 	int n = msg.length();
+	char *buf = new char [17];
 	int sent = 0;
 	comms::Packet p;
-	for (int i = 0; i < n; i += 15) {
-		std::string data = msg.substr(i, 15);
-		comms::Protocol::pack(p, ID_MSG1, _index++, &data);
+	for (int i = 0; i < n; i += 16) {
+		bzero(buf, 17);
+		std::string data = msg.substr(i, 16);
+		strcpy(buf, data.c_str());
+		comms::Protocol::pack(p, ID_MSG1, _index++, buf);
 		sent += sendPacket(p);
 	}
 	return sent;
@@ -171,12 +177,14 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 			// Send initial start command
 			ImP_comms.sendBytes("C", 1);
 			Log("DATA (SENT") << "C";
+			std::string measurement_start = Timer::str_datetime();
 			for (int j = 0;; j++) {
 				std::ofstream outf;
-				char unique_file[50];
-				sprintf(unique_file, "%s%04d.txt", filename.c_str(), j);
-				Log("INFO") << "Starting new data file \"" << unique_file << "\"";
-				outf.open(unique_file);
+				std::stringstream unique_file;
+				unique_file << filename << "_" << measurement_start << "_"
+						<< std::setfill('0') << std::setw(4) << j << ".txt";
+				Log("INFO") << "Starting new data file \"" << unique_file.str() << "\"";
+				outf.open(unique_file.str());
 				// Take five measurements then change the file
 				int intv = 200;
 				for (int i = 0; i < 5; i++) {
@@ -185,6 +193,13 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					// Wait for data to come through
 					while (1) {
 						int n = ImP_comms.recvBytes(buf, 255);
+						if (n > 0) {
+							buf[n] = '\0';
+							outf << buf << std::endl;
+							_pipes.binwrite(buf, n);
+							ImP_comms.sendBytes("N", 1);
+						}
+						tmr.sleep_ms(10);
 						/*
 						 * It is assumed that the data is received in the following format
 						 * Byte 1-6 Accelerometer (x, y, z)
@@ -193,6 +208,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 						 * Byte 19-22 time
 						 * Byte 23-24 ImP Measurement
 						 */
+						/*
 						if (n > 0) {
 							comms::Packet p1;
 							comms::Packet p2;
@@ -213,10 +229,12 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 							Log("DATA (SENT)") << "N";
 							break;
 						}
+						 */
 					}
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);
 				}
+				outf.close();
 			}
 		} else {
 			return _pipes;
