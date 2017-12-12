@@ -15,8 +15,9 @@
 #define TESTS_H
 
 namespace tests {
-	std::string all_tests();
+	std::string pi1_tests();
 
+	std::string pi2_tests();
 	/**
 	 * Run a series of basic tests on the IMU.
 	 * 1) Try to connect with the IMU via i2c
