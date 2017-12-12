@@ -280,11 +280,17 @@ int LO_SIGNAL() {
 	Log("INFO") << "Waiting for SOE";
 	REXUS.sendMsg("Waiting for SOE");
 	bool signal_received = false;
+	int counter = 0;
 	while (!signal_received) {
 		delay(10);
 		// Implements a loop to ensure SOE signal has actually been received
 		signal_received = poll_input(SOE);
-		// TODO Implement communications with RXSM
+		// Send a message every second for the sake of sanity!
+		if (counter++ >= 100) {
+			counter = 0;
+			RXSM.sendMsg("I'm still alive...");
+		}
+
 	}
 	return SOE_SIGNAL();
 }
@@ -302,7 +308,6 @@ int main(int argc, char* argv[]) {
 	Log.start_log();
 	REXUS.buffer();
 	Log("INFO") << "Pi 1 is running";
-	std::cout << "Pi 1 is running" << std::endl;
 	REXUS.sendMsg("Pi 1 Alive");
 	// Setup wiringpi
 	wiringPiSetup();
@@ -333,36 +338,53 @@ int main(int argc, char* argv[]) {
 	digitalWrite(MOTOR_ACW, 0);
 	Log("INFO") << "Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
-	while (!digitalRead(ALIVE))
-		Timer::sleep_ms(10);
-	Log("INFO") << "Trying to establish Ethernet connection with " << server_name;
-	// Try to connect to Pi 2
-	try {
-		raspi1.run("Docs/Data/Pi2/backup");
-		std::cout << "Ethernet connected" << std::endl;
-		Log("INFO") << "Ethernet connection successful";
-		REXUS.sendMsg("Ethernet connected");
-	} catch (EthernetException e) {
-		Log("ERROR") << "Ethernet connection failed with error\n\t\"" << e.what()
-				<< "\"";
-		Log("INFO") << "Continuing without Ethernet communications";
+	Timer tmr;
+	while (tmr.elapsed() < 20000) {
+		if (digitalRead(ALIVE)) {
+			Log("INFO") << "Establishing ethernet connection";
+			raspi1.run("Docs/Data/Pi2/backup");
+			if (raspi1.is_alive()) {
+				Log("INFO") << "Connection successful";
+				REXUS.sendMsg("Ethernet connection successful");
+			} else {
+				Log("INFO") << "Connection failes";
+				REXUS.sendMsg("ERROR: Ethernet connection failed");
+			}
+		}
 	}
-	// TODO should we try to reconnect to server?
+	if (tmr.elapsed() < 20000) {
+		REXUS.sendMsg("ERROR: Timeout waiting for Pi 2");
+		Log("ERROR") << "Timeout waiting for Pi 2";
+		Log("INFO") << "Attempting ethernet connection anyway";
+		raspi1.run("Docs/Data/Pi2/backup");
+		if (raspi1.is_alive()) {
+			Log("INFO") << "Ethernet connection successful";
+			REXUS.sendMsg("Ethernet connected");
+		} else {
+			Log("ERROR") << "Unable to establish ethernet connection";
+			REXUS.sendMsg("ERROR: Ethernet failed");
+			REXUS.sendMsg("Continuing without ethernet comms");
+		}
+	}
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");
-	std::cout << "Waiting for LO" << std::endl;
 	// Wait for LO signal
 	bool signal_received = false;
 	comms::Packet p;
 	comms::byte1_t id;
 	comms::byte2_t index;
 	comms::byte1_t data[16];
+	int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received
 		signal_received = poll_input(LO);
+		//Check for packets from Pi2
+		n = raspi1.recvPacket(p);
+		if (n > 0)
+			REXUS.sendPacket(p);
 		// Check for any packets from RXSM
-		int n = REXUS.recvPacket(p);
+		n = REXUS.recvPacket(p);
 		if (n > 0) {
 			REXUS.sendMsg("ACK");
 			Log("RXSM") << p;
@@ -397,8 +419,9 @@ int main(int argc, char* argv[]) {
 					case 4: // Run all tests
 					{
 						Log("INFO") << "Running Tests";
-						std::string result = tests::all_tests();
+						std::string result = tests::pi1_tests();
 						REXUS.sendMsg(result);
+						Log("INFO") << "Test Results\n\t" << result;
 					}
 					default:
 					{

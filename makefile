@@ -6,7 +6,7 @@ PI1OBJS = ./build/raspi1.o ./build/tests.o ./build/logger.o ./build/packet.o ./b
 PI2OBJS = ./build/raspi2.o ./build/tests.o ./build/logger.o ./build/packet.o ./build/protocol.o ./build/transceiver.o ./build/pipes.o ./build/RPi_IMU.o ./build/camera.o ./build/UART.o ./build/Ethernet.o
 LFLAGS = -Wall
 CFLAGS = -Wall -c -std=c++11
-INCLUDES = -lwiringPi -I/home/pi/CPP_PIOneERS/src
+INCLUDES = -lwiringPi -I./src
 
 RASPI1SRC = ./src/raspi1.cpp
 RASPI2SRC = ./src/raspi2.cpp

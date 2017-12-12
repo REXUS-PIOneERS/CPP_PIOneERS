@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdint.h>
 #include <fstream>
+#include <iomanip>
 #include "logger.h"
 #include "timing/timer.h"
 
@@ -23,7 +24,8 @@ std::string time(Timer tmr) {
 	time -= min * 60000;
 	int sec = time / 1000;
 	time -= sec * 1000;
-	ss << hr << ":" << min << ":" << sec << ":" << time;
+	ss << std::setfill('0') << std::setw(2) << hr << ":" << min << ":" <<
+			sec << ":" << time;
 	return ss.str();
 }
 

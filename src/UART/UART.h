@@ -77,7 +77,7 @@ class ImP : public UART {
 
 public:
 
-	ImP(int baudrate = 230400) : UART(baudrate), Log("/Docs/Logs/ImP") {
+	ImP(int baudrate = 38400) : UART(baudrate), Log("/Docs/Logs/ImP") {
 		Log.start_log();
 		return;
 	}

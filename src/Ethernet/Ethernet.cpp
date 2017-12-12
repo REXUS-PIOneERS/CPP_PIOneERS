@@ -217,13 +217,17 @@ void Raspi1::run(std::string filename) {
 		Log.child_log();
 		share_data();
 	} else {
-		// Assign the pipes for the main process and close the un-needed ones
 		return;
 	}
 }
 
 void Raspi2::share_data() {
-	setup();
+	try {
+		setup();
+	} catch (EthernetException e) {
+		Log("FATAL") << "Error setting up server\n\t" << e.what();
+		exit(-1);
+	}
 	while (1) {
 		try {
 			Log("INFO") << "Waiting for client connection";
@@ -314,4 +318,22 @@ void Raspi2::run(std::string filename) {
 		// This is the main parent process
 		return;
 	}
+}
+
+int Raspi2::sendMsg(std::string msg) {
+	int n = msg.length();
+	int mesg_num = ceil(n / (float) 15);
+	char *buf = new char [17];
+	int sent = 0;
+	comms::Packet p;
+	for (int i = 0; i < n; i += 16) {
+		bzero(buf, 16);
+		std::string data = msg.substr(i, 16);
+		strcpy(buf, data.c_str());
+		int msg_index = (_index << 8) | (mesg_num);
+		_index++;
+		comms::Protocol::pack(p, ID_MSG1, msg_index, buf);
+		sent += sendPacket(p);
+	}
+	return sent;
 }

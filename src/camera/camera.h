@@ -17,16 +17,16 @@
 
 class PiCamera {
 	pid_t camera_pid = 0;
-	Logger log;
+	Logger Log;
 
 public:
 
 	/**
 	 * Default constructor for the PiCamera class
 	 */
-	PiCamera() : log("/Docs/Logs/camera") {
-		log.start_log();
-		log("INFO") << "Camera created";
+	PiCamera() : Log("/Docs/Logs/camera") {
+		Log.start_log();
+		Log("INFO") << "Camera created";
 	}
 
 	/**

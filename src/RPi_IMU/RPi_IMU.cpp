@@ -322,8 +322,11 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					comms::Protocol::pack(p2, id2, index, data + 12);
 					Log("DATA (IMU)") << p1;
 					Log("DATA (IMU)") << p2;
-					_pipes.binwrite(&p1, sizeof (p1));
-					_pipes.binwrite(&p2, sizeof (p2));
+					int write1 = _pipes.binwrite(&p1, sizeof (p1));
+					int write2 = _pipes.binwrite(&p2, sizeof (p2));
+					if (write1 <= 0 || write2 <= 0) {
+						throw 1;
+					}
 					Log("INFO") << "Packets sent to main process";
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);
@@ -335,14 +338,15 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			// This is the parent process
 			return _pipes; // Return the read portion of the pipe
 		}
-	} catch (comms::PipeException e) {
-		// Ignore a broken pipe and exit silently
-		Log("FATAL") << "Failed to read/write to pipe\n\t\"" << e.what() << "\"";
+	} catch (int e) {
+		// Thrown when a pipe breaks
+		// TODO should we just silently keep recording data for a set time
+		// TODO implement a more rigid way of exiting process (i.e. send exit command)
+		Log("FATAL") << "Failed to send data to main process\n\t" << std::strerror(errno);
 		Log("INFO") << "Shutting down IMU process";
 		resetRegisters();
 		_pipes.close_pipes();
-		exit(-1); // Happily end the process
-		// TODO handle different types of exception!
+		exit(-1);
 	} catch (...) {
 		Log("FATAL") << "Caught unknown exception\n\t\"" << std::strerror(errno) <<
 				"\"";

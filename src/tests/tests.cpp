@@ -23,9 +23,15 @@
 
 namespace tests {
 
-	std::string all_tests() {
+	std::string pi1_tests() {
 		std::string rtn = IMU_test();
 		rtn += camera_test();
+		return rtn;
+	}
+
+	std::string pi2_tests() {
+		std::string rtn = ImP_test();
+		retn += camera_test();
 		return rtn;
 	}
 
@@ -55,18 +61,21 @@ namespace tests {
 				rtn += "Stream receiving data.\n";
 			Timer::sleep_ms(200);
 		}
-		IMU.stopDataCollection();
-		std::fstream f("imutest0001.txt");
-		if (f.good()) {
-			system("sudo rm -rf *.txt");
-			return rtn + "Data saved to file.\n";
-		} else
-			return rtn + "Data not saved to file.\n";
+
+		stream.close_pipes();
+		system("sudo rm -rf *.txt");
+		return rtn;
+		//std::fstream f("imutest0001.txt");
+		//if (f.good()) {
+		//	system("sudo rm -rf *.txt");
+		//	return rtn + "Data saved to file.\n";
+		//} else
+		//	return rtn + "Data not saved to file.\n";
 	}
 
 	std::string camera_test() {
 		std::string rtn = "\nTesting Camera...\n";
-				PiCamera cam;
+		PiCamera cam;
 		cam.startVideo("camtest");
 		Timer::sleep_ms(2500);
 		// Check camera process is running
@@ -74,17 +83,33 @@ namespace tests {
 			return rtn + "Camera failed to start.\n";
 		Timer::sleep_ms(2500);
 		cam.stopVideo();
+		system("sudo rm -rf *.h264");
+		return rtn;
 		// Check files were created
-		std::fstream f("camtest0001.h264");
-		if (f.good()) {
-			system("sudo rm -rf *.h264");
-			return rtn + "Camera tests passed.\n";
-		} else
-			return rtn + "No files found.\n";
+		//std::fstream f("camtest0001.h264");
+		//if (f.good()) {
+		//	system("sudo rm -rf *.h264");
+		//	return rtn + "Camera tests passed.\n";
+		//} else
+		//	return rtn + "No files found.\n";
 	}
 
 	int ImP_test() {
-		return 0;
+		std::string rtn = "\nTesting ImP...\n";
+		comms::Packet p;
+		comms::Pipe pipe;
+		ImP imp(38400);
+		pipe = imp.startDataCollection("imptest");
+		Timer::sleep_ms(500);
+		int n = pipe.binread(&p, sizeof(comms::Packet));
+		if (n > 0)
+			rtn += "ImP sending data.\n";
+		else
+			rtn += "ImP not sending data.\n";
+		pipe.close_pipes();
+		Timer::sleep_ms(500);
+		system("sudo rm -rf *.txt");
+		return rtn;
 	}
 
 }
