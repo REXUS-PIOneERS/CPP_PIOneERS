@@ -74,7 +74,7 @@ namespace comms {
 			int n = write(_fd_send, (void*) p, sizeof (Packet));
 			return n;
 		}
-		return 0;
+		return -1;
 	}
 
 	int Transceiver::recvBytes(void *data, int max) {
@@ -90,7 +90,7 @@ namespace comms {
 			int n = write(_fd_send, data, len);
 			return n;
 		}
-		return 0;
+		return -1;
 	}
 
 	int PacketChecker::push_byte(uint8_t byte) {

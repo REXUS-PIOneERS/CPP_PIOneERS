@@ -28,6 +28,37 @@
 #include "timing/timer.h"
 #include "logger/logger.h"
 #include <error.h>
+#include <sstream>
+
+#include <poll.h>
+
+int Server::status() {
+	if (!_pid)
+		return -1;
+	// Checks a file descriptor is ready for reading
+	int rtn = 0;
+	struct pollfd fds[3];
+	int timeout = 0;
+	// Read end of Pipe
+	fds[0].fd = _pipes.getReadfd();
+	fds[0].events = POLLIN;
+	// Write end of Pipe
+	fds[1].fd = _pipes.getWritefd();
+	fds[1].events = POLLOUT;
+	// Ethernet file descriptor
+	fds[2].fd = _newsockfd;
+	fds[2].events = POLLIN | POLLOUT;
+	// Check if the file descriptor is ready for reading
+	if (poll(fds, 1, timeout)) {
+		if (!(fds[0].revents & POLLIN))
+			rtn &= 0x01;
+		if (!(fds[1].revents & POLLOUT))
+			rtn &= 0x02;
+		if (!(fds[2].revents & (POLLIN | POLLOUT)))
+			rtn &= 0x04;
+	}
+	return rtn;
+}
 
 // Functions for setting up as a server
 
@@ -51,7 +82,7 @@ int Server::setup() {
 	}
 	// Sets backlog queue to 5 connections and allows socket to listen
 	listen(_sockfd, 5);
-	m_clilen = sizeof (_cli_addr);
+	_clilen = sizeof (_cli_addr);
 	Log("INFO") << "Server setup successful";
 	return 0;
 }
@@ -106,6 +137,7 @@ void Client::close_connection() {
 		close(_sockfd);
 		_pipes.close_pipes();
 	}
+	_connected = false;
 }
 
 Client::~Client() {
@@ -234,13 +266,13 @@ void Raspi2::share_data() {
 			}
 			_is_running = true;
 			Log("INFO") << "Client has established connection";
-
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
 			std::stringstream outf_name;
 			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
 			outf.open(outf_name.str());
 			comms::Packet p;
+			int n;
 			while (1) {
 				int n;
 				n = eth_comms.recvPacket(&p);
@@ -315,3 +347,4 @@ void Raspi2::run(std::string filename) {
 		return;
 	}
 }
+

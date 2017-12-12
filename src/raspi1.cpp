@@ -230,6 +230,8 @@ int SOE_SIGNAL() {
 				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
 			}
+			// TODO what about when there is an error (n < 0)
+
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
@@ -345,9 +347,9 @@ int main(int argc, char* argv[]) {
 	} catch (EthernetException e) {
 		Log("ERROR") << "Ethernet connection failed with error\n\t\"" << e.what()
 				<< "\"";
-		Log("INFO") << "Continuing without Ethernet communications";
+		REXUS.sendMsg("Ethernet Failure");
+		Log("INFO") << "Continuing without Ethernet connection";
 	}
-	// TODO should we try to reconnect to server?
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");
 	std::cout << "Waiting for LO" << std::endl;
@@ -357,6 +359,7 @@ int main(int argc, char* argv[]) {
 	comms::byte1_t id;
 	comms::byte2_t index;
 	comms::byte1_t data[16];
+  int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received

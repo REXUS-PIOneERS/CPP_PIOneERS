@@ -25,11 +25,12 @@
 class Server {
 protected:
 	int _sockfd, _newsockfd, _port, _pid;
-	socklen_t m_clilen;
+	socklen_t _clilen;
 	struct sockaddr_in _serv_addr, _cli_addr;
 	std::string _filename;
 	Logger Log;
 	comms::Pipe _pipes;
+	bool _connected = false;
 
 	/**
 	 * Sets up basic variables for creating a server
@@ -57,6 +58,15 @@ public:
 
 	Raspi2(const int port) : Server(port) {
 	}
+
+	/**
+	 * Checks the status of pipe and ethernet communications for the server.
+	 * @return 0 if all is good
+	 * 0bXXXXXXX1 represents read end of pipe is unavailbale
+	 * 0bXXXXXX1X represents write end of pipe is unavailable
+	 * 0bXXXXX1XX represents ethernet communication is down
+	 */
+	int status();
 
 	/**
 	 * Starts the server running as a child process ready for accepting
@@ -93,8 +103,9 @@ protected:
 	struct hostent *_server;
 	std::string _filename;
 	Logger Log;
-public:
 	comms::Pipe _pipes;
+	bool _connected = false;
+public:
 
 	/**
 	 * Constructor for the Client class
@@ -105,6 +116,10 @@ public:
 	: _port(port), _host_name(host_name), Log("/Docs/Logs/client") {
 		Log.start_log();
 		Log("INFO") << "Log started by client";
+	}
+
+	bool active() {
+		return _connected;
 	}
 
 	/**
@@ -126,6 +141,9 @@ protected:
 	 * @return 0 = success, otherwise = failure
 	 */
 	int setup();
+
+	~Client();
+
 };
 
 class Raspi1 : public Client {
