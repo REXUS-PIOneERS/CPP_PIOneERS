@@ -370,5 +370,3 @@ int Raspi2::sendMsg(std::string msg) {
 	}
 	return sent;
 }
-=======
->>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3

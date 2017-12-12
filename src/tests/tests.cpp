@@ -65,7 +65,6 @@ namespace tests {
 				rtn += "Stream receiving data.\n";
 			Timer::sleep_ms(200);
 		}
-<<<<<<< HEAD
 
 		stream.close_pipes();
 		system("sudo rm -rf *.txt");
@@ -116,52 +115,6 @@ namespace tests {
 		system("sudo rm -rf *.txt");
 		return rtn;
 	}
-=======
-		IMU.stopDataCollection();
-		std::fstream f("imutest0001.txt");
-		if (f.good()) {
-			system("sudo rm -rf *.txt");
-			return rtn + "Data saved to file.\n";
-		} else
-			return rtn + "Data not saved to file.\n";
-	stream.close_pipes();
-	system("sudo rm -rf *.txt");
-	return rtn;
-	//std::fstream f("imutest0001.txt");
-	//if (f.good()) {
-	//	system("sudo rm -rf *.txt");
-	//	return rtn;
-	//} else
-	//	return rtn && 0b00001000;
-  }
-
-  int camera_test() {
-	  std::string rtn;
-  	PiCamera cam = PiCamera();
-	  cam.startVideo("camtest");
-	  Timer::sleep_ms(2500);
-	  // Check camera process is running
-	  if (!cam.is_running())
-		  return "Camera not working";
-	  else {
-		  Timer::sleep_ms(2500);
-		 cam.stopVideo();
-		 // Check files were created
-		 system("sudo rm -rf *.h264");
-		 return "Camera working";
-	  }
-	  //std::fstream f("camtest0001.h264");
-	  //if (f.good) {
-	  //	system("sudo rm -rf *.h264");
-	  //	return 0;
-	  //} else
-	  //	return -2;
-  }
-
-  int ImP_test() {
-    return 0;
-  }
-
   int motor_turn(int dir, int n, int *counter) {
     wiringPiSetup();
     pinMode(MOTOR_CW, OUTPUT);
@@ -188,6 +141,5 @@ namespace tests {
     piUnlock(1);
     return count;
   }
->>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 
 }

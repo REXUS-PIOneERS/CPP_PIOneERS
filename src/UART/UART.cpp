@@ -92,10 +92,6 @@ void RXSM::buffer() {
 				n = _pipes.binread(&p, sizeof (p));
 				if (n > 0)
 					sendPacket(p);
-<<<<<<< HEAD
-				Timer::sleep_ms(2);
-=======
->>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 
 				n = recvPacket(p);
 				if (n > 0)
