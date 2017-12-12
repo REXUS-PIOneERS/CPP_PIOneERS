@@ -230,6 +230,8 @@ int SOE_SIGNAL() {
 				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
 			}
+			// TODO what about when there is an error (n < 0)
+
 			delay(100);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
@@ -357,6 +359,7 @@ int main(int argc, char* argv[]) {
 		Log("ERROR") << "Timeout waiting for Pi 2";
 		Log("INFO") << "Attempting ethernet connection anyway";
 		raspi1.run("Docs/Data/Pi2/backup");
+<<<<<<< HEAD
 		if (raspi1.is_alive()) {
 			Log("INFO") << "Ethernet connection successful";
 			REXUS.sendMsg("Ethernet connected");
@@ -365,6 +368,16 @@ int main(int argc, char* argv[]) {
 			REXUS.sendMsg("ERROR: Ethernet failed");
 			REXUS.sendMsg("Continuing without ethernet comms");
 		}
+=======
+		std::cout << "Ethernet connected" << std::endl;
+		Log("INFO") << "Ethernet connection successful";
+		REXUS.sendMsg("Ethernet connected");
+	} catch (EthernetException e) {
+		Log("ERROR") << "Ethernet connection failed with error\n\t\"" << e.what()
+				<< "\"";
+		REXUS.sendMsg("Ethernet Failure");
+		Log("INFO") << "Continuing without Ethernet connection";
+>>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 	}
 	Log("INFO") << "Waiting for LO";
 	REXUS.sendMsg("Waiting for LO");
@@ -374,7 +387,11 @@ int main(int argc, char* argv[]) {
 	comms::byte1_t id;
 	comms::byte2_t index;
 	comms::byte1_t data[16];
+<<<<<<< HEAD
 	int n;
+=======
+  int n;
+>>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received

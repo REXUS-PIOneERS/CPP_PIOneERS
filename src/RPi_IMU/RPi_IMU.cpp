@@ -251,7 +251,8 @@ void RPi_IMU::readMag(uint16_t *data) {
 void RPi_IMU::readRegisters(comms::byte1_t *data) {
 	// Read all registers for accelerometer, magnetometer and gyroscope
 	int n = 0;
-	activateSensor(ACC_ADDRESS);
+	if (!activateSensor(ACC_ADDRESS))
+		throw -1;
 	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_A, 6, data);
 	activateSensor(GYR_ADDRESS);
 	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_G, 6, (data + 6));
@@ -322,11 +323,20 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					comms::Protocol::pack(p2, id2, index, data + 12);
 					Log("DATA (IMU)") << p1;
 					Log("DATA (IMU)") << p2;
+<<<<<<< HEAD
 					int write1 = _pipes.binwrite(&p1, sizeof (p1));
 					int write2 = _pipes.binwrite(&p2, sizeof (p2));
 					if (write1 <= 0 || write2 <= 0) {
 						throw 1;
 					}
+=======
+
+					if (_pipes.binwrite(&p1, sizeof (p1)) < 0)
+						throw -2;
+					if (_pipes.binwrite(&p2, sizeof (p2)) < 0)
+						throw -2;
+
+>>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 					Log("INFO") << "Packets sent to main process";
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);
@@ -334,11 +344,14 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				// Close the current file, ready to start a new one
 				outf.close();
 			}
-		} else {
+		} else if (_pid > 0) {
 			// This is the parent process
 			return _pipes; // Return the read portion of the pipe
+		} else {
+			throw -3;
 		}
 	} catch (int e) {
+<<<<<<< HEAD
 		// Thrown when a pipe breaks
 		// TODO should we just silently keep recording data for a set time
 		// TODO implement a more rigid way of exiting process (i.e. send exit command)
@@ -347,6 +360,27 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 		resetRegisters();
 		_pipes.close_pipes();
 		exit(-1);
+=======
+		// Ignore a broken pipe and exit silently
+		switch (e) {
+			case -1:
+				Log("FATAL") << "Error activating sensor\n\t" << std::strerror(errno);
+				_pipes.close_pipes();
+				break;
+			case -2:
+				Log("FATAL") << "Failed to read/write to pipe\n\t" << std::strerror(errno);
+				resetRegisters();
+				_pipes.close_pipes();
+				break;
+			case -3:
+				Log("FATAL") << "Unable to fork process\n\t" << std::strerror(errno);
+				_pipes.close_pipes;
+				break;
+			default:
+				Log("INFO") << "Shutting down IMU process";
+				exit(e);
+		}
+>>>>>>> fc9ecb415af68d1700cf91e6089f1059e9afd2d3
 	} catch (...) {
 		Log("FATAL") << "Caught unknown exception\n\t\"" << std::strerror(errno) <<
 				"\"";

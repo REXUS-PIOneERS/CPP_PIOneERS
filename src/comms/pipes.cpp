@@ -112,7 +112,7 @@ namespace comms {
 		if (fd < 0)
 			return -1; // Process not forked
 		if (!poll_read(fd))
-			return 0;
+			return -2;
 		int bytes_read = read(fd, data, n);
 		if (bytes_read == -1)
 			return -3; // Error reading from pipe
