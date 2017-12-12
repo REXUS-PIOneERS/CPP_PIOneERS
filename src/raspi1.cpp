@@ -288,10 +288,11 @@ int LO_SIGNAL() {
 		// Implements a loop to ensure SOE signal has actually been received
 		signal_received = poll_input(SOE);
 		// Send a message every second for the sake of sanity!
-		if (counter++ >= 100) {
+		if (counter >= 100) {
 			counter = 0;
-			RXSM.sendMsg("I'm still alive...");
-		}
+			REXUS.sendMsg("I'm still alive...");
+		} else
+			counter++;
 
 	}
 	return SOE_SIGNAL();
