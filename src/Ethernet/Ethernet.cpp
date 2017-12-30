@@ -31,7 +31,7 @@
 #include <sstream>
 
 #include <poll.h>
-
+/*
 int Server::status() {
 	if (!_pid)
 		return -1;
@@ -59,7 +59,7 @@ int Server::status() {
 	}
 	return rtn;
 }
-
+*/
 // Functions for setting up as a server
 
 int Server::setup() {
@@ -263,7 +263,7 @@ void Raspi2::share_data() {
 	while (1) {
 		try {
 			Log("INFO") << "Waiting for client connection";
-			_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &m_clilen);
+			_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &_clilen);
 			if (_newsockfd < 0) {
 				Log("ERROR") << "Problem waiting for client connection";
 				throw EthernetException("Error on accept");
@@ -352,7 +352,6 @@ void Raspi2::run(std::string filename) {
 	}
 }
 
-<<<<<<< HEAD
 int Raspi2::sendMsg(std::string msg) {
 	int n = msg.length();
 	int mesg_num = ceil(n / (float) 15);

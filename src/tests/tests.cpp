@@ -21,6 +21,7 @@
 #include "comms/packet.h"
 #include "pins1.h"
 #include <iostream>
+#include <wiringPi.h>
 
 namespace tests {
 

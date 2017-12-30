@@ -355,7 +355,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				break;
 			case -3:
 				Log("FATAL") << "Unable to fork process\n\t" << std::strerror(errno);
-				_pipes.close_pipes;
+				_pipes.close_pipes();
 				break;
 			default:
 				Log("INFO") << "Shutting down IMU process";

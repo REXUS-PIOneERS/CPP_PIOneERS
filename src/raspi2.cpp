@@ -92,13 +92,14 @@ int SODS_SIGNAL() {
 	 * directory.
 	 */
 	Log("INFO") << "SODS signal received";
+	/*
 	if (Cam.is_running()) {
 		Cam.stopVideo();
 		Log("INFO") << "Stopping camera process";
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
-
+	*/
 	if (raspi2.is_alive()) {
 		raspi2.end();
 		Log("INFO") << "Closed Ethernet communication";
@@ -113,9 +114,11 @@ int SODS_SIGNAL() {
 	}
 	digitalWrite(BURNWIRE, 0);
 	digitalWrite(BURNWIRE, 0);
+	Log("INFO") << "Waiting for power off";
+	while (1) { Timer::sleep_ms(10000); }
 	// TODO copy data to a further backup directory
-	Log("INFO") << "Ending program, Pi rebooting";
-	system("sudo reboot");
+	//Log("INFO") << "Ending program, Pi rebooting";
+	//system("sudo reboot");
 	return 0;
 }
 
@@ -220,7 +223,8 @@ int main() {
 	// Setup pins and check whether we are in flight mode
 	pinMode(LAUNCH_MODE, INPUT);
 	pullUpDnControl(LAUNCH_MODE, PUD_UP);
-	flight_mode = digitalRead(LAUNCH_MODE);
+	//flight_mode = digitalRead(LAUNCH_MODE);
+	flight_mode = false;
 	Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 
 	// Setup Burn Wire
@@ -272,7 +276,7 @@ int main() {
 					case 3: // Toggle flight mode
 					{
 						Log("INFO") << "Toggling flight mode";
-						flight_mode = (flight_mode) ? false : true;
+						//flight_mode = (flight_mode) ? false : true;
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 						if (flight_mode)
 							raspi2.sendMsg("WARNING: Flight mode enabled");
