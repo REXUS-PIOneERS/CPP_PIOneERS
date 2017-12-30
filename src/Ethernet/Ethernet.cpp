@@ -60,6 +60,7 @@ int Server::status() {
 	return rtn;
 }
 */
+
 // Functions for setting up as a server
 
 int Server::setup() {
@@ -199,7 +200,7 @@ void Raspi1::share_data() {
 				Timer::sleep_ms(1);
 			}
 		} catch (int e) {
-			_is_running = false;
+			//_is_running = false;
 			switch (e) {
 				case -1: // Process not forked correctly
 					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
@@ -209,7 +210,7 @@ void Raspi1::share_data() {
 					Log("ERROR") << "Problem with read/write to pipes\n\t" << std::strerror(errno);
 					close(_sockfd);
 					_pipes.close_pipes();
-					exit(0); // This is expected when we want to end the process
+					exit(e); // This is expected when we want to end the process
 				default:
 					Log("ERROR") << "Unexpected error code: " << e;
 					close(_sockfd);

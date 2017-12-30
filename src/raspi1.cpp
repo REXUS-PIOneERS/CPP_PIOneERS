@@ -130,13 +130,14 @@ int SODS_SIGNAL() {
 	Log("INFO") << "SODS signal received";
 	std::cout << "SODS received" << std::endl;
 	REXUS.sendMsg("SODS received");
+	/*
 	if (Cam.is_running()) {
 		Cam.stopVideo();
 		Log("INFO") << "Stopping camera process";
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
-
+	*/
 	if (raspi1.is_alive()) {
 		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";
@@ -152,9 +153,12 @@ int SODS_SIGNAL() {
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
-	Log("INFO") << "Ending program, Pi rebooting";
-	REXUS.sendMsg("Pi rebooting");
-	system("sudo reboot");
+	Log("INFO") << "Waiting for power off";
+	while(1) {
+		REXUS.sendMsg("I'm falling...");
+		Timer::sleep_ms(5000);
+	}
+	//system("sudo reboot");
 	return 0;
 }
 
@@ -183,12 +187,14 @@ int SOE_SIGNAL() {
 	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
 	if (flight_mode) {
+		piLock(1);
+		encoder_count = 0;
+		piUnlock(1);
 		REXUS.sendMsg("Extending boom");
 		// Extend the boom!
 		int count = encoder_count;
 		int diff = encoder_rate;
 		Timer tmr;
-		wiringPiISR(MOTOR_IN, INT_EDGE_RISING, interrupt);
 		digitalWrite(MOTOR_CW, 1);
 		digitalWrite(MOTOR_ACW, 0);
 		Log("INFO") << "Motor triggered, boom deploying";
@@ -218,7 +224,7 @@ int SOE_SIGNAL() {
 				break;
 			}
 			// Read data from IMU_data_stream and echo it to Ethernet
-			int n = IMU_stream.binread(&p, sizeof (p));
+			int n = IMU_stream.binread(&p, sizeof (comms::Packet));
 			if (n > 0) {
 				Log("DATA (IMU1)") << p;
 				REXUS.sendPacket(p);
@@ -248,7 +254,7 @@ int SOE_SIGNAL() {
 		// Implements a loop to ensure SOE signal has actually been received
 		signal_received = poll_input(SODS);
 		// Read data from IMU_data_stream and echo it to Ethernet
-		int n = IMU_stream.binread(&p, sizeof (p));
+		int n = IMU_stream.binread(&p, sizeof (comms::Packet));
 		if (n > 0) {
 			Log("DATA (IMU1)") << p;
 			REXUS.sendPacket(p);
@@ -339,6 +345,7 @@ int main(int argc, char* argv[]) {
 	pinMode(MOTOR_ACW, OUTPUT);
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
+	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, interrupt);
 	Log("INFO") << "Pins for motor control setup";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	Timer tmr;
@@ -346,16 +353,19 @@ int main(int argc, char* argv[]) {
 		if (digitalRead(ALIVE)) {
 			Log("INFO") << "Establishing ethernet connection";
 			raspi1.run("Docs/Data/Pi2/backup");
-			if (raspi1.is_alive()) {
-				Log("INFO") << "Connection successful";
-				REXUS.sendMsg("Ethernet connection successful");
-			} else {
-				Log("INFO") << "Connection failes";
-				REXUS.sendMsg("ERROR: Ethernet connection failed");
-			}
+			//if (raspi1.is_alive()) {
+			//	Log("INFO") << "Connection successful";
+			//	REXUS.sendMsg("Ethernet connection successful");
+			//	break;
+			//} else {
+			//	Log("INFO") << "Connection failed";
+			//	REXUS.sendMsg("ERROR: Ethernet connection failed");
+			//	break;
+			//}
+			break;
 		}
 	}
-	if (tmr.elapsed() < 20000) {
+	if (tmr.elapsed() > 20000) {
 		REXUS.sendMsg("ERROR: Timeout waiting for Pi 2");
 		Log("ERROR") << "Timeout waiting for Pi 2";
 		Log("INFO") << "Attempting ethernet connection anyway";

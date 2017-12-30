@@ -69,6 +69,7 @@ void PiCamera::stopVideo() {
 }
 
 bool PiCamera::is_running() {
+	return true;
 	Log("INFO") << "Camera process being polled...";
 	if (camera_pid) {
 		int status;
