@@ -53,6 +53,7 @@ public:
 
 class Raspi2 : public Server {
 	bool _is_running = false;
+	uint8_t _index = 0;
 public:
 
 	Raspi2(const int port) : Server(port) {

@@ -99,7 +99,7 @@ namespace comms {
 		if (fd < 0)
 			return -1; // process not forked
 		if (!poll_write(fd))
-			return -2; // pipe unavailable for write
+			return 0; // pipe unavailable for write
 		if (n == write(fd, data, n))
 			return n;
 		else
@@ -112,7 +112,7 @@ namespace comms {
 		if (fd < 0)
 			return -1; // Process not forked
 		if (!poll_read(fd))
-			return -2;
+			return 0;
 		int bytes_read = read(fd, data, n);
 		if (bytes_read == -1)
 			return -3; // Error reading from pipe

@@ -324,10 +324,8 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					Log("DATA (IMU)") << p1;
 					Log("DATA (IMU)") << p2;
 
-					if (_pipes.binwrite(&p1, sizeof (p1)) < 0)
-						throw -2;
-					if (_pipes.binwrite(&p2, sizeof (p2)) < 0)
-						throw -2;
+					_pipes.binwrite(&p1, sizeof (p1));
+					_pipes.binwrite(&p2, sizeof (p2));
 					Log("INFO") << "Packets sent to main process";
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);
@@ -355,7 +353,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				break;
 			case -3:
 				Log("FATAL") << "Unable to fork process\n\t" << std::strerror(errno);
-				_pipes.close_pipes;
+				_pipes.close_pipes();
 				break;
 			default:
 				Log("INFO") << "Shutting down IMU process";

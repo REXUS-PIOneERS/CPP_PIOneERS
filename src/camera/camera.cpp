@@ -21,6 +21,7 @@
 
 void PiCamera::startVideo(std::string filename) {
 	if ((camera_pid = fork()) == 0) {
+		Log.child_log();
 		//Create the command structure
 		Log("INFO") << "Starting camera recording video";
 		// raspivid -n -t 10 -s -o rexus_video%04d.h264 -sg 5000 -g 25 -w 1920 -h 1080 -fps 25
@@ -68,6 +69,7 @@ void PiCamera::stopVideo() {
 }
 
 bool PiCamera::is_running() {
+	return true;
 	Log("INFO") << "Camera process being polled...";
 	if (camera_pid) {
 		int status;
