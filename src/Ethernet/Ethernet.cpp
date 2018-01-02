@@ -170,7 +170,6 @@ void Raspi1::share_data() {
 		try {
 			setup();
 			open_connection();
-			_is_running = true;
 			comms::Transceiver eth_comms(_sockfd);
 			std::ofstream outf;
 			std::stringstream outf_name;
@@ -200,7 +199,6 @@ void Raspi1::share_data() {
 				Timer::sleep_ms(1);
 			}
 		} catch (int e) {
-			//_is_running = false;
 			switch (e) {
 				case -1: // Process not forked correctly
 					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
@@ -219,13 +217,11 @@ void Raspi1::share_data() {
 			}
 			_pipes.close_pipes();
 		} catch (EthernetException e) {
-			_is_running = false;
 			Log("ERROR") << "Problem with communication\n\t" << e.what();
 			_pipes.close_pipes();
 			Log("INFO") << "Trying to reconnect";
 			exit(-1);
 		} catch (...) {
-			_is_running = false;
 			Log("FATAL") << "Unexpected error with client\n\t" << std::strerror(errno);
 			_pipes.close_pipes();
 			exit(-2);
@@ -254,23 +250,17 @@ void Raspi1::run(std::string filename) {
 	}
 }
 
+bool Raspi1::is_alive() {
+	pid_t result = waitpid(_pid, &status, WNOHANG);
+	if (result == 0)
+		return true;
+	else
+		return false;
+}
+
 void Raspi2::share_data() {
-	try {
-		setup();
-	} catch (EthernetException e) {
-		Log("FATAL") << "Error setting up server\n\t" << e.what();
-		exit(-1);
-	}
 	while (1) {
 		try {
-			Log("INFO") << "Waiting for client connection";
-			_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &_clilen);
-			if (_newsockfd < 0) {
-				Log("ERROR") << "Problem waiting for client connection";
-				throw EthernetException("Error on accept");
-			}
-			_is_running = true;
-			Log("INFO") << "Client has established connection";
 			comms::Transceiver eth_comms(_newsockfd);
 			std::ofstream outf;
 			std::stringstream outf_name;
@@ -299,7 +289,6 @@ void Raspi2::share_data() {
 				Timer::sleep_ms(1);
 			}
 		} catch (int e) {
-			_is_running = false;
 			switch (e) {
 				case -1: // Process not forked correctly
 					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
@@ -321,14 +310,12 @@ void Raspi2::share_data() {
 			close(_newsockfd);
 			_pipes.close_pipes();
 		} catch (EthernetException e) {
-			_is_running = false;
 			Log("FATAL") << "Problem with Ethernet communication\n\t" << e.what();
 			close(_newsockfd);
 			_pipes.close_pipes();
 			exit(-1);
 			// Allow program to try and reconnect
 		} catch (...) {
-			_is_running = false;
 			Log("FATAL") << "Unexpected error with server\n\t" << std::strerror(errno);
 			close(_newsockfd);
 			close(_sockfd);
@@ -342,6 +329,22 @@ void Raspi2::run(std::string filename) {
 	// Fork a process to handle server stuff
 	_filename = filename;
 	Log("INFO") << "Starting data sharing with client";
+	try {
+		setup();
+	} catch (EthernetException e) {
+		// Log then rethrow for caller to handle
+		Log("ERROR") << "Problem setting up server\n\t" << e.what();
+		throw e;
+	}
+
+	Log("INFO") << "Waiting for client connection";
+	_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &_clilen);
+	if (_newsockfd < 0) {
+		Log("ERROR") << "Problem waiting for client connection";
+		throw EthernetException("Error on accept");
+	}
+	Log("INFO") << "Client has established connection";
+
 	Log("INFO") << "Forking processes";
 	if ((_pid = _pipes.Fork()) == 0) {
 		// This is the child process that handles all the requests
@@ -351,6 +354,15 @@ void Raspi2::run(std::string filename) {
 		// This is the main parent process
 		return;
 	}
+}
+
+
+bool Raspi2::is_alive() {
+	pid_t result = waitpid(_pid, &status, WNOHANG);
+	if (result == 0)
+		return true;
+	else
+		return false;
 }
 
 int Raspi2::sendMsg(std::string msg) {

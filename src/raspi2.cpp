@@ -56,6 +56,22 @@ bool poll_input(int pin) {
 	return (count < 3) ? true : false;
 }
 
+/**
+ *  Checks the status of three input pins (in1, in2 and in3). If in1 and in2 are high
+ *  but in3 is low return value will look like: 0b0000 0011
+ *  @return Integer where the three LSB represent the status of in1, in2 and in3.
+ */
+int poll_signals(int in1, int in2, int in3) {
+	int rtn = 0;
+	if (poll_input(in1))
+		rtn += 0b001;
+	if (poll_input(in2))
+		rtn += 0b010;
+	if (poll_input(in3))
+		rtn += 0b100;
+	return rtn;
+}
+
 void signal_handler(int s) {
 	Log("FATAL") << "Exiting program after signal " << s;
 	if (Cam.is_running()) {
@@ -162,7 +178,7 @@ int SOE_SIGNAL() {
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
 	while (!signal_received) {
-		signal_received = poll_input(SODS);
+		signal_received = (poll_signals(LO, SOE, SODS) & 0b100);
 		// Read data from IMU_data_stream and echo it to Ethernet
 		int n = ImP_stream.binread(&p, sizeof (p));
 		if (n > 0) {
@@ -191,9 +207,15 @@ int LO_SIGNAL() {
 	// Poll the SOE pin until signal is received
 	Log("INFO") << "Waiting for SOE";
 	bool signal_received = false;
+	int counter = 0;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
-		signal_received = poll_input(SOE);
+		signal_received = (poll_signals(LO, SOE, SODS) & 0b110);
+		// Send a message evert second
+		if (counter++ >= 100) {
+			counter = 0;
+			raspi2.sendMsg("I'm alive too...");
+		}
 	}
 	return SOE_SIGNAL();
 }
@@ -235,12 +257,13 @@ int main() {
 	Log("INFO") << "Waiting for connection from client on port " << port_no;
 	try {
 		raspi2.run("Docs/Data/Pi1/backup");
+		Log("INFO") << "Connection to Pi1 successfil";
+		raspi2.sendMsg("Connected to Pi1");
 	} catch (EthernetException e) {
-		Log("FATAL") << "Unable to connect to pi 1";
-		signal_handler(-5);
-	}
-	Log("INFO") << "Connection to Pi1 successfil";
-	raspi2.sendMsg("Connected to Pi1");
+		Log("FATAL") << "Unable to connect to pi 1\n\t" << e.what();
+		Log("INFO") << "Continuing without Ethernet connection";
+	
+	}	
 	Log("INFO") << "Waiting for LO signal";
 	// Check for LO signal.
 	std::string msg;
@@ -252,7 +275,7 @@ int main() {
 	int n;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
-		signal_received = poll_input(LO);
+		signal_received = (poll_signals(LO, SOE, SODS) & 0b111);
 		// TODO Implement communications with Pi 1
 		n = raspi2.recvPacket(p);
 		if (n > 0) {

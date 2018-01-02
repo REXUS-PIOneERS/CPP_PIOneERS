@@ -65,6 +65,22 @@ bool poll_input(int pin) {
 	return (count < 3) ? true : false;
 }
 
+/**
+ *  Checks the status of three input pins (in1, in2 and in3). If in1 and in2 are high
+ *  but in3 is low return value will look like: 0b0000 0011
+ *  @return Integer where the three LSB represent the status of in1, in2 and in3.
+ */
+int poll_signals(int in1, int in2, int in3) {
+	int rtn = 0;
+	if (poll_input(in1))
+		rtn += 0b001;
+	if (poll_input(in2))
+		rtn += 0b010;
+	if (poll_input(in3))
+		rtn += 0b100;
+	return rtn;
+}
+
 
 // Global variable for the Camera and IMU
 PiCamera Cam;
@@ -173,7 +189,6 @@ int SODS_SIGNAL() {
  */
 int SOE_SIGNAL() {
 	Log("INFO") << "SOE signal received";
-	std::cout << "SOE received" << std::endl;
 	REXUS.sendMsg("SOE received");
 	// Setup the IMU and start recording
 	// TODO ensure IMU setup register values are as desired
@@ -184,7 +199,6 @@ int SOE_SIGNAL() {
 	// Start data collection and store the stream where data is coming through
 	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
 	Log("INFO") << "IMU collecting data";
-	//comms::byte1_t buf[20]; // Buffer for storing data
 	comms::Packet p;
 	if (flight_mode) {
 		piLock(1);
@@ -200,7 +214,7 @@ int SOE_SIGNAL() {
 		Log("INFO") << "Motor triggered, boom deploying";
 		Log("INFO") << "Starting Loop";
 		// Keep checking the encoder count till it reaches the required amount.
-		int i = 0;
+		int counter = 0;
 		std::stringstream strs;
 		while (count < 19500) {
 			// Lock is used to keep everything thread safe
@@ -211,40 +225,42 @@ int SOE_SIGNAL() {
 			Log("INFO") << "Encoder count- " << encoder_count;
 			Log("INFO") << "Encoder rate- " << diff * 10 << " counts/sec";
 			// Occasionally send count to ground
-			if (tmr.elapsed() > (1000 * i)) {
-				i++;
+			if (counter++ >= 100) {
+				counter = 0;
 				strs << "Count: " << encoder_count << " Rate: " <<
 						diff * 10;
 				REXUS.sendMsg(strs.str());
+				// Empty the stringstream
+				strs.str("");
 				strs.clear();
 			}
-			// Check the boom is actually deploying
-			if ((tmr.elapsed() > 20000) && (diff < 10)) {
+			// Check the boom is actually deploying (give it at least 30 secods to deploy)
+			if ((tmr.elapsed() > 30000) && (diff < 10)) {
 				Log("ERROR") << "Boom not deploying as expected";
 				break;
 			}
-			// Read data from IMU_data_stream and echo it to Ethernet
+			// Read data from IMU_data_stream and echo it to Ethernet and RXSM
 			int n = IMU_stream.binread(&p, sizeof (comms::Packet));
 			if (n > 0) {
 				Log("DATA (IMU1)") << p;
 				REXUS.sendPacket(p);
 				raspi1.sendPacket(p);
-				Log("INFO") << "Data sent to Ethernet Communications";
+				Log("INFO") << "Data sent to Pi2 and RXSM";
 			}
 			n = raspi1.recvPacket(p);
 			if (n > 0) {
 				Log("DATA (PI2)") << p;
 				REXUS.sendPacket(p);
+				Log("INFO") << "Data echod to RXSM";
 			}
 			// TODO what about when there is an error (n < 0)
-
-			delay(100);
+			delay(10);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
 		double dist = 0.0833 * (count / 1000);
-		Log("INFO") << "Boom deployed to approx: " << dist << " m";
+		Log("INFO") << "Boom extended by approx " << dist << " m";
 		std::stringstream ss;
-		ss << "Boom deployed to " << dist << " m";
+		ss << "Boom extended by approx. " << dist << " m";
 		REXUS.sendMsg(ss.str());
 	}
 	Log("INFO") << "Waiting for SODS";
@@ -252,7 +268,7 @@ int SOE_SIGNAL() {
 	bool signal_received = false;
 	while (!signal_received) {
 		// Implements a loop to ensure SOE signal has actually been received
-		signal_received = poll_input(SODS);
+		signal_received = (poll_signals(LO, SOE, SODS) & 0b100);
 		// Read data from IMU_data_stream and echo it to Ethernet
 		int n = IMU_stream.binread(&p, sizeof (comms::Packet));
 		if (n > 0) {
@@ -277,29 +293,29 @@ int SOE_SIGNAL() {
  * of Experiment' signal (when the nose-cone is ejected)
  */
 int LO_SIGNAL() {
-	std::cout << "LO Recevied" << std::endl;
 	Log("INFO") << "LO signal received";
 	REXUS.sendMsg("LO received");
 	Cam.startVideo("Docs/Video/rexus_video");
 	Log("INFO") << "Camera recording";
 	REXUS.sendMsg("Recording Video");
 	// Poll the SOE pin until signal is received
-	// TODO implement check to make sure no false signals!
 	Log("INFO") << "Waiting for SOE";
 	REXUS.sendMsg("Waiting for SOE");
 	bool signal_received = false;
 	int counter = 0;
+	comms::Packet p;
 	while (!signal_received) {
 		delay(10);
 		// Implements a loop to ensure SOE signal has actually been received
-		signal_received = poll_input(SOE);
+		signal_received = (poll_signals(LO, SOE, SODS) & 0b110);
 		// Send a message every second for the sake of sanity!
-		if (counter >= 100) {
+		if (counter++ >= 100) {
 			counter = 0;
 			REXUS.sendMsg("I'm still alive...");
-		} else
-			counter++;
-
+		// Check for packets from pi2
+		int n = raspi1.recvPacket(p);
+		if (n > 0)
+			REXUS.sendPacket(p);
 	}
 	return SOE_SIGNAL();
 }
@@ -353,15 +369,16 @@ int main(int argc, char* argv[]) {
 		if (digitalRead(ALIVE)) {
 			Log("INFO") << "Establishing ethernet connection";
 			raspi1.run("Docs/Data/Pi2/backup");
-			//if (raspi1.is_alive()) {
-			//	Log("INFO") << "Connection successful";
-			//	REXUS.sendMsg("Ethernet connection successful");
-			//	break;
-			//} else {
-			//	Log("INFO") << "Connection failed";
-			//	REXUS.sendMsg("ERROR: Ethernet connection failed");
-			//	break;
-			//}
+			if (raspi1.is_alive()) {
+				Log("INFO") << "Connection successful";
+				REXUS.sendMsg("Ethernet connection successful");
+				break;
+			} else {
+				Log("INFO") << "Connection failed";
+				REXUS.sendMsg("ERROR: Ethernet connection failed");
+				REXUS.sendMsg("Continuing wihout ethernet comms");
+				break;
+			}
 			break;
 		}
 	}
@@ -391,7 +408,7 @@ int main(int argc, char* argv[]) {
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received
-		signal_received = poll_input(LO);
+		signal_received = (poll_signals(LO, SOE, SODS) & 0b111);
 		//Check for packets from Pi2
 		n = raspi1.recvPacket(p);
 		if (n > 0)
@@ -418,10 +435,9 @@ int main(int argc, char* argv[]) {
 						system("sudo shutdown now");
 						exit(0);
 					}
-					case 3: // Toggle flight mode
+					case 3: // Change between flight and test mode
 					{
-						Log("INFO") << "Toggling flight mode";
-						flight_mode = (flight_mode) ? false : true;
+						flight_mode = data[1];
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 						if (flight_mode)
 							REXUS.sendMsg("WARNING: Flight mode enabled");

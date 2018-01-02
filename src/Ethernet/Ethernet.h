@@ -52,7 +52,6 @@ public:
 };
 
 class Raspi2 : public Server {
-	bool _is_running = false;
 	uint8_t _index = 0;
 public:
 
@@ -77,9 +76,7 @@ public:
 
 	void share_data();
 
-	bool is_alive() {
-		return _is_running;
-	}
+	bool is_alive();
 
 	int sendPacket(comms::Packet &p) {
 		return _pipes.binwrite(&p, sizeof (comms::Packet));
@@ -148,7 +145,6 @@ protected:
 };
 
 class Raspi1 : public Client {
-	bool _is_running;
 public:
 
 	Raspi1(const int port, const std::string host_name) : Client(port, host_name) {
@@ -158,9 +154,7 @@ public:
 
 	void share_data();
 
-	bool is_alive() {
-		return _is_running;
-	}
+	bool is_alive();
 
 	int sendPacket(comms::Packet &p) {
 		return _pipes.binwrite(&p, sizeof (comms::Packet));
