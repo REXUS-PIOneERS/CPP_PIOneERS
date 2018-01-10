@@ -19,6 +19,8 @@
 
 #include <string>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "Ethernet.h"
 #include "comms/pipes.h"
@@ -251,7 +253,8 @@ void Raspi1::run(std::string filename) {
 }
 
 bool Raspi1::is_alive() {
-	pid_t result = waitpid(_pid, &status, WNOHANG);
+	int status_check;
+	pid_t result = waitpid(_pid, &status_check, WNOHANG);
 	if (result == 0)
 		return true;
 	else
@@ -358,7 +361,8 @@ void Raspi2::run(std::string filename) {
 
 
 bool Raspi2::is_alive() {
-	pid_t result = waitpid(_pid, &status, WNOHANG);
+	int status_check;
+	pid_t result = waitpid(_pid, &status_check, WNOHANG);
 	if (result == 0)
 		return true;
 	else

@@ -24,7 +24,8 @@
 
 class Server {
 protected:
-	int _sockfd, _newsockfd, _port, _pid;
+	int _sockfd, _newsockfd, _port;
+	pid_t _pid;
 	socklen_t _clilen;
 	struct sockaddr_in _serv_addr, _cli_addr;
 	std::string _filename;
@@ -95,7 +96,8 @@ public:
 
 class Client {
 protected:
-	int _port, _pid;
+	int _port;
+	pid_t _pid;
 	std::string _host_name;
 	int _sockfd;
 	struct sockaddr_in _serv_addr;
