@@ -282,7 +282,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			comms::Packet p1;
 			comms::Packet p2;
 			comms::byte1_t data[22];
-			int intv = 200;
+			int intv = 10;
 			Timer measurement_time;
 			std::string measurement_start = measurement_time.str_datetime();
 			// Infinite loop for taking measurements
@@ -328,7 +328,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					_pipes.binwrite(&p2, sizeof (p2));
 					Log("INFO") << "Packets sent to main process";
 					while (tmr.elapsed() < intv)
-						tmr.sleep_ms(10);
+						tmr.sleep_ms(1);
 				}
 				// Close the current file, ready to start a new one
 				outf.close();

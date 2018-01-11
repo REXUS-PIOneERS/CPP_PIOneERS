@@ -201,7 +201,7 @@ int LO_SIGNAL() {
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
 	Log("INFO") << "LO signal received";
-	raspi2.sendMsg("Pi2: Recevied LO");
+	raspi2.sendMsg("Recevied LO");
 	Cam.startVideo("Docs/Video/rexus_video");
 	Log("INFO") << "Camera started recording video";
 	// Poll the SOE pin until signal is received
@@ -302,7 +302,7 @@ int main() {
 						//flight_mode = (flight_mode) ? false : true;
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 						if (flight_mode)
-							raspi2.sendMsg("WARNING: Flight mode enabled");
+							raspi2.sendMsg("WARNING Flight mode enabled");
 						else
 							raspi2.sendMsg("Test mode enabled");
 						break;

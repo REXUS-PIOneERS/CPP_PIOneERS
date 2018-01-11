@@ -366,6 +366,7 @@ bool Raspi2::is_alive() {
 }
 
 int Raspi2::sendMsg(std::string msg) {
+	msg.insert(0, "Pi2: ");
 	int n = msg.length();
 	int mesg_num = ceil(n / (float) 15);
 	char *buf = new char [17];
@@ -375,8 +376,7 @@ int Raspi2::sendMsg(std::string msg) {
 		bzero(buf, 16);
 		std::string data = msg.substr(i, 16);
 		strcpy(buf, data.c_str());
-		int msg_index = (_index << 8) | (mesg_num);
-		_index++;
+		int msg_index = (_index++ << 8) | (--mesg_num);
 		comms::Protocol::pack(p, ID_MSG1, msg_index, buf);
 		sent += sendPacket(p);
 	}
