@@ -312,6 +312,7 @@ int LO_SIGNAL() {
 		if (counter++ >= 100) {
 			counter = 0;
 			REXUS.sendMsg("I'm still alive...");
+		}
 		// Check for packets from pi2
 		int n = raspi1.recvPacket(p);
 		if (n > 0)
