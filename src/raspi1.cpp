@@ -146,14 +146,15 @@ int SODS_SIGNAL() {
 	Log("INFO") << "SODS signal received";
 	std::cout << "SODS received" << std::endl;
 	REXUS.sendMsg("SODS received");
-	/*
 	if (Cam.is_running()) {
-		Cam.stopVideo();
-		Log("INFO") << "Stopping camera process";
+		Log("INFO") << "Camera still running";
+		REXUS.sendMsg("Camera still running :D");
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
+		Log("INFO") << "Trying to restart camera";
+		REXUS.sendMsg("Camera died, attempting restart");
+		Cam.startVideo("Docs/Video/rexus_video");
 	}
-	*/
 	if (raspi1.is_alive()) {
 		raspi1.end();
 		Log("INFO") << "Closed Ethernet communication";

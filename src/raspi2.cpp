@@ -106,14 +106,13 @@ int SODS_SIGNAL() {
 	 * stops while the camera continues running till power off or storage space is full
 	 */
 	Log("INFO") << "SODS signal received";
-	/*
 	if (Cam.is_running()) {
-		Cam.stopVideo();
-		Log("INFO") << "Stopping camera process";
+		Log("INFO") << "Camera still running";
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
+		Log("INFO") << "Trying to restart camera";
+		Cam.startVideo("Docs/Video/rexus_video");
 	}
-	*/
 	if (raspi2.is_alive()) {
 		raspi2.end();
 		Log("INFO") << "Closed Ethernet communication";
