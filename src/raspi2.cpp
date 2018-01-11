@@ -102,10 +102,8 @@ void signal_handler(int s) {
 
 int SODS_SIGNAL() {
 	/*
-	 * When the 'Start of Data Storage' signal is received all data recording
-	 * is stopped (IMU and Camera) and power to the camera is cut off to stop
-	 * shorting due to melting on re-entry. All data is copied into a backup
-	 * directory.
+	 * When the 'Start of Data Storage' signal is received recording of IMU data
+	 * stops while the camera continues running till power off or storage space is full
 	 */
 	Log("INFO") << "SODS signal received";
 	/*
@@ -148,6 +146,7 @@ int SOE_SIGNAL() {
 	 * count of the encoder is sent to ground.
 	 */
 	Log("INFO") << "SOE signal received";
+	raspi2.sendMsg("Received SOE");
 	// Setup the ImP and start requesting data
 	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/test");
 	Log("INFO") << "Started data collection from ImP";
