@@ -158,8 +158,7 @@ int RXSM::sendMsg(std::string msg) {
 		bzero(buf, 16);
 		std::string data = msg.substr(i, 16);
 		strcpy(buf, data.c_str());
-		int msg_index = (_index << 8) | (mesg_num);
-		_index++;
+		int msg_index = (_index++ << 8) | (--mesg_num);
 		comms::Protocol::pack(p, ID_MSG1, msg_index, buf);
 		sent += sendPacket(p);
 	}
