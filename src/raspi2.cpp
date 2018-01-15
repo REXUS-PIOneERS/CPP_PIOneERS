@@ -102,20 +102,17 @@ void signal_handler(int s) {
 
 int SODS_SIGNAL() {
 	/*
-	 * When the 'Start of Data Storage' signal is received all data recording
-	 * is stopped (IMU and Camera) and power to the camera is cut off to stop
-	 * shorting due to melting on re-entry. All data is copied into a backup
-	 * directory.
+	 * When the 'Start of Data Storage' signal is received recording of IMU data
+	 * stops while the camera continues running till power off or storage space is full
 	 */
 	Log("INFO") << "SODS signal received";
-	/*
 	if (Cam.is_running()) {
-		Cam.stopVideo();
-		Log("INFO") << "Stopping camera process";
+		Log("INFO") << "Camera still running";
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
+		Log("INFO") << "Trying to restart camera";
+		Cam.startVideo("Docs/Video/rexus_video");
 	}
-	*/
 	if (raspi2.is_alive()) {
 		raspi2.end();
 		Log("INFO") << "Closed Ethernet communication";
@@ -148,6 +145,7 @@ int SOE_SIGNAL() {
 	 * count of the encoder is sent to ground.
 	 */
 	Log("INFO") << "SOE signal received";
+	raspi2.sendMsg("Received SOE");
 	// Setup the ImP and start requesting data
 	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/test");
 	Log("INFO") << "Started data collection from ImP";
@@ -201,7 +199,7 @@ int LO_SIGNAL() {
 	 * of Experiment' signal (when the nose-cone is ejected)
 	 */
 	Log("INFO") << "LO signal received";
-	raspi2.sendMsg("Pi2: Recevied LO");
+	raspi2.sendMsg("Recevied LO");
 	Cam.startVideo("Docs/Video/rexus_video");
 	Log("INFO") << "Camera started recording video";
 	// Poll the SOE pin until signal is received
@@ -302,7 +300,7 @@ int main() {
 						//flight_mode = (flight_mode) ? false : true;
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 						if (flight_mode)
-							raspi2.sendMsg("WARNING: Flight mode enabled");
+							raspi2.sendMsg("WARNING Flight mode enabled");
 						else
 							raspi2.sendMsg("Test mode enabled");
 						break;
