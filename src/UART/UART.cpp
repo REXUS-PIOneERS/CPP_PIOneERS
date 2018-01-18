@@ -217,8 +217,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 								std::istringstream iss(std::string(buf));
 								while (iss > num_buffer[i])
 									i++
-								if (i < 10)
-									break; //We didn't get all expected data
+								//TODO what if we don't get all the data we expected???
 								//Package and send away the data
 								num_buffer[12] = (byte2_t)((m_time << 16) & 0x0001);
 								num_buffer[13] = (byte2_t)((m_time << 00) & 0x0001);
