@@ -300,11 +300,11 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				for (int i = 0; i < 5; i++) {
 					Timer tmr;
 					readRegisters(data);
-					int64_t time = measurement_time.elapsed();
-					data[18] = (time & 0x00000011);
-					data[19] = (time & 0x00001100) >> 8;
-					data[20] = (time & 0x00110000) >> 16;
-					data[21] = (time & 0x11000000) >> 24;
+					int32_t time = measurement_time.elapsed();
+					data[21] = (byte1_t)(time & 0x0001);
+					data[20] = (byte1_t)((time & 0x0010) >> 8);
+					data[19] = (byte1_t)((time & 0x0100) >> 16);
+					data[18] = (byte1_t)((time & 0x1000) >> 24);
 					outf << data[0] << "," << data[1] << "," <<
 							data[2] << "," << data[3] << "," <<
 							data[4] << "," << data[5] << "," <<
@@ -324,8 +324,10 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					Log("DATA (IMU)") << p1;
 					Log("DATA (IMU)") << p2;
 
-					_pipes.binwrite(&p1, sizeof (p1));
-					_pipes.binwrite(&p2, sizeof (p2));
+					if (_pipes.binwrite(&p1, sizeof (p1)) < 0)
+						throw -2;
+					if (_pipes.binwrite(&p2, sizeof (p2)) < 0)
+						throw -2;
 					Log("INFO") << "Packets sent to main process";
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(1);

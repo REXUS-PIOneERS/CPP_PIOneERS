@@ -27,25 +27,20 @@ namespace comms {
 	 */
 	size_t lengthByID(byte1_t id) {
 		//Status or message
-		if (id & 0b11000000)
-			return 16;
-			//Measured data
-		else {
-			switch (id & 0b00111111) {
-					//acc/gyr from either IMUs
-				case 0b00010000:
-				case 0b00100000:
-					return 12;
-					//mag/time from IMU_1
-				case 0b00010001:
-					return 10;
-					//mag/imp/time from IMU_2
-				case 0x00100001:
-					return 12;
-					//Invalid id
-				default:
-					return 0;
-			}
+		switch (id) {
+			case ID_MSG1:
+			case ID_MSG2:
+			case ID_STATUS1:
+			case ID_STATUS2:
+				return 16;
+			case ID_DATA1:
+			case ID_DATA3:
+			case ID_DATA4:
+				return 12;
+			case ID_DATA2:
+				return 10;
+			default:
+				return 0;
 		}
 	}
 }

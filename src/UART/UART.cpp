@@ -184,6 +184,8 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 			ImP_comms.sendBytes("C", 1);
 			Log("DATA (SENT") << "C";
 			std::string measurement_start = Timer::str_datetime();
+			Timer m_tmr; // Gives timing of all measurements
+			int32_t m_time = 0;
 			int err;
 			for (int j = 0;; j++) {
 				std::ofstream outf;
@@ -198,46 +200,42 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					Timer tmr;
 					char buf[256];
 					// Wait for data to come through
-					while (1) {
-						int n = ImP_comms.recvBytes(buf, 255);
+					ImP_comms.sendBytes("N", 1);
+					while(1) {
+						int n = ImP_comms.recvBytes(buf,255);
 						if (n > 0) {
-							buf[n] = '\0';
-							outf << buf << std::endl;
-							if ((err = _pipes.binwrite(buf, n)) < 0)
-								throw err;
-							ImP_comms.sendBytes("N", 1);
+							Log("INFO") << "Data received-" << buf;
+							m_time = m_tmr.elapsed();
+							buf[n] = 0;
+							outf << buf;
+							if (n > 40) {
+								//This is ImP and IMU data parse and send on
+								byte2_t num_buffer[14];
+								comms::Packet p1;
+								comms::Packet p2;
+								int i = 0;
+								std::istringstream iss(std::string(buf));
+								while (iss > num_buffer[i])
+									i++
+								if (i < 10)
+									break; //We didn't get all expected data
+								//Package and send away the data
+								num_buffer[12] = (byte2_t)((m_time << 16) & 0x0001);
+								num_buffer[13] = (byte2_t)((m_time << 00) & 0x0001);
+								comms::Protocol::pack(p1, ID_DATA3, i+5*j, num_buffer);
+								comms::Protocol::pack(p2, ID_DATA4, i+5*j, (num_buffer + 6));
+								Log("DATA(ImP)") << p1;
+								Log("DATA(ImP)") << p2;
+								_pipes.binwrite(&p1, sizeof(comms::Packet));
+								_pipes.binwrite(&p2, sizeof(comms::Packet));
+								Log("INFO") << "Data sent to main process";
+							} else {
+								if (buf[0] == '\n')
+									break;
+							}
+						} else {
+							tmr.sleep_ms(10);
 						}
-						tmr.sleep_ms(10);
-						/*
-						 * It is assumed that the data is received in the following format
-						 * Byte 1-6 Accelerometer (x, y, z)
-						 * Byte 7-12 Gyroscope (x, y, z)
-						 * Byte 13-18 Magnetometer (x, y, z)
-						 * Byte 19-22 time
-						 * Byte 23-24 ImP Measurement
-						 */
-						/*
-						if (n > 0) {
-							comms::Packet p1;
-							comms::Packet p2;
-							comms::byte1_t id1 = 0b00100000;
-							comms::byte1_t id2 = 0b00100010;
-							comms::byte2_t index = (5 * j) + i;
-							comms::Protocol::pack(p1, id1, index, buf);
-							comms::Protocol::pack(p2, id2, index, buf + 12);
-							_pipes.binwrite(&p1, sizeof (p1));
-							_pipes.binwrite(&p2, sizeof (p2));
-							buf[n] = '\0';
-							for (int i = 0; i < n; i++)
-								outf << (int) buf[n] << ",";
-							outf << std::endl;
-							Log("DATA (IMP)") << p1;
-							Log("DATA (ImP)") << p2;
-							ImP_comms.sendBytes("N", 1);
-							Log("DATA (SENT)") << "N";
-							break;
-						}
-						 */
 					}
 					while (tmr.elapsed() < intv)
 						tmr.sleep_ms(10);

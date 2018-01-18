@@ -32,6 +32,8 @@ namespace comms {
 		// Check if the file descriptor is ready for reading
 		if (poll(fds, 1, timeout))
 			return fds[0].revents & POLLIN;
+		else
+			return false;
 	}
 
 	/**

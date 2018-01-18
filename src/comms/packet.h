@@ -13,7 +13,7 @@
 #define ID_DATA1 0b00010000 // Acc/Gyr from Pi 1
 #define ID_DATA2 0b00010001 // Mag/Time from Pi 1
 #define ID_DATA3 0b00100000 // Acc/Gyr from Pi 2
-#define ID_DATA4 0b00100010 //Mag/Time from Pi 2
+#define ID_DATA4 0b00100010 //Mag/ImP/Time from Pi 2
 #define ID_CMD 0b11000000 // Command
 
 namespace comms {
