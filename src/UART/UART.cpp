@@ -199,16 +199,25 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					Timer tmr;
 					char buf[256];
 					int buf_ind = 0;
-					while (1) {
+					while (1 && (buf_ind < 255)) {
 						if (ImP_comms.recvBytes(buf + buf_ind, 1)) {
-							if (buf[buf_ind-1] == '\n')
+							if (buf[buf_ind-1] == 0)
 								break;
 							buf_ind++;
+						} else {
+							Timer::sleep_ms(1);
 						}
 					}
-					for (int k = 0; k < buf_ind; k++) {
-						outf << buf[k] << " ";
+					int stuffed = buf[0];
+					int carry;
+					while ((carry = buf[stuffed]) != 0) {
+						buf[stuffed] = 0;
+						stuffed += carry;
 					}
+					for (int k = 0; k < buf_ind; k++) {
+						outf << (int)buf[k] << " ";
+					}
+					Log("INFO") << "Recevied primary data";
 					comms::Packet p1;
 					comms::Packet p2;
 					comms::Protocol::pack(p1, ID_DATA3, i+5*j, buf);
@@ -220,30 +229,40 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					Log("INFO") << "Data sent to main process";
 
 					//Now handle all the other numbers coming in
-					buf[1] = '\0';
-					while (1) {
-						if (ImP_comms.recvBytes(buf, 1))
-							outf << buf[0] << " ";
-						if (buf[0] == '\n')
+					int total = 0;
+					comms::byte1_t char_buf = 'a';
+					while (1 && (tmr.elapsed() < 2*intv)) {
+						if (ImP_comms.recvBytes(&char_buf, 1)) {
+							outf << (int)char_buf << " ";
+							total++;
+						} else {
+							Timer::sleep_ms(50);
+							Log("INFO") << "No data-" << tmr.elapsed();
+						}
+						if (char_buf == 0) {
+							outf << std::endl;
 							break;
+						}
 					}
-					ImP_comms.sendBytes('N');
+					Log("INFO") << "Received secondary data (" << total << ")";
+					ImP_comms.sendBytes("N",1);
 					while (tmr.elapsed() < intv)
 						Timer::sleep_ms(1);
 				}
 				outf.close();
 			}
-			return 0;
 		} else {
 			return _pipes;
 		}
 	} catch (int e) {
 		Log("FATAL") << "Unable to read/write to pipes(" << e << ")\n\t" << std::strerror(errno);
+		Log("INFO") << "Ending the process";
 		_pipes.close_pipes();
 		close(uart_filestream);
 		exit(e);
 	} catch (...) {
 		Log("FATAL") << "Unexpected error with ImP\n\t" << std::strerror(errno);
+		Log("INFO") << "Emding the process";
 		_pipes.close_pipes();
 		close(uart_filestream);
 		exit(-2);

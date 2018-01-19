@@ -87,12 +87,7 @@ void signal_handler(int s) {
 	} else {
 		Log("ERROR") << "Ethernet process died prematurely or did not start";
 	}
-	if (&ImP_stream != NULL) {
-		ImP_stream.close_pipes();
-		Log("INFO") << "Closed ImP communication";
-	} else {
-		Log("ERROR") << "ImP process died prematurely or did not start";
-	}
+	IMP.stopDataCollection();
 	digitalWrite(BURNWIRE, 0);
 	// TODO copy data to a further backup directory
 	Log("INFO") << "Ending program, Pi rebooting";
@@ -113,18 +108,7 @@ int SODS_SIGNAL() {
 		Log("INFO") << "Trying to restart camera";
 		Cam.startVideo("Docs/Video/rexus_video");
 	}
-	if (raspi2.is_alive()) {
-		raspi2.end();
-		Log("INFO") << "Closed Ethernet communication";
-	} else {
-		Log("ERROR") << "Ethernet process died prematurely or did not start";
-	}
-	if (&ImP_stream != NULL) {
-		ImP_stream.close_pipes();
-		Log("INFO") << "Closed ImP communication";
-	} else {
-		Log("ERROR") << "ImP process died prematurely or did not start";
-	}
+	IMP.stopDataCollection();
 	digitalWrite(BURNWIRE, 0);
 	digitalWrite(BURNWIRE, 0);
 	Log("INFO") << "Waiting for power off";
@@ -260,8 +244,8 @@ int main() {
 	} catch (EthernetException e) {
 		Log("FATAL") << "Unable to connect to pi 1\n\t" << e.what();
 		Log("INFO") << "Continuing without Ethernet connection";
-	
-	}	
+
+	}
 	Log("INFO") << "Waiting for LO signal";
 	// Check for LO signal.
 	std::string msg;
