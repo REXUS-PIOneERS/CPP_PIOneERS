@@ -455,6 +455,37 @@ int main(int argc, char* argv[]) {
 						REXUS.sendMsg(result);
 						Log("INFO") << "Test Results\n\t" << result;
 					}
+					case 5:
+					{
+						Log("INFO") << "Cleaning files";
+						if (data[1] == 0) {
+							//Clean everything
+							system("sudo rm -rf /Docs/Data/Pi1/*.txt");
+							system("sudo rm -rf /Docs/Data/Pi2/*.txt");
+							system("sudo rm -rf /Docs/Video/*.h264");
+							system("sudo rm -rf /Docs/Data/Logs/*.txt");
+						} else if (data[1] == 1) {
+							//Clean data
+							system("sudo rm -rf /Docs/Data/Pi1/*.txt");
+							system("sudo rm -rf /Docs/Data/Pi2/*.txt");
+						} else if (data[1] == 2) {
+							//Clean video
+							system("sudo rm -rf /Docs/Video/*.h264");
+						} else if (data[1] == 3) {
+							//Clean logs
+							system("sudo rm -rf /Docs/Data/Logs/*.txt");
+						}
+						REXUS.sendMsg("Files cleaned... rebooting");
+						system("sudo reboot");
+					}
+					case 6:
+					{
+						Log("INFO") << "Rebuilding software";
+						system("sudo rm -rf /home/pi/CPP_PIOneERS/bin/raspi1");
+						system("sudo rm -rf /home/pi/CPP_PIOneERS/build/*.o");
+						system("sudo make ./bin/raspi1 -C /home/pi/CPP_PIOneERS");
+						REXUS.sendMsg("Project rebuilt... rebooting");
+					}
 					default:
 					{
 						REXUS.sendMsg("Not Recognised");

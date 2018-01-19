@@ -296,8 +296,8 @@ int main() {
 					}
 					case 3: // Toggle flight mode
 					{
-						Log("INFO") << "Toggling flight mode";
-						//flight_mode = (flight_mode) ? false : true;
+						Log("INFO") << "Changing flight mode";
+						flight_mode = data[1];
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 						if (flight_mode)
 							raspi2.sendMsg("WARNING Flight mode enabled");
@@ -311,6 +311,36 @@ int main() {
 						std::string result = tests::pi2_tests();
 						raspi2.sendMsg(result);
 						Log("INFO") << "Test results\n\t" << result;
+					}
+					case 5:
+					{
+						Log("INFO") << "Cleaning files";
+						if (data[1] == 0) {
+							//Clean everything
+							system("sudo rm -rf /Docs/Data/Pi1/*.txt");
+							system("sudo rm -rf /Docs/Data/Pi2/*.txt");
+							system("sudo rm -rf /Docs/Video/*.h264");
+							system("sudo rm -rf /Docs/Data/Logs/*.txt");
+						} else if (data[1] == 1) {
+							//Clean data
+							system("sudo rm -rf /Docs/Data/Pi1/*.txt");
+							system("sudo rm -rf /Docs/Data/Pi2/*.txt");
+						} else if (data[1] == 2) {
+							//Clean video
+							system("sudo rm -rf /Docs/Video/*.h264");
+						} else if (data[1] == 3) {
+							//Clean logs
+							system("sudo rm -rf /Docs/Data/Logs/*.txt");
+						}
+						system("sudo reboot");
+					}
+					case 6:
+					{
+						Log("INFO") << "Rebuilding software";
+						system("sudo rm -rf /home/pi/CPP_PIOneERS/bin/raspi2");
+						system("sudo rm -rf /home/pi/CPP_PIOneERS/build/*.o");
+						system("sudo make ./bin/raspi2 -C /home/pi/CPP_PIOneERS");
+						Log("INFO") << "Project rebuilt... rebooting");
 					}
 				}
 			}
