@@ -383,8 +383,9 @@ int main(int argc, char* argv[]) {
 			}
 			break;
 		}
+		Timer::sleep_ms(10);
 	}
-	if (tmr.elapsed() > 20000) {
+	if (tmr.elapsed() >= 20000) {
 		REXUS.sendMsg("ERROR: Timeout waiting for Pi 2");
 		Log("ERROR") << "Timeout waiting for Pi 2";
 		Log("INFO") << "Attempting ethernet connection anyway";
