@@ -301,10 +301,10 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 					Timer tmr;
 					readRegisters(data);
 					int32_t time = measurement_time.elapsed();
-					data[21] = (byte1_t)(time & 0x0001);
-					data[20] = (byte1_t)((time & 0x0010) >> 8);
-					data[19] = (byte1_t)((time & 0x0100) >> 16);
-					data[18] = (byte1_t)((time & 0x1000) >> 24);
+					data[21] = (comms::byte1_t)(time & 0x0001);
+					data[20] = (comms::byte1_t)((time & 0x0010) >> 8);
+					data[19] = (comms::byte1_t)((time & 0x0100) >> 16);
+					data[18] = (comms::byte1_t)((time & 0x1000) >> 24);
 					outf << data[0] << "," << data[1] << "," <<
 							data[2] << "," << data[3] << "," <<
 							data[4] << "," << data[5] << "," <<
@@ -316,8 +316,8 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 							data[16] << "," << data[17] << "," <<
 							data[18] << "," << data[19] << "," <<
 							data[20] << "," << data[21] << std::endl;
-					comms::byte1_t id1 = 0b00010000;
-					comms::byte1_t id2 = 0b00010001;
+					comms::byte1_t id1 = ID_DATA1;
+					comms::byte1_t id2 = ID_DATA2;
 					comms::byte2_t index = (5 * j) + i;
 					comms::Protocol::pack(p1, id1, index, data);
 					comms::Protocol::pack(p2, id2, index, data + 12);

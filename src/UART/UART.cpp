@@ -203,23 +203,24 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					while(1) {
 						int n = ImP_comms.recvBytes(buf,255);
 						if (n > 0) {
-							Log("INFO") << "Data received-" << buf;
+							Log("INFO") << "Data received (" << n << ")-" << buf;
+							std::cout << "ImP Data(" << n << ")" << buf;
 							m_time = m_tmr.elapsed();
 							buf[n] = 0;
 							outf << buf;
 							if (n > 40) {
 								//This is ImP and IMU data parse and send on
-								byte2_t num_buffer[14];
+								comms::byte2_t num_buffer[14];
 								comms::Packet p1;
 								comms::Packet p2;
 								int i = 0;
-								std::istringstream iss(std::string(buf));
-								while (iss > num_buffer[i])
-									i++
+								std::istringstream iss(buf);
+								while ((iss >> num_buffer[i]))
+									i++;
 								//TODO what if we don't get all the data we expected???
 								//Package and send away the data
-								num_buffer[12] = (byte2_t)((m_time << 16) & 0x0001);
-								num_buffer[13] = (byte2_t)((m_time << 00) & 0x0001);
+								num_buffer[12] = (comms::byte2_t)((m_time << 16) & 0x0001);
+								num_buffer[13] = (comms::byte2_t)((m_time << 00) & 0x0001);
 								comms::Protocol::pack(p1, ID_DATA3, i+5*j, num_buffer);
 								comms::Protocol::pack(p2, ID_DATA4, i+5*j, (num_buffer + 6));
 								Log("DATA(ImP)") << p1;
@@ -232,11 +233,11 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 									break;
 							}
 						} else {
-							tmr.sleep_ms(10);
+							tmr.sleep_ms(1);
 						}
 					}
 					while (tmr.elapsed() < intv)
-						tmr.sleep_ms(10);
+						tmr.sleep_ms(1);
 				}
 				outf.close();
 			}
