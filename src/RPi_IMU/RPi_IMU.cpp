@@ -373,7 +373,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 
 int RPi_IMU::stopDataCollection() {
 	if (_pid) {
-		Log("INFO") << "Stopping IMU process (ID:" << camera_pid << ")";
+		Log("INFO") << "Stopping IMU process (ID:" << _pid << ")";
 		bool died = false;
 		for (int i = 0; !died && i < 5; i++) {
 			int status = 0;

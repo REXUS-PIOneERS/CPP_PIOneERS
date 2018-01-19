@@ -259,7 +259,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 
 int ImP::stopDataCollection() {
 	if (_pid) {
-		Log("INFO") << "Stopping ImP process (ID:" << camera_pid << ")";
+		Log("INFO") << "Stopping ImP process (ID:" << _pid << ")";
 		bool died = false;
 		for (int i = 0; !died && i < 5; i++) {
 			int status = 0;

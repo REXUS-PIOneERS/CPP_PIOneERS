@@ -340,7 +340,7 @@ int main() {
 						system("sudo rm -rf /home/pi/CPP_PIOneERS/bin/raspi2");
 						system("sudo rm -rf /home/pi/CPP_PIOneERS/build/*.o");
 						system("sudo make ./bin/raspi2 -C /home/pi/CPP_PIOneERS");
-						Log("INFO") << "Project rebuilt... rebooting");
+						Log("INFO") << "Project rebuilt... rebooting";
 					}
 				}
 			}
