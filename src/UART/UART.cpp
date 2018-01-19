@@ -219,8 +219,8 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 									i++;
 								//TODO what if we don't get all the data we expected???
 								//Package and send away the data
-								num_buffer[12] = (comms::byte2_t)((m_time << 16) & 0x0001);
-								num_buffer[13] = (comms::byte2_t)((m_time << 00) & 0x0001);
+								num_buffer[12] = (comms::byte2_t)((m_time << 16) & 0xFFFF);
+								num_buffer[13] = (comms::byte2_t)((m_time << 00) & 0xFFFF);
 								comms::Protocol::pack(p1, ID_DATA3, i+5*j, num_buffer);
 								comms::Protocol::pack(p2, ID_DATA4, i+5*j, (num_buffer + 6));
 								Log("DATA(ImP)") << p1;

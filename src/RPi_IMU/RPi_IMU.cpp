@@ -297,14 +297,14 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 						unique_file.str() << "\"";
 				outf.open(unique_file.str());
 				// Take 5 measurements i.e. 1 seconds worth of data
-				for (int i = 0; i < 5; i++) {
+				for (int i = 0; i < 100; i++) {
 					Timer tmr;
 					readRegisters(data);
 					int32_t time = measurement_time.elapsed();
-					data[21] = (comms::byte1_t)(time & 0x0001);
-					data[20] = (comms::byte1_t)((time & 0x0010) >> 8);
-					data[19] = (comms::byte1_t)((time & 0x0100) >> 16);
-					data[18] = (comms::byte1_t)((time & 0x1000) >> 24);
+					data[21] = (comms::byte1_t)(0xFF & time >> 0);
+					data[20] = (comms::byte1_t)(0xFF & time >> 8);
+					data[19] = (comms::byte1_t)(0xFF & time >> 16);
+					data[18] = (comms::byte1_t)(0xFF & time >> 24);
 					outf << data[0] << "," << data[1] << "," <<
 							data[2] << "," << data[3] << "," <<
 							data[4] << "," << data[5] << "," <<
