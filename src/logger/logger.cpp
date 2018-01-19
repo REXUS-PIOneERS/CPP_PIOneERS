@@ -39,7 +39,7 @@ void Logger::start_log() {
 	ss << _filename << ".txt";
 	_this_filename = ss.str();
 	_outf.open(_this_filename, std::ofstream::app);
-	_outf << "\n[New run of log file at " << Timer::str_datetime() << " ]\n" << std::endl;
+	_outf << "\n[New run of log file at " << Timer::str_datetime() << "]\n" << std::endl;
 }
 
 void Logger::child_log() {
@@ -49,7 +49,7 @@ void Logger::child_log() {
 	_outf.close();
 	_outf.clear();
 	_outf.open(_this_filename, std::ofstream::app);
-	_outf << "\n[New run of log file at " << Timer::str_datetime() << " ]\n" << std::endl;
+	_outf << "\n[New run of log file at " << Timer::str_datetime() << "]\n" << std::endl;
 }
 
 std::ostream& Logger::operator()(std::string str) {
