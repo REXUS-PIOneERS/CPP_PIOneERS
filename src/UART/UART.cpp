@@ -198,49 +198,42 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 				for (int i = 0; i < 5; i++) {
 					Timer tmr;
 					char buf[256];
-					// Wait for data to come through
-					ImP_comms.sendBytes("N", 1);
-					while(1) {
-						int n = ImP_comms.recvBytes(buf,255);
-						if (n > 0) {
-							Log("INFO") << "Data received (" << n << ")-" << buf;
-							std::cout << "ImP Data(" << n << ")" << buf;
-							m_time = m_tmr.elapsed();
-							buf[n] = 0;
-							outf << buf;
-							if (n > 40) {
-								//This is ImP and IMU data parse and send on
-								comms::byte2_t num_buffer[14];
-								comms::Packet p1;
-								comms::Packet p2;
-								int i = 0;
-								std::istringstream iss(buf);
-								while ((iss >> num_buffer[i]))
-									i++;
-								//TODO what if we don't get all the data we expected???
-								//Package and send away the data
-								num_buffer[12] = (comms::byte2_t)((m_time << 16) & 0xFFFF);
-								num_buffer[13] = (comms::byte2_t)((m_time << 00) & 0xFFFF);
-								comms::Protocol::pack(p1, ID_DATA3, i+5*j, num_buffer);
-								comms::Protocol::pack(p2, ID_DATA4, i+5*j, (num_buffer + 6));
-								Log("DATA(ImP)") << p1;
-								Log("DATA(ImP)") << p2;
-								_pipes.binwrite(&p1, sizeof(comms::Packet));
-								_pipes.binwrite(&p2, sizeof(comms::Packet));
-								Log("INFO") << "Data sent to main process";
-							} else {
-								if (buf[0] == '\n')
-									break;
-							}
-						} else {
-							tmr.sleep_ms(1);
+					int buf_ind = 0;
+					while (1) {
+						if (ImP_comms.recvBytes(buf + buf_ind, 1)) {
+							if (buf[buf_ind-1] == '\n')
+								break;
+							buf_ind++;
 						}
 					}
+					for (int k = 0; k < buf_ind; k++) {
+						outf << buf[k] << " ";
+					}
+					comms::Packet p1;
+					comms::Packet p2;
+					comms::Protocol::pack(p1, ID_DATA3, i+5*j, buf);
+					comms::Protocol::pack(p2, ID_DATA4, i+5*j, (buf + 12));
+					Log("DATA(ImP)") << p1;
+					Log("DATA(ImP)") << p2;
+					_pipes.binwrite(&p1, sizeof(comms::Packet));
+					_pipes.binwrite(&p2, sizeof(comms::Packet));
+					Log("INFO") << "Data sent to main process";
+
+					//Now handle all the other numbers coming in
+					buf[1] = '\0';
+					while (1) {
+						if (ImP_comms.recvBytes(buf, 1))
+							outf << buf[0] << " ";
+						if (buf[0] == '\n')
+							break;
+					}
+					ImP_comms.sendBytes('N');
 					while (tmr.elapsed() < intv)
-						tmr.sleep_ms(1);
+						Timer::sleep_ms(1);
 				}
 				outf.close();
 			}
+			return 0;
 		} else {
 			return _pipes;
 		}
