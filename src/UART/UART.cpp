@@ -258,8 +258,23 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 }
 
 int ImP::stopDataCollection() {
-	Log("INFO") << "Ending data collection by closing pipes";
-	if (_pid)
+	if (_pid) {
+		Log("INFO") << "Stopping ImP process (ID:" << camera_pid << ")";
+		bool died = false;
+		for (int i = 0; !died && i < 5; i++) {
+			int status = 0;
+			kill(_pid, SIGTERM);
+			sleep(1);
+			if (waitpid(_pid, &status, WNOHANG) == _pid) died = true;
+		}
+		if (died) {
+			Log("INFO") << "ImP process terminated by sending SIGTERM signal";
+		} else {
+			Log("ERROR") << "SIGTERM signal failed, sending SIGKILL";
+			kill(_pid, SIGKILL);
+		}
+		_pid = 0;
 		_pipes.close_pipes();
+	}
 	return 0;
 }

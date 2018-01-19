@@ -72,7 +72,7 @@ bool PiCamera::is_running() {
 	return true;
 	Log("INFO") << "Camera process being polled...";
 	if (camera_pid) {
-		int status;
+		int status = 0;
 		if (waitpid(camera_pid, &status, WNOHANG) == camera_pid) {
 			Log("INFO") << "Camera process is dead";
 			return false;

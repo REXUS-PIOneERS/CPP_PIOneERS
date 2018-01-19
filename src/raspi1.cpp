@@ -107,28 +107,12 @@ void signal_handler(int s) {
 	REXUS.sendMsg("Ending Program");
 	REXUS.end_buffer();
 	// TODO send exit signal to Pi 2!
-	if (Cam.is_running()) {
-		Cam.stopVideo();
-		Log("INFO") << "Stopping camera process";
-	} else {
-		Log("ERROR") << "Camera process died prematurely or did not start";
-	}
-
-	if (raspi1.is_alive()) {
-		raspi1.end();
-		Log("INFO") << "Closed Ethernet communication";
-	} else {
-		Log("ERROR") << "Ethernet process died prematurely or did not start";
-	}
-	if (&IMU_stream != NULL) {
-		IMU_stream.close_pipes();
-		Log("INFO") << "Closed IMU communication";
-	} else {
-		Log("ERROR") << "IMU process died prematurely or did not start";
-	}
+	Log("INFO") << "Stopping camera and IMU processes";
+	IMU.stopDataCollection();
+	Cam.stopVideo();
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
-	// TODO copy data to a further backup directory
+	
 	Log("INFO") << "Ending program, Pi rebooting";
 	REXUS.sendMsg("Pi Rebooting");
 	system("sudo reboot");
@@ -155,27 +139,20 @@ int SODS_SIGNAL() {
 		REXUS.sendMsg("Camera died, attempting restart");
 		Cam.startVideo("Docs/Video/rexus_video");
 	}
-	if (raspi1.is_alive()) {
-		raspi1.end();
-		Log("INFO") << "Closed Ethernet communication";
-	} else {
-		Log("ERROR") << "Ethernet process died prematurely or did not start";
-	}
-	if (&IMU_stream != NULL) {
-		IMU_stream.close_pipes();
-		Log("INFO") << "Closed IMU communication";
-	} else {
-		Log("ERROR") << "IMU process died prematurely or did not start";
-	}
+	Log("INFO") << "Ending IMU process";
+	IMU.stopDataCollection();
+	//To make sure motor isn't turning
 	digitalWrite(MOTOR_CW, 0);
 	digitalWrite(MOTOR_ACW, 0);
 	// TODO copy data to a further backup directory
 	Log("INFO") << "Waiting for power off";
+	comms::Packet p1;
 	while(1) {
 		REXUS.sendMsg("I'm falling...");
+		if (raspi1.recvPacket(p1))
+			REXUS.sendPacket(p1);
 		Timer::sleep_ms(5000);
 	}
-	//system("sudo reboot");
 	return 0;
 }
 
