@@ -297,7 +297,7 @@ int main() {
 					case 3: // Toggle flight mode
 					{
 						Log("INFO") << "Toggling flight mode";
-						//flight_mode = (flight_mode) ? false : true;
+						flight_mode = data[2];
 						Log("INFO") << (flight_mode ? "flight mode enabled" : "test mode enabled");
 						if (flight_mode)
 							raspi2.sendMsg("WARNING Flight mode enabled");
