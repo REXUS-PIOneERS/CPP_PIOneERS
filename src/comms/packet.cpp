@@ -35,8 +35,9 @@ namespace comms {
 				return 16;
 			case ID_DATA1:
 			case ID_DATA3:
-			case ID_DATA4:
 				return 12;
+			case ID_DATA4:
+				return 14;
 			case ID_DATA2:
 				return 10;
 			default:

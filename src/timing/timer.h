@@ -42,6 +42,10 @@ public:
 		return (int32_t) std::chrono::duration_cast<millisecs_>(clock_::now() - beg_).count();
 	}
 
+	int32_t elapsed_micro() const {
+		return (int32_t) std::chrono::duration_cast<microsecs_>(clock_::now() - beg_).count();
+	}
+
 	static void sleep_ms(int ms) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}
@@ -49,6 +53,7 @@ public:
 private:
 	typedef std::chrono::system_clock clock_;
 	typedef std::chrono::duration<uint32_t, std::milli> millisecs_;
+	typedef std::chrono::duration<uint32_t, std::micro> microsecs_;
 	std::chrono::time_point<clock_> beg_;
 };
 

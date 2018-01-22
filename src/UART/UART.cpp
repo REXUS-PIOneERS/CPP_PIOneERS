@@ -199,7 +199,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					Timer tmr;
 					char buf[256];
 					int buf_ind = 0;
-					while (1 && (buf_ind < 255)) {
+					while ((buf_ind < 255) && (tmr.elapsed() < 2*intv)) {
 						if (ImP_comms.recvBytes(buf + buf_ind, 1)) {
 							if (buf[buf_ind-1] == 0)
 								break;
@@ -210,7 +210,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					}
 					int stuffed = buf[0];
 					int carry;
-					while ((carry = buf[stuffed]) != 0) {
+					while ((stuffed < 255) && (carry = buf[stuffed]) != 0) {
 						buf[stuffed] = 0;
 						stuffed += carry;
 					}
@@ -231,7 +231,7 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 					//Now handle all the other numbers coming in
 					int total = 0;
 					comms::byte1_t char_buf = 'a';
-					while (1 && (tmr.elapsed() < 2*intv)) {
+					while (tmr.elapsed() < 2*intv) {
 						if (ImP_comms.recvBytes(&char_buf, 1)) {
 							outf << (int)char_buf << " ";
 							total++;

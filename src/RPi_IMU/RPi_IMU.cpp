@@ -94,9 +94,16 @@ bool RPi_IMU::setupMag(int reg5_value, int reg6_value, int reg7_value) {
 }
 
 bool RPi_IMU::writeReg(int addr, int reg, int value) {
-	if (!activateSensor(addr)) {
+	if (!_bus_active) {
+		Log("ERROR") << "i2c bus not connected";
+		return false;
+	}
+	if (activateSensor(addr)) {
 		Log("INFO") << "Writing " << value << " to register " << reg
 				<< " on device " << addr;
+	} else {
+		Log("ERROR") << "Problem selecting device: " << addr;
+		return false;
 	}
 
 	int result = i2c_smbus_write_byte_data(i2c_file, reg, value);
@@ -108,6 +115,10 @@ bool RPi_IMU::writeReg(int addr, int reg, int value) {
 }
 
 uint16_t RPi_IMU::readAccAxis(int axis) {
+	if (!_bus_active) {
+		Log("ERROR") << "Bus not active-reading data";
+		return 0;
+	}
 	//Select the device
 	if (!activateSensor(ACC_ADDRESS)) {
 		Log("ERROR") << "Failed to activate accelerometer to read data";
@@ -140,6 +151,11 @@ uint16_t RPi_IMU::readAccAxis(int axis) {
 }
 
 uint16_t RPi_IMU::readGyrAxis(int axis) {
+        if (!_bus_active) {
+                Log("ERROR") << "Bus not active-reading data";
+                return 0;
+        }
+
 	//Select the device
 	if (!activateSensor(GYR_ADDRESS)) {
 		Log("ERROR") << "Failed to activate gyro to read data";
@@ -172,6 +188,11 @@ uint16_t RPi_IMU::readGyrAxis(int axis) {
 }
 
 uint16_t RPi_IMU::readMagAxis(int axis) {
+        if (!_bus_active) {
+                Log("ERROR") << "Bus not active-reading data";
+                return 0;
+        }
+
 	//Select the device
 	if (!activateSensor(MAG_ADDRESS)) {
 		Log("ERROR") << "Failed to activate magnetometer to read data";
@@ -249,6 +270,11 @@ void RPi_IMU::readMag(uint16_t *data) {
 }
 
 void RPi_IMU::readRegisters(comms::byte1_t *data) {
+        if (!_bus_active) {
+                Log("ERROR") << "Bus not active-reading data";
+                throw -1;
+        }
+
 	// Read all registers for accelerometer, magnetometer and gyroscope
 	int n = 0;
 	if (!activateSensor(ACC_ADDRESS))
@@ -300,7 +326,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				for (int i = 0; i < 100; i++) {
 					Timer tmr;
 					readRegisters(data);
-					int32_t time = measurement_time.elapsed();
+					int32_t time = measurement_time.elapsed_micro();
 					data[21] = (comms::byte1_t)(0xFF & time >> 0);
 					data[20] = (comms::byte1_t)(0xFF & time >> 8);
 					data[19] = (comms::byte1_t)(0xFF & time >> 16);
@@ -345,7 +371,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 		// Ignore a broken pipe and exit silently
 		switch (e) {
 			case -1:
-				Log("FATAL") << "Error activating sensor\n\t" << std::strerror(errno);
+				Log("FATAL") << "Error activating sensor or bus not available\n\t" << std::strerror(errno);
 				_pipes.close_pipes();
 				break;
 			case -2:
@@ -358,9 +384,10 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 				_pipes.close_pipes();
 				break;
 			default:
-				Log("INFO") << "Shutting down IMU process";
-				exit(e);
+				Log("FATAL") << "int error not recognized\n\t" << e;
 		}
+		Log("INFO") << "Shutting down IMU process";
+		exit(e);
 	} catch (...) {
 		Log("FATAL") << "Caught unknown exception\n\t\"" << std::strerror(errno) <<
 				"\"";

@@ -29,6 +29,7 @@ class RPi_IMU {
 	char *filename = (char*) "/dev/i2c-1";
 	int i2c_file = 0;
 	int _pid; //Id of the background process
+	bool _bus_active = false;
 	comms::Pipe _pipes;
 	Logger Log;
 
@@ -43,6 +44,7 @@ public:
 		Log("INFO") << "Attempting to open i2c bus";
 		if ((i2c_file = open(filename, O_RDWR)) < 0) {
 			Log("ERROR") << "Failed to open i2c bus";
+			_bus_active = false;
 		}
 	}
 
