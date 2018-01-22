@@ -367,6 +367,7 @@ int main(int argc, char* argv[]) {
 		Log("ERROR") << "Timeout waiting for Pi 2";
 		Log("INFO") << "Attempting ethernet connection anyway";
 		raspi1.run("Docs/Data/Pi2/backup");
+		Timer::sleep_ms(5000);
 		if (raspi1.is_alive()) {
 			Log("INFO") << "Ethernet connection successful";
 			REXUS.sendMsg("Ethernet connected");

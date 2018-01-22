@@ -223,7 +223,7 @@ void Raspi1::share_data() {
 			Log("ERROR") << "Problem with communication\n\t" << e.what();
 			_pipes.close_pipes();
 			Log("INFO") << "Trying to reconnect";
-			exit(-1);
+			Timer::sleep_ms(5000);
 		} catch (...) {
 			Log("FATAL") << "Unexpected error with client\n\t" << std::strerror(errno);
 			_pipes.close_pipes();
@@ -248,6 +248,7 @@ void Raspi1::run(std::string filename) {
 		// This is the child process.
 		Log.child_log();
 		share_data();
+		exit(0);
 	} else {
 		return;
 	}
@@ -313,11 +314,12 @@ void Raspi2::share_data() {
 			}
 			close(_newsockfd);
 			_pipes.close_pipes();
+			Timer::sleep_ms(1000);
 		} catch (EthernetException e) {
 			Log("FATAL") << "Problem with Ethernet communication\n\t" << e.what();
 			close(_newsockfd);
 			_pipes.close_pipes();
-			exit(-1);
+			Timer::sleep_ms(1000);
 			// Allow program to try and reconnect
 		} catch (...) {
 			Log("FATAL") << "Unexpected error with server\n\t" << std::strerror(errno);
