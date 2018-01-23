@@ -453,6 +453,7 @@ int main(int argc, char* argv[]) {
 							//Clean logs
 							system("sudo rm -rf /Docs/Data/Logs/*.txt");
 						}
+						Timer::sleep_ms(5000);
 						REXUS.sendMsg("Files cleaned... rebooting");
 						system("sudo reboot");
 					}

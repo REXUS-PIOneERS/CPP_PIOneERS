@@ -96,7 +96,7 @@ void RXSM::buffer() {
 				n = recvPacket(p);
 				if (n > 0)
 					_pipes.binwrite(&p, sizeof (p));
-				Timer::sleep_ms(2);
+				Timer::sleep_ms(1);
 			}
 		} else {
 			// This is the parent process

@@ -45,6 +45,8 @@ public:
 		if ((i2c_file = open(filename, O_RDWR)) < 0) {
 			Log("ERROR") << "Failed to open i2c bus";
 			_bus_active = false;
+		} else {
+			_bus_active = true;
 		}
 	}
 

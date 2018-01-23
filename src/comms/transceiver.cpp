@@ -95,7 +95,7 @@ namespace comms {
 
 	int PacketChecker::push_byte(uint8_t byte) {
 		_buf[_index] = byte;
-		if (_buf == 0 && _index != 0) {
+		if (byte == 0 && _index != 0) {
 			int rtn = _index;
 			_index = 0;
 			_flag = true;
@@ -113,6 +113,7 @@ namespace comms {
 	bool PacketChecker::get_packet(comms::Packet *p) {
 		if (_flag) {
 			memcpy(p, _buf, sizeof (comms::Packet));
+			_flag = false;
 			return true;
 		} else {
 			return false;
