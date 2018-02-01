@@ -94,7 +94,7 @@ comms::Pipe rxsm_stream;
 
 // Ethernet communication setup and variables (we are acting as client)
 int port_no = 31415; // Random unused port for communication
-std::string server_name = "raspi2.local";
+std::string server_name = "169.254.86.24";
 Raspi1 raspi1(port_no, server_name);
 
 /**
@@ -386,10 +386,15 @@ int main(int argc, char* argv[]) {
 	comms::byte2_t index;
 	comms::byte1_t data[16];
 	int n;
+	int counter;
 	while (!signal_received) {
 		Timer::sleep_ms(10);
 		// Implements a loop to ensure LO signal has actually been received
 		signal_received = (poll_signals(LO, SOE, SODS) & 0b111);
+		if (counter ++ > 1000) {
+			REXUS.sendMsg("Ping");
+			counter = 0;
+		}
 		//Check for packets from Pi2
 		n = raspi1.recvPacket(p);
 		if (n > 0)
