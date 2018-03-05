@@ -60,6 +60,8 @@ public:
 
 	int recvPacket(comms::Packet &p);
 
+	bool status();
+
 	~RXSM() {
 		Log("INFO") << "Destroying RXSM object";
 	}
@@ -90,6 +92,8 @@ public:
 	 * @return Pipe for sending and receiving data.
 	 */
 	comms::Pipe startDataCollection(const std::string filename);
+
+	bool status();
 
 	/**
 	 * Stop the process collecting data.

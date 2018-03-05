@@ -149,7 +149,7 @@ int SODS_SIGNAL() {
 	comms::Packet p1;
 	while(1) {
 		REXUS.sendMsg("I'm falling...");
-		if (raspi1.recvPacket(p1))
+		while (raspi1.recvPacket(p1))
 			REXUS.sendPacket(p1);
 		Timer::sleep_ms(5000);
 	}
@@ -292,8 +292,7 @@ int LO_SIGNAL() {
 			REXUS.sendMsg("I'm still alive...");
 		}
 		// Check for packets from pi2
-		int n = raspi1.recvPacket(p);
-		if (n > 0)
+		while (raspi1.recvPacket(p))
 			REXUS.sendPacket(p);
 	}
 	return SOE_SIGNAL();
@@ -406,20 +405,19 @@ int main(int argc, char* argv[]) {
 			Log("RXSM") << p;
 			raspi1.sendPacket(p);
 			comms::Protocol::unpack(p, id, index, data);
-			Log("UNPACKED") << "ID: " << id << "DATA[0]: " << data[0];
 			if (id == 0b11000000) {
 				switch (data[0]) {
 					case 1: // restart
 					{
 						Log("INFO") << "Rebooting...";
 						system("sudo reboot now");
-						exit(0);
+						break;
 					}
 					case 2: // shutdown
 					{
 						Log("INFO") << "Shutting down...";
 						system("sudo shutdown now");
-						exit(0);
+						break;
 					}
 					case 3: // Change between flight and test mode
 					{
@@ -437,6 +435,7 @@ int main(int argc, char* argv[]) {
 						std::string result = tests::pi1_tests();
 						REXUS.sendMsg(result);
 						Log("INFO") << "Test Results\n\t" << result;
+						break;
 					}
 					case 5:
 					{
@@ -461,6 +460,7 @@ int main(int argc, char* argv[]) {
 						Timer::sleep_ms(5000);
 						REXUS.sendMsg("Files cleaned... rebooting");
 						system("sudo reboot");
+						break;
 					}
 					case 6:
 					{
@@ -468,7 +468,10 @@ int main(int argc, char* argv[]) {
 						system("sudo rm -rf /home/pi/CPP_PIOneERS/bin/raspi1");
 						system("sudo rm -rf /home/pi/CPP_PIOneERS/build/*.o");
 						system("sudo make ./bin/raspi1 -C /home/pi/CPP_PIOneERS");
+						Timer::sleep_ms(20000);
 						REXUS.sendMsg("Project rebuilt... rebooting");
+						system("sudo reboot");
+						break;
 					}
 					default:
 					{

@@ -112,7 +112,10 @@ int SODS_SIGNAL() {
 	digitalWrite(BURNWIRE, 0);
 	digitalWrite(BURNWIRE, 0);
 	Log("INFO") << "Waiting for power off";
-	while (1) { Timer::sleep_ms(10000); }
+	while (1) {
+		Timer::sleep_ms(10000);
+		raspi2.sendMsg("Falling");
+	}
 	// TODO copy data to a further backup directory
 	//Log("INFO") << "Ending program, Pi rebooting";
 	//system("sudo reboot");
@@ -138,24 +141,26 @@ int SOE_SIGNAL() {
 	Log("INFO") << "Triggering burnwire";
 	digitalWrite(BURNWIRE, 1);
 	Timer tmr;
-	raspi2.sendMsg("Burnwire triggered...");
-	Log("INFO") << "Burn wire triggered" << std::endl;
-	while (tmr.elapsed() < 10000) {
-		// Get ImP data
-		int n = ImP_stream.binread(&p, sizeof (p));
-		if (n > 0) {
-			Log("DATA (ImP)") << p;
-			raspi2.sendPacket(p);
-		}
+	if (flight_mode) {
+		raspi2.sendMsg("Burnwire triggered...");
+		Log("INFO") << "Burn wire triggered" << std::endl;
+		while (tmr.elapsed() < 10000) {
+			// Get ImP data
+			int n = ImP_stream.binread(&p, sizeof (p));
+			if (n > 0) {
+				Log("DATA (ImP)") << p;
+				raspi2.sendPacket(p);
+			}
 
-		n = raspi2.recvPacket(p);
-		if (n > 0)
-			Log("DATA (PI1)") << p;
-		Timer::sleep_ms(10);
+			n = raspi2.recvPacket(p);
+			if (n > 0)
+				Log("DATA (PI1)") << p;
+			Timer::sleep_ms(10);
+		}
+		digitalWrite(BURNWIRE, 0);
+		Log("INFO") << "Burn wire off after " << tmr.elapsed() << " ms";
+		raspi2.sendMsg("Burnwire off");
 	}
-	digitalWrite(BURNWIRE, 0);
-	Log("INFO") << "Burn wire off after " << tmr.elapsed() << " ms";
-	raspi2.sendMsg("Burnwire off");
 	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
@@ -270,13 +275,13 @@ int main() {
 					{
 						Log("INFO") << "Rebooting...";
 						system("sudo reboot now");
-						exit(0);
+						break;
 					}
 					case 2: // shutdown
 					{
 						Log("INFO") << "Shutting down...";
 						system("sudo shutdown now");
-						exit(0);
+						break;
 					}
 					case 3: // Toggle flight mode
 					{
@@ -295,6 +300,7 @@ int main() {
 						std::string result = tests::pi2_tests();
 						raspi2.sendMsg(result);
 						Log("INFO") << "Test results\n\t" << result;
+						break;
 					}
 					case 5:
 					{
@@ -316,7 +322,9 @@ int main() {
 							//Clean logs
 							system("sudo rm -rf /Docs/Data/Logs/*.txt");
 						}
+						Timer::sleep_ms(5000);
 						system("sudo reboot");
+						break;
 					}
 					case 6:
 					{
@@ -324,11 +332,19 @@ int main() {
 						system("sudo rm -rf /home/pi/CPP_PIOneERS/bin/raspi2");
 						system("sudo rm -rf /home/pi/CPP_PIOneERS/build/*.o");
 						system("sudo make ./bin/raspi2 -C /home/pi/CPP_PIOneERS");
+						Timer::sleep_ms(20000);
 						Log("INFO") << "Project rebuilt... rebooting";
+						system("sudo reboot");
+						break;
+					}
+					default:
+					{
+						raspi2.sendMsg("Not Recognised");
+						Log("ERROR") << "Command not recognised" << data[0];
+						break;
 					}
 				}
 			}
-			Log("DATA (PI1)") << "Unpacked\n\t\"" << std::string(data) << "\"";
 			//TODO handle incoming commands!
 		}
 	}

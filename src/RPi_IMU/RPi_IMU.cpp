@@ -398,6 +398,22 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 	}
 }
 
+bool RPi_IMU::status() {
+	int status_check;
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
+		}
+	} else
+		return false;
+}
+
 int RPi_IMU::stopDataCollection() {
 	if (_pid) {
 		Log("INFO") << "Stopping IMU process (ID:" << _pid << ")";

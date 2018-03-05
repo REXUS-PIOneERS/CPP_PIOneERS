@@ -68,19 +68,18 @@ void PiCamera::stopVideo() {
 	}
 }
 
-bool PiCamera::is_running() {
-	return true;
-	Log("INFO") << "Camera process being polled...";
-	if (camera_pid) {
-		int status = 0;
-		if (waitpid(camera_pid, &status, WNOHANG) == camera_pid) {
-			Log("INFO") << "Camera process is dead";
-			return false;
-		} else {
-			Log("INFO") << "Camera process is alive";
+bool PiCamera::status() {
+	int status_check;
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
 			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
 		}
-	}
-	Log("INFO") << "Process has not been started";
-	return false;
+	} else
+		return false;
 }

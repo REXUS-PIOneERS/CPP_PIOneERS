@@ -166,6 +166,22 @@ int RXSM::sendMsg(std::string msg) {
 	return sent;
 }
 
+bool RXSM::status() {
+	int status_check;
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
+		}
+	} else
+		return false;
+}
+
 comms::Pipe ImP::startDataCollection(const std::string filename) {
 	/*
 	 * Sends request to the ImP to begin sending data. Returns the file stream
@@ -267,6 +283,22 @@ comms::Pipe ImP::startDataCollection(const std::string filename) {
 		close(uart_filestream);
 		exit(-2);
 	}
+}
+
+bool ImP::status() {
+	int status_check;
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
+		}
+	} else
+		return false;
 }
 
 int ImP::stopDataCollection() {

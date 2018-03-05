@@ -43,9 +43,9 @@ public:
 
 	/**
 	 * Check whether the camera is running.
-	 * @return ture or false
+	 * @return ture if running, false otherwise
 	 */
-	bool is_running();
+	bool status();
 };
 
 

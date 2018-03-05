@@ -138,6 +138,9 @@ public:
 	void readRegisters(comms::byte1_t *data);
 
 	comms::Pipe startDataCollection(char* filename);
+
+	bool status();
+
 	int stopDataCollection();
 
 	~RPi_IMU() {

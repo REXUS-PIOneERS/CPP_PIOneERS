@@ -60,13 +60,10 @@ public:
 	}
 
 	/**
-	 * Checks the status of pipe and ethernet communications for the server.
-	 * @return 0 if all is good
-	 * 0bXXXXXXX1 represents read end of pipe is unavailbale
-	 * 0bXXXXXX1X represents write end of pipe is unavailable
-	 * 0bXXXXX1XX represents ethernet communication is down
+	 * Checks the status of the child process
+	 * @return true if process is running, false otherwise
 	 */
-	int status();
+	bool status();
 
 	/**
 	 * Starts the server running as a child process ready for accepting
@@ -76,8 +73,6 @@ public:
 	void run(std::string filename);
 
 	void share_data();
-
-	bool is_alive();
 
 	int sendPacket(comms::Packet &p) {
 		return _pipes.binwrite(&p, sizeof (comms::Packet));
@@ -119,10 +114,6 @@ public:
 		Log("INFO") << "Log started by client";
 	}
 
-	bool active() {
-		return _connected;
-	}
-
 	/**
 	 * Opens a new connection with the server
 	 * @return 0 = success, otherwise = failure
@@ -154,9 +145,9 @@ public:
 
 	void run(std::string filename);
 
-	void share_data();
+	bool status();
 
-	bool is_alive();
+	void share_data();
 
 	int sendPacket(comms::Packet &p) {
 		return _pipes.binwrite(&p, sizeof (comms::Packet));

@@ -34,37 +34,7 @@
 #include <sstream>
 
 #include <poll.h>
-/*
-int Server::status() {
-	if (!_pid)
-		return -1;
-	// Checks a file descriptor is ready for reading
-	int rtn = 0;
-	struct pollfd fds[3];
-	int timeout = 0;
-	// Read end of Pipe
-	fds[0].fd = _pipes.getReadfd();
-	fds[0].events = POLLIN;
-	// Write end of Pipe
-	fds[1].fd = _pipes.getWritefd();
-	fds[1].events = POLLOUT;
-	// Ethernet file descriptor
-	fds[2].fd = _newsockfd;
-	fds[2].events = POLLIN | POLLOUT;
-	// Check if the file descriptor is ready for reading
-	if (poll(fds, 1, timeout)) {
-		if (!(fds[0].revents & POLLIN))
-			rtn &= 0x01;
-		if (!(fds[1].revents & POLLOUT))
-			rtn &= 0x02;
-		if (!(fds[2].revents & (POLLIN | POLLOUT)))
-			rtn &= 0x04;
-	}
-	return rtn;
-}
-*/
 
-// Functions for setting up as a server
 
 int Server::setup() {
 	Log("INFO") << "Setting up server to communicate on port no. " << _port;
@@ -254,12 +224,19 @@ void Raspi1::run(std::string filename) {
 	}
 }
 
-bool Raspi1::is_alive() {
+bool Raspi1::status() {
 	int status_check;
-	pid_t result = waitpid(_pid, &status_check, WNOHANG);
-	if (result == 0)
-		return true;
-	else
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
+		}
+	} else
 		return false;
 }
 
@@ -363,12 +340,19 @@ void Raspi2::run(std::string filename) {
 }
 
 
-bool Raspi2::is_alive() {
+bool Raspi2::status() {
 	int status_check;
-	pid_t result = waitpid(_pid, &status_check, WNOHANG);
-	if (result == 0)
-		return true;
-	else
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
+		}
+	} else
 		return false;
 }
 
