@@ -52,6 +52,34 @@ void interrupt() {
 }
 
 /**
+ * Checks the status of all possible child processes and returns as a
+ * string.
+ */
+ std::string status_check() {
+	std::string rtn;
+	if (raspi1.status())
+		rtn += "Eth_u, ";
+	else
+		rtn += "Eth_d, ";
+
+	if (REXUS.status())
+		rtn += "RXSM_u, ";
+	else
+		rtn += "RXSM_d, ";
+
+	if (Cam.status())
+		rtn += "Cam_u, ";
+	else
+		rtn += "Cam_d, ";
+	
+	if (IMU.status())
+		rtn += "IMU_u";
+	else
+		rtn += "IMU_d";
+	return rtn;
+ }
+
+/**
  * Checks whether input is activated
  * @param pin: GPIO to be checked
  * @return true or false
@@ -130,7 +158,7 @@ int SODS_SIGNAL() {
 	Log("INFO") << "SODS signal received";
 	std::cout << "SODS received" << std::endl;
 	REXUS.sendMsg("SODS received");
-	if (Cam.is_running()) {
+	if (Cam.status()) {
 		Log("INFO") << "Camera still running";
 		REXUS.sendMsg("Camera still running :D");
 	} else {
@@ -235,10 +263,9 @@ int SOE_SIGNAL() {
 			delay(10);
 		}
 		digitalWrite(MOTOR_CW, 0); // Stops the motor.
-		double dist = 0.0833 * (count / 1000);
-		Log("INFO") << "Boom extended by approx " << dist << " m";
+		Log("INFO") << "Boom extended by " << count;
 		std::stringstream ss;
-		ss << "Boom extended by approx. " << dist << " m";
+		ss << "Boom extended by " << count;
 		REXUS.sendMsg(ss.str());
 	}
 	Log("INFO") << "Waiting for SODS";
@@ -290,6 +317,7 @@ int LO_SIGNAL() {
 		if (counter++ >= 100) {
 			counter = 0;
 			REXUS.sendMsg("I'm still alive...");
+			REXUS.sendMsg(status_check());
 		}
 		// Check for packets from pi2
 		while (raspi1.recvPacket(p))

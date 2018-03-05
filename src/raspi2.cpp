@@ -57,6 +57,29 @@ bool poll_input(int pin) {
 }
 
 /**
+ * Checks the status of all possible child processes and returns as a
+ * string.
+ */
+ std::string status_check() {
+	std::string rtn;
+	if (raspi2.status())
+		rtn += "Eth_u, ";
+	else
+		rtn += "Eth_d, ";
+
+	if (Cam.status())
+		rtn += "Cam_u, ";
+	else
+		rtn += "Cam_d, ";
+
+	if (IMP.status())
+		rtn += "ImP_u";
+	else
+		rtn += "ImP_d";
+	return rtn;
+ }
+
+/**
  *  Checks the status of three input pins (in1, in2 and in3). If in1 and in2 are high
  *  but in3 is low return value will look like: 0b0000 0011
  *  @return Integer where the three LSB represent the status of in1, in2 and in3.
@@ -74,14 +97,14 @@ int poll_signals(int in1, int in2, int in3) {
 
 void signal_handler(int s) {
 	Log("FATAL") << "Exiting program after signal " << s;
-	if (Cam.is_running()) {
+	if (Cam.status()) {
 		Cam.stopVideo();
 		Log("INFO") << "Stopping camera process";
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
 	}
 
-	if (raspi2.is_alive()) {
+	if (raspi2.status()) {
 		raspi2.end();
 		Log("INFO") << "Closed Ethernet communication";
 	} else {
@@ -101,7 +124,7 @@ int SODS_SIGNAL() {
 	 * stops while the camera continues running till power off or storage space is full
 	 */
 	Log("INFO") << "SODS signal received";
-	if (Cam.is_running()) {
+	if (Cam.status()) {
 		Log("INFO") << "Camera still running";
 	} else {
 		Log("ERROR") << "Camera process died prematurely or did not start";
@@ -202,6 +225,7 @@ int LO_SIGNAL() {
 		if (counter++ >= 100) {
 			counter = 0;
 			raspi2.sendMsg("I'm alive too...");
+			raspi2.sendMsg(status_check());
 		}
 	}
 	return SOE_SIGNAL();
