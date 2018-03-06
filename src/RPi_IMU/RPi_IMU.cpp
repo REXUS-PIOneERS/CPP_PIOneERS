@@ -32,7 +32,7 @@
 
 // Includes for I2c
 #include <linux/i2c-dev.h>
-#include "LSM9DS0.h"
+#include "LSM9DS1.h"
 
 #include "logger/logger.h"
 #include <error.h>
@@ -48,12 +48,12 @@ bool RPi_IMU::activateSensor(int addr) {
 
 //Functions for setting up the various sensors
 
-bool RPi_IMU::setupAcc(int reg1_value, int reg2_value) {
-	Log("INFO") << "Setting up Accelerometer registers.\n\tCTRL_REG1_XM-"
-			<< reg1_value << "\n\tCTRL_REG2_XM-" << reg2_value;
+bool RPi_IMU::setupAcc(int reg5_value, int reg6_value) {
+	Log("INFO") << "Setting up Accelerometer registers.\n\tCTRL_REG5_XL-"
+			<< reg5_value << "\n\tCTRL_REG6_XL-" << reg6_value;
 	//Write the values to the control registers
-	bool a = writeReg(ACC_ADDRESS, CTRL_REG1_XM, reg1_value);
-	bool b = writeReg(ACC_ADDRESS, CTRL_REG2_XM, reg2_value);
+	bool a = writeReg(ACC_ADDRESS, CTRL_REG5_XL, reg5_value);
+	bool b = writeReg(ACC_ADDRESS, CTRL_REG6_XL, reg6_value);
 	if (a && b) {
 		Log("INFO") << "Accelerometer setup successfully";
 		return true;
@@ -63,12 +63,14 @@ bool RPi_IMU::setupAcc(int reg1_value, int reg2_value) {
 	}
 }
 
-bool RPi_IMU::setupGyr(int reg1_value, int reg2_value) {
+bool RPi_IMU::setupGyr(int reg1_value, int reg4_value, int reg_orient_value) {
 	Log("INFO") << "Setting up Gyro registers.\n\tCTRL_REG1_G-"
-			<< reg1_value << "\n\tCTRL_REG2_G-" << reg2_value;
+			<< reg1_value << "\n\tCTRL_REG4-" << reg4_value
+			<< "\n\tORIENT_CFG_G" << reg_orient_value;
 	bool a = writeReg(GYR_ADDRESS, CTRL_REG1_G, reg1_value);
-	bool b = writeReg(GYR_ADDRESS, CTRL_REG2_G, reg2_value);
-	if (a && b) {
+	bool b = writeReg(GYR_ADDRESS, CTRL_REG4, reg2_value);
+	bool c = writeReg(GYR_ADDRESS, ORIENT_CFG_G, reg_orient_value);
+	if (a && b && c) {
 		Log("INFO") << "Gyro setup successfully";
 		return true;
 	} else {
@@ -77,14 +79,16 @@ bool RPi_IMU::setupGyr(int reg1_value, int reg2_value) {
 	}
 }
 
-bool RPi_IMU::setupMag(int reg5_value, int reg6_value, int reg7_value) {
-	Log("INFO") << "Setting up Magnetometer registers.\n\tCTRL_REG5_XM-"
-			<< reg5_value << "\n\tCTRL_REG6_XM-" << reg6_value
-			<< "\n\tCTRL_REG7_XM-" << reg7_value;
-	bool a = writeReg(MAG_ADDRESS, CTRL_REG5_XM, reg5_value);
-	bool b = writeReg(MAG_ADDRESS, CTRL_REG6_XM, reg6_value);
-	bool c = writeReg(MAG_ADDRESS, CTRL_REG7_XM, reg7_value);
-	if (a && b && c) {
+bool RPi_IMU::setupMag(int reg1_value, int reg2_value, int reg3_value, int reg4_value) {
+	Log("INFO") << "Setting up Magnetometer registers.\n\tCTRL_REG1_M-"
+			<< reg1_value << "\n\tCTRL_REG2_M-" << reg2_value
+			<< "\n\tCTRL_REG3_M-" << reg3_value
+			<< "\n\tCTRL_REG4_M-" << reg4_value;
+	bool a = writeReg(MAG_ADDRESS, CTRL_REG1_M, reg1_value);
+	bool b = writeReg(MAG_ADDRESS, CTRL_REG2_M, reg2_value);
+	bool c = writeReg(MAG_ADDRESS, CTRL_REG3_M, reg3_value);
+	bool d = writeReg(MAG_ADDRESS, CTRL_REG4_M, reg4_value);
+	if (a && b && c && d) {
 		Log("INFO") << "Gyro setup successfully";
 		return true;
 	} else {
@@ -128,16 +132,16 @@ uint16_t RPi_IMU::readAccAxis(int axis) {
 	int reg1, reg2;
 	switch (axis) {
 		case 1:
-			reg1 = OUT_X_L_A;
-			reg2 = OUT_X_H_A;
+			reg1 = OUT_X_L_XL;
+			reg2 = OUT_X_H_XL;
 			break;
 		case 2:
-			reg1 = OUT_Y_L_A;
-			reg2 = OUT_Y_H_A;
+			reg1 = OUT_Y_L_XL;
+			reg2 = OUT_Y_H_XL;
 			break;
 		case 3:
-			reg1 = OUT_Z_L_A;
-			reg2 = OUT_Z_H_A;
+			reg1 = OUT_Z_L_XL;
+			reg2 = OUT_Z_H_XL;
 			break;
 		default:
 			return 0;
@@ -231,7 +235,7 @@ void RPi_IMU::readAcc(uint16_t *data) {
 	//Request reading from the accelerometer
 	uint8_t block[6];
 	uint8_t *block_addr = block;
-	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_A, sizeof (block), block_addr);
+	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_XL, sizeof (block), block_addr);
 	//Calculate x, y and z values
 	data[0] = (uint16_t) (block[0] | block[1] << 8);
 	data[1] = (uint16_t) (block[2] | block[3] << 8);
@@ -279,7 +283,7 @@ void RPi_IMU::readRegisters(comms::byte1_t *data) {
 	int n = 0;
 	if (!activateSensor(ACC_ADDRESS))
 		throw -1;
-	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_A, 6, data);
+	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_XL, 6, data);
 	activateSensor(GYR_ADDRESS);
 	i2c_smbus_read_i2c_block_data(i2c_file, 0x80 | OUT_X_L_G, 6, (data + 6));
 	activateSensor(MAG_ADDRESS);
@@ -287,14 +291,18 @@ void RPi_IMU::readRegisters(comms::byte1_t *data) {
 }
 
 void RPi_IMU::resetRegisters() {
-	//Set all registers in the IMU to 0
-	writeReg(ACC_ADDRESS, CTRL_REG1_XM, 0);
-	writeReg(ACC_ADDRESS, CTRL_REG2_XM, 0);
+	//Set control registers in the IMU to 0
+	writeReg(ACC_ADDRESS, CTRL_REG5_XL, 0);
+	writeReg(ACC_ADDRESS, CTRL_REG6_XL, 0);
+
 	writeReg(GYR_ADDRESS, CTRL_REG1_G, 0);
-	writeReg(GYR_ADDRESS, CTRL_REG2_G, 0);
-	writeReg(MAG_ADDRESS, CTRL_REG5_XM, 0);
-	writeReg(MAG_ADDRESS, CTRL_REG6_XM, 0);
-	writeReg(MAG_ADDRESS, CTRL_REG7_XM, 0);
+	writeReg(GYR_ADDRESS, CTRL_REG4, 0);
+	writeReg(GYR_ADDRESS, ORIENT_CFG_G, 0);
+
+	writeReg(MAG_ADDRESS, CTRL_REG1_M, 0);
+	writeReg(MAG_ADDRESS, CTRL_REG2_M, 0);
+	writeReg(MAG_ADDRESS, CTRL_REG3_M, 0b00000011);
+	writeReg(MAG_ADDRESS, CTRL_REG4_M, 0);
 }
 
 comms::Pipe RPi_IMU::startDataCollection(char* filename) {

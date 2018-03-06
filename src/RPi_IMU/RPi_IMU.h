@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "LSM9DS0.h"   //Stores addresses for the BerryIMU
+#include "LSM9DS1.h"   //Stores addresses for the BerryIMU
 #include "comms/pipes.h"
 #include "comms/packet.h"
 
@@ -53,34 +53,43 @@ public:
 	/**
 	 * Sets up the accelerometer registers. See BerryIMU documentation for
 	 * details on the effect of different values.
+	 * 
+	 * Defaults: x y and z enabled, Data Rate 238 Hz, BW 105 Hz, +- 8g
 	 *
-	 * @param reg1_value: Value written to CTRL_REG1_XM
-	 * @param reg2_value: Value written to CTRL_REG2_XM
+	 * @param reg5_value: Value written to CTRL_REG5_XL
+	 * @param reg6_value: Value written to CTRL_REG6_XL
 	 * @return true: write successful, false: write failed
 	 */
-	bool setupAcc(int reg1_value = 0b01100111, int reg2_value = 0b00100000);
+	bool setupAcc(int reg5_value = 0b00111000, int reg6_value = 0b10011000);
 
 	/**
 	 * Sets up the gyroscope registers. See BerryIMU documentation for details
 	 * on the effect of different values.
+	 * 
+	 * Defaults: 238 Hz, 500 dps, 14 Hz cutoff, x y and z enabled, no interrupts
 	 *
 	 * @param reg1_value: Value written to CTRL_REG1_G
-	 * @param reg2_value: Value written to CTRL_REG2_G
+	 * @param reg4_value: Value written to CTRL_REG4
+	 * @param reg_orient_value: Value written to ORIENT_CFG_G
 	 * @return true: write successful, false: write failed
 	 */
-	bool setupGyr(int reg1_value = 0b00001111, int reg2_value = 0b00110000);
+	bool setupGyr(int reg1_value = 0b10001000, int reg4_value = 0b00111000,
+	int reg_orient_value = 0b00000000);
 
 	/**
 	 * Sets up the magnetometer registers. See BerryIMU documentation for
 	 * details on the effect of different values.
+	 * 
+	 * Defaults: High-performance, 300 Hz ODR, +- 4 gauss, continuous conversian
 	 *
-	 * @param reg5_value: Value written to CTRL_REG5_XM
-	 * @param reg6_value: Value written to CTRL_REG6_XM
-	 * @param reg7_value: Value written to CTRL_REG7_XM
+	 * @param reg1_value: Value written to CTRL_REG1_M
+	 * @param reg2_value: Value written to CTRL_REG2_M
+	 * @param reg3_value: Value written to CTRL_REG3_M
+	 * @param reg4_value: Value written to CTRL_REG4_M
 	 * @return true: write successful, false: write failed
 	 */
-	bool setupMag(int reg5_value = 0b11110000, int reg6_value = 0b11000000,
-			int reg7_value = 0b00000000);
+	bool setupMag(int reg1_value = 0b11011110, int reg2_value = 0b00000000,
+			int reg3_value = 0b00000000, int reg4_value = 0b0000100);
 
 	/**
 	 * Write a value to a register.
@@ -142,6 +151,8 @@ public:
 	bool status();
 
 	int stopDataCollection();
+	
+	void resetRegisters();
 
 	~RPi_IMU() {
 		Log("INFO") << "Destroying IMU object";

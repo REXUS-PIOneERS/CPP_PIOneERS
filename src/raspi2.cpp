@@ -68,7 +68,7 @@ int poll_signals(int in1, int in2, int in3) {
 		rtn += 0b001;
 	if (poll_input(in2))
 		rtn += 0b010;
-	if (poll_input(in3))`
+	if (poll_input(in3))
 		rtn += 0b100;
 	return rtn;
 }

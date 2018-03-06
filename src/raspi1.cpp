@@ -390,6 +390,9 @@ int main(int argc, char* argv[]) {
 	digitalWrite(MOTOR_ACW, 0);
 	wiringPiISR(MOTOR_IN, INT_EDGE_RISING, interrupt);
 	Log("INFO") << "Pins for motor control setup";
+	// Set all IMU sensorts to off
+	IMU.resetRegisters();
+	Log("INFO") << "Powered off all IMU sensors";
 	// Wait for GPIO to go high signalling that Pi2 is ready to communicate
 	Timer tmr;
 	while (tmr.elapsed() < 20000) {
