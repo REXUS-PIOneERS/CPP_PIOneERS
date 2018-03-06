@@ -70,11 +70,11 @@ void PiCamera::stopVideo() {
 
 bool PiCamera::status() {
 	int status_check;
-	if (_pid) {
-		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+	if (camera_pid) {
+		pid_t result = waitpid(camera_pid, &status_check, WNOHANG);
 		if (result == 0)
 			return true;
-		else if (result == _pid)
+		else if (result == camera_pid)
 			return false;
 		else {
 			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);

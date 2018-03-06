@@ -56,28 +56,6 @@ bool poll_input(int pin) {
 	return (count < 3) ? true : false;
 }
 
-/**
- * Checks the status of all possible child processes and returns as a
- * string.
- */
- std::string status_check() {
-	std::string rtn;
-	if (raspi2.status())
-		rtn += "Eth_u, ";
-	else
-		rtn += "Eth_d, ";
-
-	if (Cam.status())
-		rtn += "Cam_u, ";
-	else
-		rtn += "Cam_d, ";
-
-	if (IMP.status())
-		rtn += "ImP_u";
-	else
-		rtn += "ImP_d";
-	return rtn;
- }
 
 /**
  *  Checks the status of three input pins (in1, in2 and in3). If in1 and in2 are high
@@ -90,7 +68,7 @@ int poll_signals(int in1, int in2, int in3) {
 		rtn += 0b001;
 	if (poll_input(in2))
 		rtn += 0b010;
-	if (poll_input(in3))
+	if (poll_input(in3))`
 		rtn += 0b100;
 	return rtn;
 }
@@ -117,6 +95,29 @@ void signal_handler(int s) {
 	system("sudo reboot");
 	exit(1); // This was an unexpected end so we will exit with an error!
 }
+
+/**
+ * Checks the status of all possible child processes and returns as a
+ * string.
+ */
+ std::string status_check() {
+	std::string rtn;
+	if (raspi2.status())
+		rtn += "Eth_u, ";
+	else
+		rtn += "Eth_d, ";
+
+	if (Cam.status())
+		rtn += "Cam_u, ";
+	else
+		rtn += "Cam_d, ";
+
+	if (IMP.status())
+		rtn += "ImP_u";
+	else
+		rtn += "ImP_d";
+	return rtn;
+ }
 
 int SODS_SIGNAL() {
 	/*
@@ -157,7 +158,7 @@ int SOE_SIGNAL() {
 	Log("INFO") << "SOE signal received";
 	raspi2.sendMsg("Received SOE");
 	// Setup the ImP and start requesting data
-	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/test");
+	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/imu_data");
 	Log("INFO") << "Started data collection from ImP";
 	comms::Packet p; // Buffer for reading data from the IMU stream
 	// Trigger the burn wire for 10 seconds!
@@ -187,7 +188,22 @@ int SOE_SIGNAL() {
 	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
+	int counter = 0;
 	while (!signal_received) {
+		if (counter++ >=100) {
+			// Check camera and ImP are running
+			counter = 0;
+			// Send the general status update message
+			raspi2.sendMsg(status_check());
+			if (!Cam.status()) {
+				Log("ERROR") << "Camera has stopped running...restarting";
+				Cam.startVideo("Docs/Video/restart");
+			}
+			if (!IMP.status()) {
+				Log("ERROR") << "ImP has stopped running...restarting";
+				IMP.startDataCollection("Docs/Data/Pi2/restart");
+			}
+		}
 		signal_received = (poll_signals(LO, SOE, SODS) & 0b100);
 		// Read data from IMU_data_stream and echo it to Ethernet
 		int n = ImP_stream.binread(&p, sizeof (p));
@@ -226,6 +242,10 @@ int LO_SIGNAL() {
 			counter = 0;
 			raspi2.sendMsg("I'm alive too...");
 			raspi2.sendMsg(status_check());
+			if (!Cam.status()) {
+				Log("ERROR") << "Camera not running...restarting";
+				Cam.startVideo("Docs/Video/restart");
+			}
 		}
 	}
 	return SOE_SIGNAL();

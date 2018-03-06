@@ -52,7 +52,7 @@ namespace tests {
 		IMU.setupGyr();
 		IMU.setupMag();
 		comms::Pipe stream;
-		stream = IMU.startDataCollection("imutest");
+		stream = IMU.startDataCollection("Docs/Data/Pi1/imutest");
 		Timer::sleep_ms(500);
 		comms::Packet p;
 		int n = 0;
@@ -63,37 +63,24 @@ namespace tests {
 				rtn += "Stream receiving data.\n";
 			Timer::sleep_ms(200);
 		}
-
-		stream.close_pipes();
-		system("sudo rm -rf *.txt");
+		IMU.stopDataCollection();
+		system("sudo rm -rf /Docs/Data/Pi1/imutest*");
+		Timer::sleep_ms(500);
 		return rtn;
-		//std::fstream f("imutest0001.txt");
-		//if (f.good()) {
-		//	system("sudo rm -rf *.txt");
-		//	return rtn + "Data saved to file.\n";
-		//} else
-		//	return rtn + "Data not saved to file.\n";
 	}
 
 	std::string camera_test() {
 		std::string rtn = "\nTesting Camera...\n";
 		PiCamera cam;
-		cam.startVideo("camtest");
+		cam.startVideo("Docs/Video/camtest");
 		Timer::sleep_ms(2500);
 		// Check camera process is running
-		if (!cam.is_running())
+		if (!cam.status())
 			return rtn + "Camera failed to start.\n";
 		Timer::sleep_ms(2500);
 		cam.stopVideo();
-		system("sudo rm -rf *.h264");
+		system("sudo rm -rf /Docs/Video/camtest*");
 		return rtn + "Camera worked.\n";
-		// Check files were created
-		//std::fstream f("camtest0001.h264");
-		//if (f.good()) {
-		//	system("sudo rm -rf *.h264");
-		//	return rtn + "Camera tests passed.\n";
-		//} else
-		//	return rtn + "No files found.\n";
 	}
 
 	std::string ImP_test() {
@@ -101,14 +88,14 @@ namespace tests {
 		comms::Packet p;
 		comms::Pipe pipe;
 		ImP imp(38400);
-		pipe = imp.startDataCollection("imptest");
+		pipe = imp.startDataCollection("Docs/Data/Pi2/imptest");
 		Timer::sleep_ms(500);
 		int n = pipe.binread(&p, sizeof(comms::Packet));
 		if (n > 0)
 			rtn += "ImP sending data.\n";
 		else
 			rtn += "ImP not sending data.\n";
-		pipe.close_pipes();
+		imp.stopDataCollection();
 		Timer::sleep_ms(500);
 		system("sudo rm -rf *.txt");
 		return rtn;

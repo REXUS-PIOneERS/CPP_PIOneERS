@@ -52,34 +52,6 @@ void interrupt() {
 }
 
 /**
- * Checks the status of all possible child processes and returns as a
- * string.
- */
- std::string status_check() {
-	std::string rtn;
-	if (raspi1.status())
-		rtn += "Eth_u, ";
-	else
-		rtn += "Eth_d, ";
-
-	if (REXUS.status())
-		rtn += "RXSM_u, ";
-	else
-		rtn += "RXSM_d, ";
-
-	if (Cam.status())
-		rtn += "Cam_u, ";
-	else
-		rtn += "Cam_d, ";
-	
-	if (IMU.status())
-		rtn += "IMU_u";
-	else
-		rtn += "IMU_d";
-	return rtn;
- }
-
-/**
  * Checks whether input is activated
  * @param pin: GPIO to be checked
  * @return true or false
@@ -148,6 +120,34 @@ void signal_handler(int s) {
 }
 
 /**
+ * Checks the status of all possible child processes and returns as a
+ * string.
+ */
+ std::string status_check() {
+	std::string rtn;
+	if (raspi1.status())
+		rtn += "Eth_u, ";
+	else
+		rtn += "Eth_d, ";
+
+	if (REXUS.status())
+		rtn += "RXSM_u, ";
+	else
+		rtn += "RXSM_d, ";
+
+	if (Cam.status())
+		rtn += "Cam_u, ";
+	else
+		rtn += "Cam_d, ";
+	
+	if (IMU.status())
+		rtn += "IMU_u";
+	else
+		rtn += "IMU_d";
+	return rtn;
+ }
+
+/**
  * When the 'Start of Data Storage' signal is received all data recording
  * is stopped (IMU and Camera) and power to the camera is cut off to stop
  * shorting due to melting on re-entry. All data is copied into a backup
@@ -203,7 +203,7 @@ int SOE_SIGNAL() {
 	IMU.setupMag();
 	Log("INFO") << "IMU setup";
 	// Start data collection and store the stream where data is coming through
-	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/test");
+	IMU_stream = IMU.startDataCollection("Docs/Data/Pi1/imu_data");
 	Log("INFO") << "IMU collecting data";
 	comms::Packet p;
 	if (flight_mode) {
@@ -271,7 +271,23 @@ int SOE_SIGNAL() {
 	Log("INFO") << "Waiting for SODS";
 	// Wait for the next signal to continue the program
 	bool signal_received = false;
+	int counter = 0;
 	while (!signal_received) {
+		if (counter++ >= 100) {
+			// Check the camera and imu are still running
+			counter = 0;
+			// Send general status update
+			REXUS.sendMsg(status_check());
+			if (!Cam.status()) {
+				Log("ERROR") << "Camera stopped running...restarting";
+				Cam.startVideo("Docs/Video/restart");
+			}
+			if (!IMU.status()) {
+				Log("ERROR") << "IMU stopped running...restarting";
+				IMU.startDataCollection("Docs/Data/Pi1/restart");
+			}
+
+		}
 		// Implements a loop to ensure SOE signal has actually been received
 		signal_received = (poll_signals(LO, SOE, SODS) & 0b100);
 		// Read data from IMU_data_stream and echo it to Ethernet
@@ -318,6 +334,11 @@ int LO_SIGNAL() {
 			counter = 0;
 			REXUS.sendMsg("I'm still alive...");
 			REXUS.sendMsg(status_check());
+			// Specifically check if the camera is still running
+			if (!Cam.status()) {
+				Log("ERROR") << "Camera not running...restarting";
+				Cam.startVideo("Docs/Video/restart");
+			}
 		}
 		// Check for packets from pi2
 		while (raspi1.recvPacket(p))
@@ -375,7 +396,7 @@ int main(int argc, char* argv[]) {
 		if (digitalRead(ALIVE)) {
 			Log("INFO") << "Establishing ethernet connection";
 			raspi1.run("Docs/Data/Pi2/backup");
-			if (raspi1.is_alive()) {
+			if (raspi1.status()) {
 				Log("INFO") << "Connection successful";
 				REXUS.sendMsg("Ethernet connection successful");
 				break;
@@ -395,7 +416,7 @@ int main(int argc, char* argv[]) {
 		Log("INFO") << "Attempting ethernet connection anyway";
 		raspi1.run("Docs/Data/Pi2/backup");
 		Timer::sleep_ms(5000);
-		if (raspi1.is_alive()) {
+		if (raspi1.status()) {
 			Log("INFO") << "Ethernet connection successful";
 			REXUS.sendMsg("Ethernet connected");
 		} else {
