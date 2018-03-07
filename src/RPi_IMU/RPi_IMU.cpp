@@ -68,7 +68,7 @@ bool RPi_IMU::setupGyr(int reg1_value, int reg4_value, int reg_orient_value) {
 			<< reg1_value << "\n\tCTRL_REG4-" << reg4_value
 			<< "\n\tORIENT_CFG_G" << reg_orient_value;
 	bool a = writeReg(GYR_ADDRESS, CTRL_REG1_G, reg1_value);
-	bool b = writeReg(GYR_ADDRESS, CTRL_REG4, reg2_value);
+	bool b = writeReg(GYR_ADDRESS, CTRL_REG4, reg4_value);
 	bool c = writeReg(GYR_ADDRESS, ORIENT_CFG_G, reg_orient_value);
 	if (a && b && c) {
 		Log("INFO") << "Gyro setup successfully";

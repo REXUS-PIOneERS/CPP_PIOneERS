@@ -54,13 +54,13 @@ public:
 	 * Sets up the accelerometer registers. See BerryIMU documentation for
 	 * details on the effect of different values.
 	 * 
-	 * Defaults: x y and z enabled, Data Rate 238 Hz, BW 105 Hz, +- 8g
+	 * Defaults: x y and z enabled, Data Rate 50 Hz, BW 50 Hz, +- 2g
 	 *
 	 * @param reg5_value: Value written to CTRL_REG5_XL
 	 * @param reg6_value: Value written to CTRL_REG6_XL
 	 * @return true: write successful, false: write failed
 	 */
-	bool setupAcc(int reg5_value = 0b00111000, int reg6_value = 0b10011000);
+	bool setupAcc(int reg5_value = 0b00111000, int reg6_value = 0b01000000);
 
 	/**
 	 * Sets up the gyroscope registers. See BerryIMU documentation for details
@@ -73,14 +73,14 @@ public:
 	 * @param reg_orient_value: Value written to ORIENT_CFG_G
 	 * @return true: write successful, false: write failed
 	 */
-	bool setupGyr(int reg1_value = 0b10001000, int reg4_value = 0b00111000,
+	bool setupGyr(int reg1_value = 0b01011000, int reg4_value = 0b00111000,
 	int reg_orient_value = 0b00000000);
 
 	/**
 	 * Sets up the magnetometer registers. See BerryIMU documentation for
 	 * details on the effect of different values.
 	 * 
-	 * Defaults: High-performance, 300 Hz ODR, +- 4 gauss, continuous conversian
+	 * Defaults: High-performance, 59.5 Hz ODR, +- 4 gauss, continuous conversian
 	 *
 	 * @param reg1_value: Value written to CTRL_REG1_M
 	 * @param reg2_value: Value written to CTRL_REG2_M
@@ -88,8 +88,8 @@ public:
 	 * @param reg4_value: Value written to CTRL_REG4_M
 	 * @return true: write successful, false: write failed
 	 */
-	bool setupMag(int reg1_value = 0b11011110, int reg2_value = 0b00000000,
-			int reg3_value = 0b00000000, int reg4_value = 0b0000100);
+	bool setupMag(int reg1_value = 0b11110100, int reg2_value = 0b00000000,
+			int reg3_value = 0b00000000, int reg4_value = 0b00001100);
 
 	/**
 	 * Write a value to a register.
@@ -174,7 +174,6 @@ private:
 	bool activateMag() {
 		return activateSensor(MAG_ADDRESS);
 	}
-	void resetRegisters();
 };
 
 #endif /* BERRYIMU_H */
