@@ -161,11 +161,12 @@ int SOE_SIGNAL() {
 	ImP_stream = IMP.startDataCollection("Docs/Data/Pi2/imu_data");
 	Log("INFO") << "Started data collection from ImP";
 	comms::Packet p; // Buffer for reading data from the IMU stream
-	// Trigger the burn wire for 10 seconds!
-	Log("INFO") << "Triggering burnwire";
-	digitalWrite(BURNWIRE, 1);
+	
 	Timer tmr;
 	if (flight_mode) {
+		// Trigger the burn wire for 10 seconds!
+		Log("INFO") << "Triggering burnwire";
+		digitalWrite(BURNWIRE, 1);
 		raspi2.sendMsg("Burnwire triggered...");
 		Log("INFO") << "Burn wire triggered" << std::endl;
 		while (tmr.elapsed() < 10000) {
