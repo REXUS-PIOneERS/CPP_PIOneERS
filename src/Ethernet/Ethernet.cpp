@@ -358,6 +358,7 @@ bool Raspi2::status() {
 
 int Raspi2::sendMsg(std::string msg) {
 	msg.insert(0, "Pi2: ");
+	msg += "\n";
 	int n = msg.length();
 	int mesg_num = ceil(n / (float) 15);
 	char *buf = new char [17];

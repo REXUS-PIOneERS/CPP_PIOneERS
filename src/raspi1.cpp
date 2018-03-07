@@ -273,7 +273,7 @@ int SOE_SIGNAL() {
 	bool signal_received = false;
 	int counter = 0;
 	while (!signal_received) {
-		if (counter++ >= 100) {
+		if (counter++ >= 300) {
 			// Check the camera and imu are still running
 			counter = 0;
 			// Send general status update
@@ -330,9 +330,8 @@ int LO_SIGNAL() {
 		// Implements a loop to ensure SOE signal has actually been received
 		signal_received = (poll_signals(LO, SOE, SODS) & 0b110);
 		// Send a message every second for the sake of sanity!
-		if (counter++ >= 100) {
+		if (counter++ >= 300) {
 			counter = 0;
-			REXUS.sendMsg("I'm still alive...");
 			REXUS.sendMsg(status_check());
 			// Specifically check if the camera is still running
 			if (!Cam.status()) {

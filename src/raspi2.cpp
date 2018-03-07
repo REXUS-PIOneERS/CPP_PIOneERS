@@ -191,7 +191,7 @@ int SOE_SIGNAL() {
 	bool signal_received = false;
 	int counter = 0;
 	while (!signal_received) {
-		if (counter++ >=100) {
+		if (counter++ >=300) {
 			// Check camera and ImP are running
 			counter = 0;
 			// Send the general status update message
@@ -239,9 +239,8 @@ int LO_SIGNAL() {
 		Timer::sleep_ms(10);
 		signal_received = (poll_signals(LO, SOE, SODS) & 0b110);
 		// Send a message evert second
-		if (counter++ >= 100) {
+		if (counter++ >= 300) {
 			counter = 0;
-			raspi2.sendMsg("I'm alive too...");
 			raspi2.sendMsg(status_check());
 			if (!Cam.status()) {
 				Log("ERROR") << "Camera not running...restarting";

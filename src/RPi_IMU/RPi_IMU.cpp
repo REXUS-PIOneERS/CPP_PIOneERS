@@ -316,7 +316,7 @@ comms::Pipe RPi_IMU::startDataCollection(char* filename) {
 			comms::Packet p1;
 			comms::Packet p2;
 			comms::byte1_t data[22];
-			int intv = 10;
+			int intv = 100;
 			Timer measurement_time;
 			std::string measurement_start = measurement_time.str_datetime();
 			// Infinite loop for taking measurements
