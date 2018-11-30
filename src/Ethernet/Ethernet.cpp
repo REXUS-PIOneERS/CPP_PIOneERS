@@ -1,146 +1,123 @@
+/**
+ * REXUS PIOneERS - Pi_1
+ * Ethernet.cpp
+ * Purpose: Implementation of functions for the Server and Client classes for
+ *		ethernet communication
+ *
+ * @author David Amison
+ * @version 2.0 12/10/2017
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fstream>
-#include <string.h>
+
+#include <fstream> //for std::ofstream
+#include <sstream> //for std::stringstream
+#include <iostream>  //for std::endl
+
+#include <string>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <math.h>
 
 #include "Ethernet.h"
+#include "comms/pipes.h"
+#include "comms/transceiver.h"
+#include "comms/packet.h"
 
-void error(const char *msg) {
-	perror(msg);
-	exit(1);
-}
+#include "timing/timer.h"
+#include "logger/logger.h"
+#include <error.h>
+#include <sstream>
 
-// Functions for setting up as a server
+#include <poll.h>
 
-Server::Server(int port) {
-	m_port = port;
-
-	setup();
-}
 
 int Server::setup() {
+	Log("INFO") << "Setting up server to communicate on port no. " << _port;
 	// Open the socket for Ethernet connection
-	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sockfd < 0)
-		error("ERROR opening socket");
-	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
+	_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_sockfd < 0) {
+		Log("ERROE") << "Server failed to open socket";
+		throw EthernetException("ERROR: Server Failed to Open Socket");
+	}
+	bzero((char *) &_serv_addr, sizeof (_serv_addr));
 	// Setup details for the server address
-	m_serv_addr.sin_family = AF_INET;
-	m_serv_addr.sin_addr.s_addr = INADDR_ANY;
-	m_serv_addr.sin_port = m_port;
+	_serv_addr.sin_family = AF_INET;
+	_serv_addr.sin_addr.s_addr = INADDR_ANY;
+	_serv_addr.sin_port = _port;
 	// Bind the socket to given address and port number
-	if (bind(m_sockfd, (struct sockaddr *) &m_serv_addr,
-			sizeof (m_serv_addr)) < 0)
-		error("ERROR on binding");
+	if (bind(_sockfd, (struct sockaddr *) &_serv_addr, sizeof (_serv_addr)) < 0) {
+		Log("ERROR") << "Failed to bind server";
+		throw EthernetException("ERROR: On binding server");
+	}
 	// Sets backlog queue to 5 connections and allows socket to listen
-	listen(m_sockfd, 5);
-	m_clilen = sizeof (m_cli_addr);
-}
-
-std::string Server::receive_packet() {
-	// Receive a packet of data from the client and ackowledge receipt
-	char buf[256];
-	int n;
-	n = read(m_newsockfd, buf, 255);
-	if (n <= 0)
-		return "";
-	buf[n] = '\0';
-	std::string packet(buf);
-	return packet;
-}
-
-int Server::send_packet(std::string packet) {
-	/*
-	 * Sends a data packet to the server. General format is:
-	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
-	 * Data uses consistent overhead byte stuffing
-	 */
-	char buf[256];
-	int n = write(m_newsockfd, packet.c_str(), packet.length());
-	// Check we managed to send the data
-	return (n > 0) ? 0 : -1;
+	listen(_sockfd, 5);
+	_clilen = sizeof (_cli_addr);
+	Log("INFO") << "Server setup successful";
+	return 0;
 }
 
 Server::~Server() {
-	close(m_newsockfd);
-	close(m_sockfd);
+	Log("INFO") << "Destroying Server";
+	Log.stop_log();
+	close(_newsockfd);
+	close(_sockfd);
 }
-
-
-
 
 // Functions for setting up as a client
 
-Client::Client(int port, std::string host_name) {
-	m_host_name = host_name;
-	m_port = port;
-	setup();
-}
-
 int Client::setup() {
+	Log("INFO") << "Setting up client to communicate with " << _host_name <<
+			" on port no. " << _port;
 	// Open the socket
-	m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_sockfd < 0)
-		error("ERROR: failed to open socket");
-	// Look for server host by given name
-	m_server = gethostbyname(m_host_name.c_str());
-	if (m_server == NULL) {
-		fprintf(stderr, "ERROR, no such host\n");
-		exit(0);
+	_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_sockfd < 0) {
+		Log("ERROR") << "Client failed to open socket";
+		throw EthernetException("Client failed to open socket");
 	}
-	bzero((char *) &m_serv_addr, sizeof (m_serv_addr));
-	m_serv_addr.sin_family = AF_INET;
-	bcopy((char *) m_server->h_addr,
-			(char *) &m_serv_addr.sin_addr.s_addr,
-			m_server->h_length);
-	m_serv_addr.sin_port = m_port;
-
+	// Look for server host by given name
+	_server = gethostbyname(_host_name.c_str());
+	if (_server == NULL) {
+		Log("ERROR") << "Cannot find host \"" << _host_name << "\"";
+		throw EthernetException("No such host");
+	}
+	bzero((char *) &_serv_addr, sizeof (_serv_addr));
+	_serv_addr.sin_family = AF_INET;
+	bcopy((char *) _server->h_addr,
+			(char *) &_serv_addr.sin_addr.s_addr,
+			_server->h_length);
+	_serv_addr.sin_port = _port;
+	Log("INFO") << "Client setup successful";
 	return 0;
 }
 
 int Client::open_connection() {
-	if (connect(m_sockfd, (struct sockaddr *) &m_serv_addr, sizeof (m_serv_addr)) < 0)
-		return -1; // Failed to connect!
+	Log("INFO") << "Opening connection to server";
+	if (connect(_sockfd, (struct sockaddr *) &_serv_addr, sizeof (_serv_addr)) < 0) {
+		Log("ERROR") << "Request to connect to server failed";
+		throw EthernetException("Failed to connect to server"); // Failed to connect!
+	}
+	Log("INFO") << "Successfully connected to server";
 	return 0;
 }
 
-int Client::send_packet(std::string packet) {
-	/*
-	 * Sends a data packet to the server. General format is:
-	 * [SYNC] [MSGID] [MSGLEN] [DATA] [CRC]
-	 * Data uses consistent overhead byte stuffing
-	 */
-	char buf[256];
-	bzero(buf, 256);
-	int n = write(m_sockfd, packet.c_str(), packet.length());
-	// Check receipt has been acknowledged
-	return (n > 0) ? 0 : -1;
-}
-
-std::string Client::receive_packet() {
-	// Receives a data packet from the server
-	char buf[256];
-	int n = read(m_sockfd, buf, 255);
-	if (n <= 0)
-		return "";
-	buf[n] = '\0';
-	std::string packet(buf);
-	return packet;
-}
-
-int Client::close_connection() {
-	if (m_sockfd) {
-		send_packet("E");
+void Client::close_connection() {
+	Log("INFO") << "Ending connection with server and closing process";
+	if (_sockfd) {
+		close(_sockfd);
+		_pipes.close_pipes();
 	}
+	_connected = false;
 }
 
 Client::~Client() {
-	if (m_sockfd) {
-		send_packet("E");
-		close(m_sockfd);
-	}
+	Log("INFO") << "Destroying Client";
+	close_connection();
+	Log.stop_log();
 }
 
 /*
@@ -161,7 +138,71 @@ Client::~Client() {
  *		the connection
  */
 
-int Client::run(int pipes[2]) {
+void Raspi1::share_data() {
+	while (1) {
+		try {
+			setup();
+			open_connection();
+			comms::Transceiver eth_comms(_sockfd);
+			std::ofstream outf;
+			std::stringstream outf_name;
+			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
+			Log("INFO") << "Opening backup file: " << outf_name.str();
+			outf.open(outf_name.str());
+			comms::Packet p;
+			Log("INFO") << "Beginning data-sharing loop";
+			while (1) {
+				int n;
+				n = eth_comms.recvPacket(&p);
+				if (n < 0) throw EthernetException("Error receiving packet");
+				else if (n > 0) {
+					Log("DATA (SERVER)") << p;
+					outf << p << std::endl;
+					n = _pipes.binwrite(&p, sizeof (comms::Packet));
+					if (n < 0) throw n;
+				}
+
+				n = _pipes.binread(&p, sizeof (comms::Packet));
+				if (n < 0) throw n;
+				else if (n > 0) {
+					Log("DATA (CLIENT)") << p;
+					n = eth_comms.sendPacket(&p);
+					if (n < 0) throw EthernetException("Error sending packet");
+				}
+				Timer::sleep_ms(1);
+			}
+		} catch (int e) {
+			switch (e) {
+				case -1: // Process not forked correctly
+					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
+					break;
+				case -2: // Pipe unavailable
+				case -3: //
+					Log("ERROR") << "Problem with read/write to pipes\n\t" << std::strerror(errno);
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(e); // This is expected when we want to end the process
+				default:
+					Log("ERROR") << "Unexpected error code: " << e;
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(-1);
+			}
+			_pipes.close_pipes();
+		} catch (EthernetException e) {
+			Log("ERROR") << "Problem with communication\n\t" << e.what();
+			_pipes.close_pipes();
+			Log("INFO") << "Trying to reconnect";
+			Timer::sleep_ms(5000);
+		} catch (...) {
+			Log("FATAL") << "Unexpected error with client\n\t" << std::strerror(errno);
+			_pipes.close_pipes();
+			exit(-2);
+		}
+	}
+}
+
+void Raspi1::run(std::string filename) {
 	/*
 	 * Generate a pipe for transferring the data, fork the process and send
 	 * back the required pipes.
@@ -169,102 +210,167 @@ int Client::run(int pipes[2]) {
 	 * packets and sending these to the server as well as receiving packets
 	 * in return.
 	 */
-	int write_pipe[2]; // This pipe sends data back to the main process
-	int read_pipe[2]; // This pipe receives data from the main process
-	pipe(write_pipe);
-	pipe(read_pipe);
-	if (open_connection() == -1)
-		return -1;
-	if ((m_pid = fork()) == 0) {
+	_filename = filename;
+	Log("INFO") << "Starting data sharing with server";
+	_pipes = comms::Pipe();
+	Log("INFO") << "Forking processes";
+	if ((_pid = _pipes.Fork()) == 0) {
 		// This is the child process.
-		close(write_pipe[0]);
-		close(read_pipe[1]);
-		// Loop for sending and receiving data
-		std::ofstream outf;
-		outf.open("Docs/Data/Pi2/backup.txt");
-		while (1) {
-			char buf[256];
-			bzero(buf, 256);
-			// Send any data we have
-			int n = read(read_pipe[0], buf, 255);
-			if (n <= 0)
-				continue;
-			buf[n] = '\0';
-			std::string packet_send(buf);
-			if (send_packet(packet_send) != 0)
-				continue; // TODO handle the error
-			// Check for exit message
-			if (packet_send[0] == 'E')
-				break;
-			// Loop for receiving packets
-			std::string packet_recv = receive_packet();
-			if (!packet_recv.empty()) {
-				outf << packet_recv << "\n";
-				//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
-			}
-		}
-		outf.close();
-
+		Log.child_log();
+		share_data();
+		exit(0);
 	} else {
-		// Assign the pipes for the main process and close the un-needed ones
-		close(write_pipe[1]);
-		close(read_pipe[0]);
-		pipes[0] = write_pipe[0];
-		pipes[1] = read_pipe[1];
-		return 0;
+		return;
 	}
-	return 0;
 }
 
-int Server::run(int *pipes) {
-	// Fork a process to handle server stuff
-	int read_pipe[2];
-	int write_pipe[2];
-	pipe(read_pipe);
-	pipe(write_pipe);
-
-	while (1) {
-		printf("Waiting for client connection...\n");
-		m_newsockfd = accept(m_sockfd, (struct sockaddr*) & m_cli_addr, &m_clilen);
-		if (m_newsockfd < 0) error("ERROR: on accept");
-		printf("Connection established with a new client...\n"
-				"Beginning data sharing...\n");
-		if ((m_pid = fork()) == 0) {
-			// This is the child process that handles all the requests
-			close(read_pipe[1]);
-			close(write_pipe[0]);
-			// Loop for receiving data
-			std::ofstream outf;
-			outf.open("Docs/Data/Pi1/backup.txt");
-			char buf[256];
-			while (1) {
-				// Try to get data from the Client
-				std::string packet_recv = receive_packet();
-				if (!packet_recv.empty()) {
-					outf << packet_recv << "\n";
-					//write(write_pipe[1], packet_recv.c_str(), packet_recv.length());
-					if (packet_recv[0] == 'E')
-						break;
-				}
-				// Try to send data to the Client
-				int n = read(read_pipe[0], buf, 255);
-				if (n <= 0)
-					continue;
-				buf[n] = '\0';
-				std::string packet_send(buf);
-				if (send_packet(packet_send) != 0)
-					continue; // TODO Handling this error
-			}
-			outf.close();
-		} else {
-			// This is the main parent process
-			close(read_pipe[0]);
-			close(write_pipe[1]);
-			pipes[0] = write_pipe[0];
-			pipes[1] = read_pipe[1];
-			return 0;
+bool Raspi1::status() {
+	int status_check;
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
 		}
-		close(m_newsockfd);
+	} else
+		return false;
+}
+
+void Raspi2::share_data() {
+	while (1) {
+		try {
+			comms::Transceiver eth_comms(_newsockfd);
+			std::ofstream outf;
+			std::stringstream outf_name;
+			outf_name << _filename << "_" << Timer::str_datetime() << ".txt";
+			outf.open(outf_name.str());
+			comms::Packet p;
+			int n;
+			while (1) {
+				int n;
+				n = eth_comms.recvPacket(&p);
+				if (n < 0) throw EthernetException("Error receiving packet");
+				else if (n > 0) {
+					Log("DATA (CLIENT)") << p;
+					outf << p << std::endl;
+					n = _pipes.binwrite(&p, sizeof (comms::Packet));
+					if (n < 0) throw n;
+				}
+
+				n = _pipes.binread(&p, sizeof (comms::Packet));
+				if (n < 0) throw n;
+				else if (n > 0) {
+					Log("DATA (SERVER)") << p;
+					n = eth_comms.sendPacket(&p);
+					if (n < 0) throw EthernetException("Error sending packet");
+				}
+				Timer::sleep_ms(1);
+			}
+		} catch (int e) {
+			switch (e) {
+				case -1: // Process not forked correctly
+					Log("ERROR") << "Problem with ethernet\n\t" << std::strerror(errno);
+					break;
+				case -2: // Pipe unavailable
+				case -3: //
+					Log("ERROR") << "Problem with read/write to pipes\n\t" << std::strerror(errno);
+					close(_newsockfd);
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(0); // This is expected when we want to end the process
+				default:
+					Log("ERROR") << "Unexpected error code: " << e;
+					close(_newsockfd);
+					close(_sockfd);
+					_pipes.close_pipes();
+					exit(-1);
+			}
+			close(_newsockfd);
+			_pipes.close_pipes();
+			Timer::sleep_ms(1000);
+		} catch (EthernetException e) {
+			Log("FATAL") << "Problem with Ethernet communication\n\t" << e.what();
+			close(_newsockfd);
+			_pipes.close_pipes();
+			Timer::sleep_ms(1000);
+			// Allow program to try and reconnect
+		} catch (...) {
+			Log("FATAL") << "Unexpected error with server\n\t" << std::strerror(errno);
+			close(_newsockfd);
+			close(_sockfd);
+			_pipes.close_pipes();
+			exit(-3);
+		}
 	}
-	return -1; // Something must have gone wrong because this shouldn't happen
+}
+
+void Raspi2::run(std::string filename) {
+	// Fork a process to handle server stuff
+	_filename = filename;
+	Log("INFO") << "Starting data sharing with client";
+	try {
+		setup();
+	} catch (EthernetException e) {
+		// Log then rethrow for caller to handle
+		Log("ERROR") << "Problem setting up server\n\t" << e.what();
+		throw e;
+	}
+
+	Log("INFO") << "Waiting for client connection";
+	_newsockfd = accept(_sockfd, (struct sockaddr*) & _cli_addr, &_clilen);
+	if (_newsockfd < 0) {
+		Log("ERROR") << "Problem waiting for client connection";
+		throw EthernetException("Error on accept");
+	}
+	Log("INFO") << "Client has established connection";
+
+	Log("INFO") << "Forking processes";
+	if ((_pid = _pipes.Fork()) == 0) {
+		// This is the child process that handles all the requests
+		Log.child_log();
+		share_data();
+	} else {
+		// This is the main parent process
+		return;
+	}
+}
+
+
+bool Raspi2::status() {
+	int status_check;
+	if (_pid) {
+		pid_t result = waitpid(_pid, &status_check, WNOHANG);
+		if (result == 0)
+			return true;
+		else if (result == _pid)
+			return false;
+		else {
+			Log("ERROR") << "Problem with status check\n\t" << std::strerror(errno);
+			return false;
+		}
+	} else
+		return false;
+}
+
+int Raspi2::sendMsg(std::string msg) {
+	msg.insert(0, "Pi2: ");
+	msg += "\n";
+	int n = msg.length();
+	int mesg_num = ceil(n / (float) 15);
+	char *buf = new char [17];
+	int sent = 0;
+	comms::Packet p;
+	for (int i = 0; i < n; i += 16) {
+		bzero(buf, 16);
+		std::string data = msg.substr(i, 16);
+		strcpy(buf, data.c_str());
+		int msg_index = (_index++ << 8) | (--mesg_num);
+		comms::Protocol::pack(p, ID_MSG1, msg_index, buf);
+		sent += sendPacket(p);
+	}
+	return sent;
 }
